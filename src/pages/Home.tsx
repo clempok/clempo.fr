@@ -250,7 +250,7 @@ export default function Home() {
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '6rem', background: 'linear-gradient(to right, #fff, transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '6rem', background: 'linear-gradient(to left, #fff, transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div className="animate-scroll" style={{ display: 'flex', whiteSpace: 'nowrap' }}>
-            {clients.map((c, i) => (
+            {[...clients, ...clients].map((c, i) => (
               <span key={i} style={{
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontSize: '0.85rem', fontWeight: 500,
