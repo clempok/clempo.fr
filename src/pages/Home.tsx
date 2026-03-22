@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { articles } from '../data/articles'
 import { useLang } from '../contexts/LangContext'
+import SEO from '../components/SEO'
 
 const ACCENT = '#1A1A6B'
 const ACCENT_LIGHT = 'rgba(26,26,107,0.07)'
@@ -143,8 +144,45 @@ export default function Home() {
     marginBottom: '0.4rem', color: TEXT, letterSpacing: '0.02em',
   }
 
+  const homeTitle = lang === 'fr'
+    ? 'Clément Pouget-Osmont — Expert Marketing Santé Freelance | HealthTech & MedTech'
+    : 'Clément Pouget-Osmont — Freelance Healthcare Marketing Expert | HealthTech & MedTech'
+  const homeDesc = lang === 'fr'
+    ? 'Directeur marketing santé freelance. J\'accompagne les entreprises healthtech, medtech et pharma dans leur stratégie de croissance. Ex-Doctolib (5 ans), 12 ans d\'expérience.'
+    : 'Freelance healthcare marketing director. I help healthtech, medtech and pharma companies build their brand and scale. Ex-Doctolib (5 years), 12 years of experience.'
+
   return (
     <>
+      <SEO
+        title={homeTitle}
+        description={homeDesc}
+        canonical="/"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'Person',
+              '@id': 'https://www.clempo.fr/#person',
+              name: 'Clément Pouget-Osmont',
+              url: 'https://www.clempo.fr',
+              jobTitle: 'Healthcare Marketing Director Freelance',
+              description: 'Expert marketing santé freelance. 12 ans d\'expérience dont 5 ans chez Doctolib. Spécialisé HealthTech, MedTech et BioTech.',
+              sameAs: [
+                'https://www.linkedin.com/in/clementpougetosmont/',
+              ],
+              knowsAbout: ['Marketing santé', 'HealthTech', 'MedTech', 'Marketing digital', 'Go-to-market', 'Stratégie de croissance'],
+            },
+            {
+              '@type': 'WebSite',
+              '@id': 'https://www.clempo.fr/#website',
+              url: 'https://www.clempo.fr',
+              name: 'Clempo.fr',
+              description: 'Site personnel de Clément Pouget-Osmont, expert marketing santé freelance',
+              author: { '@id': 'https://www.clempo.fr/#person' },
+            },
+          ],
+        }}
+      />
       {/* Loader */}
       <div className={`loader${loaderDone ? ' loader-exit' : ''}`}>
         <div className="loader-tagline">Marketing · Strategy · Growth</div>

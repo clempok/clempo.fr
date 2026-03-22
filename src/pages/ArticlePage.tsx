@@ -3,6 +3,7 @@ import { Link, useParams, Navigate } from 'react-router-dom'
 import { ChevronRight, List, X } from 'lucide-react'
 import { articles } from '../data/articles'
 import { useLang } from '../contexts/LangContext'
+import SEO from '../components/SEO'
 
 // ---- Markdown renderer ----
 
@@ -290,24 +291,46 @@ export default function ArticlePage() {
   const { t } = useLang()
 
   useEffect(() => {
-    if (article) {
-      document.title = article.title + ' | Clempo.fr'
-      let meta = document.querySelector('meta[name="description"]')
-      if (!meta) {
-        meta = document.createElement('meta')
-        meta.setAttribute('name', 'description')
-        document.head.appendChild(meta)
-      }
-      meta.setAttribute('content', article.metaDescription)
-    }
     window.scrollTo(0, 0)
-  }, [article])
+  }, [slug])
 
   if (!article) return <Navigate to="/articles" replace />
 
   const toc = extractTOC(article.content)
 
   return (
+    <>
+      <SEO
+        title={`${article.title} | Clempo.fr`}
+        description={article.metaDescription}
+        canonical={`/articles/${article.slug}`}
+        ogImage={article.heroImage}
+        ogType="article"
+        articlePublishedTime={article.date}
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: article.title,
+          description: article.metaDescription,
+          image: article.heroImage,
+          datePublished: article.date,
+          author: {
+            '@type': 'Person',
+            '@id': 'https://www.clempo.fr/#person',
+            name: 'Clément Pouget-Osmont',
+            url: 'https://www.clempo.fr',
+          },
+          publisher: {
+            '@type': 'Person',
+            name: 'Clément Pouget-Osmont',
+            url: 'https://www.clempo.fr',
+          },
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `https://www.clempo.fr/articles/${article.slug}`,
+          },
+        }}
+      />
     <div style={{ paddingTop: '5rem', background: '#fff', minHeight: '100vh' }}>
       <div style={{ maxWidth: '72rem', margin: '0 auto', padding: '0 4vw' }}>
         {/* Breadcrumb */}
@@ -476,5 +499,6 @@ export default function ArticlePage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

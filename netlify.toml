@@ -3,6 +3,63 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# SPA fallback — toutes les routes React sont gérées par index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Redirect www vers non-www ou inverse — uniformiser sur www
+[[redirects]]
+  from = "https://clempo.fr/*"
+  to = "https://www.clempo.fr/:splat"
+  status = 301
+  force = true
+
+# Headers de sécurité et SEO pour toutes les pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Cache long pour les assets statiques (JS/CSS/images)
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache pour les images publiques
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/*.jpeg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# Sitemap et robots : pas de cache agressif
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    Content-Type = "application/xml"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+# PDF brochure
 [[headers]]
   for = "/CPO-Services-2026.pdf"
   [headers.values]

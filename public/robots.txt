@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://clempo.fr/sitemap.xml
+Sitemap: https://www.clempo.fr/sitemap.xml

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { articles } from '../data/articles'
 import { useLang } from '../contexts/LangContext'
+import SEO from '../components/SEO'
 
 const ACCENT = '#1A1A6B'
 const ACCENT_LIGHT = 'rgba(26,26,107,0.07)'
@@ -14,17 +15,27 @@ export default function Articles() {
   const { t, lang } = useLang()
 
   useEffect(() => {
-    document.title = t('articles_page', 'doc_title')
-    const meta = document.querySelector('meta[name="description"]')
-    if (meta) meta.setAttribute('content', t('articles_page', 'doc_meta'))
     window.scrollTo(0, 0)
-  }, [lang])
+  }, [])
 
   const locale = lang === 'fr' ? 'fr-FR' : 'en-GB'
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
 
+  const articlesTitle = lang === 'fr'
+    ? 'Articles — Analyses des systèmes de santé & Marketing Santé | Clempo.fr'
+    : 'Articles — Healthcare Systems Analysis & Health Marketing | Clempo.fr'
+  const articlesDesc = lang === 'fr'
+    ? 'Analyses approfondies des systèmes de santé mondiaux et conseils marketing pour entrepreneurs healthtech. Par Clément Pouget-Osmont, expert marketing santé.'
+    : 'In-depth analysis of global healthcare systems and marketing insights for healthtech entrepreneurs. By Clément Pouget-Osmont.'
+
   return (
+    <>
+      <SEO
+        title={articlesTitle}
+        description={articlesDesc}
+        canonical="/articles"
+      />
     <div style={{ paddingTop: '5rem', background: '#fff', minHeight: '100vh' }}>
       {/* Header */}
       <div style={{ padding: '4rem 4vw 3rem', maxWidth: '56rem', margin: '0 auto', textAlign: 'center' }}>
@@ -155,5 +166,6 @@ export default function Articles() {
         </div>
       ))}
     </div>
+    </>
   )
 }

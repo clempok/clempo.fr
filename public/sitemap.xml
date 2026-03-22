@@ -1,53 +1,109 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://clempo.fr/</loc>
+    <loc>https://www.clempo.fr/</loc>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
+    <lastmod>2026-03-22</lastmod>
   </url>
   <url>
-    <loc>https://clempo.fr/articles</loc>
+    <loc>https://www.clempo.fr/articles</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+    <lastmod>2026-03-22</lastmod>
   </url>
+
+  <!-- Analyses des systèmes de santé -->
   <url>
-    <loc>https://clempo.fr/articles/systeme-sante-etats-unis</loc>
+    <loc>https://www.clempo.fr/articles/systeme-sante-etats-unis</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
   </url>
   <url>
-    <loc>https://clempo.fr/articles/systeme-sante-europe</loc>
+    <loc>https://www.clempo.fr/articles/systeme-sante-canada-mexique</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
   </url>
   <url>
-    <loc>https://clempo.fr/articles/systeme-sante-asie</loc>
+    <loc>https://www.clempo.fr/articles/systeme-sante-europe</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
   </url>
   <url>
-    <loc>https://clempo.fr/articles/systeme-sante-canada-mexique</loc>
+    <loc>https://www.clempo.fr/articles/systeme-sante-asie</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
   </url>
   <url>
-    <loc>https://clempo.fr/articles/systeme-sante-moyen-orient</loc>
+    <loc>https://www.clempo.fr/articles/systeme-sante-moyen-orient</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
   </url>
   <url>
-    <loc>https://clempo.fr/articles/systeme-sante-afrique</loc>
+    <loc>https://www.clempo.fr/articles/systeme-sante-afrique</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
   </url>
   <url>
-    <loc>https://clempo.fr/articles/systeme-sante-amerique-du-sud</loc>
+    <loc>https://www.clempo.fr/articles/systeme-sante-amerique-du-sud</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
   </url>
   <url>
-    <loc>https://clempo.fr/articles/systeme-sante-australie-nouvelle-zelande</loc>
+    <loc>https://www.clempo.fr/articles/systeme-sante-australie-nouvelle-zelande</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
+  </url>
+
+  <!-- Conseils marketing appliqués à la santé -->
+  <url>
+    <loc>https://www.clempo.fr/articles/palantir-dans-la-sante-promesses-resultats-controverses</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
+  </url>
+  <url>
+    <loc>https://www.clempo.fr/articles/capter-attention-scientifiques-hcps-linkedin</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
+  </url>
+  <url>
+    <loc>https://www.clempo.fr/articles/generer-leads-ia-healthtech-2025</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
+  </url>
+  <url>
+    <loc>https://www.clempo.fr/articles/contenu-ne-genere-pas-business-distribution-cle</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
+  </url>
+  <url>
+    <loc>https://www.clempo.fr/articles/hack-scraping-linkedin-scoring-prospects-b2b-sante</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
+  </url>
+  <url>
+    <loc>https://www.clempo.fr/articles/17-outils-generer-leads-startup-sante</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
+  </url>
+  <url>
+    <loc>https://www.clempo.fr/articles/contacter-medecins-courrier-postal-1-euro-methode</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-03-19</lastmod>
   </url>
 </urlset>
