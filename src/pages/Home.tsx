@@ -17,6 +17,11 @@ const clients = [
   'Médéré','Sorcova','DocCity','Semble','Andrew','Sofia Développement',
 ]
 
+const COMPANIES = [
+  'Doctolib','Kiro','Santé Académie','Cherry Biotech','Neok',
+  'Médéré','Sorcova','DocCity','Semble','Andrew','Sofia Développement',
+]
+
 function useReveal() {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -35,6 +40,20 @@ export default function Home() {
   const [formData, setFormData] = useState({ firstName: '', lastName: '', company: '', email: '', phone: '' })
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  const [companyIdx, setCompanyIdx] = useState(0)
+  const [companyExiting, setCompanyExiting] = useState(false)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCompanyExiting(true)
+      setTimeout(() => {
+        setCompanyIdx(prev => (prev + 1) % COMPANIES.length)
+        setCompanyExiting(false)
+      }, 320)
+    }, 2600)
+    return () => clearInterval(interval)
+  }, [])
 
   const locale = lang === 'fr' ? 'fr-FR' : 'en-GB'
   const formatDate = (d: string) =>
@@ -88,7 +107,7 @@ export default function Home() {
       {/* Loader */}
       <div className="loader">
         <div className="loader-tagline">Marketing · Strategy · Growth</div>
-        <div className="loader-phrase">Shaping the future of health</div>
+        <div className="loader-phrase">Working with the shapers of healthcare</div>
         <div className="loader-line" />
       </div>
 
@@ -128,12 +147,51 @@ export default function Home() {
           </p>
 
           {/* Tags */}
-          <p style={{ fontSize: '0.9rem', color: MUTED, fontWeight: 300, marginBottom: '3rem', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '0.78rem', color: MUTED, fontWeight: 300, marginBottom: '1.5rem', lineHeight: 1.6, letterSpacing: '0.02em' }}>
             Product Marketing <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
             Growth Marketing <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
             Revenue Strategy <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
             Team Management
           </p>
+
+          {/* Tagline + Company cycling */}
+          <div style={{ marginBottom: '3rem' }}>
+            <p style={{ fontSize: 'clamp(0.95rem, 1.5vw, 1.1rem)', color: TEXT, fontWeight: 400, marginBottom: '1.1rem', letterSpacing: '-0.01em' }}>
+              Working with the shapers of healthcare
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', height: '1.9rem' }}>
+              <div style={{ width: '22px', height: '1px', background: ACCENT, flexShrink: 0, opacity: 0.6 }} />
+              <div style={{ position: 'relative', height: '100%', flex: 1, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+                <span
+                  key={companyIdx}
+                  className={companyExiting ? 'company-out' : 'company-in'}
+                  style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontSize: '0.9rem', fontWeight: 600, color: ACCENT,
+                    letterSpacing: '0.01em',
+                    position: 'absolute',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {COMPANIES[companyIdx]}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '3px', flexShrink: 0, alignItems: 'center' }}>
+                {COMPANIES.map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: i === companyIdx ? '14px' : '4px',
+                      height: '2px',
+                      borderRadius: '99px',
+                      background: i === companyIdx ? ACCENT : 'rgba(0,0,0,0.12)',
+                      transition: 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
 
           {/* CTAs */}
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
