@@ -66,6 +66,18 @@ a, button { cursor: none; }
   color: #0A0A0A; opacity: 0;
   animation: loaderFadeIn 0.6s ease 0.3s forwards;
 }
+
+/* ─── COMPANY CYCLING ─── */
+@keyframes companyIn {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+@keyframes companyOut {
+  from { opacity: 1; transform: translateY(0);    }
+  to   { opacity: 0; transform: translateY(-9px); }
+}
+.company-in  { animation: companyIn  0.45s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+.company-out { animation: companyOut 0.28s ease forwards; }
 .loader-line {
   width: 40px; height: 1px; background: #1A1A6B;
   transform: scaleX(0);
