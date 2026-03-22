@@ -141,7 +141,7 @@ export default function Home() {
       {/* Loader */}
       <div className={`loader${loaderDone ? ' loader-exit' : ''}`}>
         <div className="loader-tagline">Marketing · Strategy · Growth</div>
-        <div className="loader-phrase">Working with</div>
+        <div className="loader-phrase">Working with the shapers of healthcare</div>
         <div className="loader-company-wrap">
           <span
             key={loaderCompanyIdx}
