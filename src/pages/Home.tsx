@@ -72,19 +72,17 @@ export default function Home() {
     document.body.style.overflow = 'hidden'
     let wheelAccum = 0
     const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
       wheelAccum += Math.abs(e.deltaY) + Math.abs(e.deltaX)
       if (wheelAccum > 30) { wheelAccum = 0; advanceLoader.current() }
     }
     const onTouchStart = (e: TouchEvent) => { touchStartY.current = e.touches[0].clientY }
     const onTouchMove = (e: TouchEvent) => {
-      e.preventDefault()
       const dy = touchStartY.current - e.touches[0].clientY
       if (dy > 20) { touchStartY.current = e.touches[0].clientY; advanceLoader.current() }
     }
-    window.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('wheel', onWheel, { passive: true })
     window.addEventListener('touchstart', onTouchStart, { passive: true })
-    window.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('touchmove', onTouchMove, { passive: true })
     const fallback = setTimeout(() => {
       document.body.style.overflow = ''
       window.scrollTo(0, 0)
