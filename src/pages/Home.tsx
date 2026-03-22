@@ -438,7 +438,7 @@ export default function Home() {
               </h2>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+            <div className="media-grid">
               {[
                 {
                   href: 'https://www.youtube.com/watch?v=OR9iH07AHVQ&t',
