@@ -43,6 +43,8 @@ export default function Home() {
 
   const [companyIdx, setCompanyIdx] = useState(0)
   const [companyExiting, setCompanyExiting] = useState(false)
+  const [loaderCompanyIdx, setLoaderCompanyIdx] = useState(0)
+  const [loaderCompanyExiting, setLoaderCompanyExiting] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -52,6 +54,20 @@ export default function Home() {
         setCompanyExiting(false)
       }, 320)
     }, 2600)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    let count = 0
+    const interval = setInterval(() => {
+      setLoaderCompanyExiting(true)
+      setTimeout(() => {
+        setLoaderCompanyIdx(prev => (prev + 1) % COMPANIES.length)
+        setLoaderCompanyExiting(false)
+      }, 220)
+      count++
+      if (count >= 5) clearInterval(interval)
+    }, 450)
     return () => clearInterval(interval)
   }, [])
 
@@ -107,7 +123,16 @@ export default function Home() {
       {/* Loader */}
       <div className="loader">
         <div className="loader-tagline">Marketing · Strategy · Growth</div>
-        <div className="loader-phrase">Working with the shapers of healthcare</div>
+        <div className="loader-phrase">Working with</div>
+        <div className="loader-company-wrap">
+          <span
+            key={loaderCompanyIdx}
+            className={loaderCompanyExiting ? 'company-out' : 'company-in'}
+            style={{ position: 'absolute', whiteSpace: 'nowrap' }}
+          >
+            {COMPANIES[loaderCompanyIdx]}
+          </span>
+        </div>
         <div className="loader-line" />
       </div>
 
