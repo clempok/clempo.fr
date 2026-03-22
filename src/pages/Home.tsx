@@ -43,17 +43,50 @@ export default function Home() {
 
   const [loaderCompanyIdx, setLoaderCompanyIdx] = useState(0)
   const [loaderCompanyExiting, setLoaderCompanyExiting] = useState(false)
+  const [loaderDone, setLoaderDone] = useState(false)
+  const loaderAdvancing = useRef(false)
+  const loaderCount = useRef(0)
+  const touchStartY = useRef(0)
+
+  const advanceLoader = useRef(() => {})
+  advanceLoader.current = () => {
+    if (loaderAdvancing.current || loaderDone) return
+    loaderAdvancing.current = true
+    setLoaderCompanyExiting(true)
+    setTimeout(() => {
+      loaderCount.current += 1
+      if (loaderCount.current >= COMPANIES.length) {
+        setLoaderDone(true)
+        loaderAdvancing.current = false
+        return
+      }
+      setLoaderCompanyIdx(prev => (prev + 1) % COMPANIES.length)
+      setLoaderCompanyExiting(false)
+      setTimeout(() => { loaderAdvancing.current = false }, 400)
+    }, 300)
+  }
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLoaderCompanyExiting(true)
-      setTimeout(() => {
-        setLoaderCompanyIdx(prev => (prev + 1) % COMPANIES.length)
-        setLoaderCompanyExiting(false)
-      }, 200)
-    }, 380)
-    const stop = setTimeout(() => clearInterval(interval), 2400)
-    return () => { clearInterval(interval); clearTimeout(stop) }
+    let wheelAccum = 0
+    const onWheel = (e: WheelEvent) => {
+      wheelAccum += Math.abs(e.deltaY) + Math.abs(e.deltaX)
+      if (wheelAccum > 80) { wheelAccum = 0; advanceLoader.current() }
+    }
+    const onTouchStart = (e: TouchEvent) => { touchStartY.current = e.touches[0].clientY }
+    const onTouchMove = (e: TouchEvent) => {
+      const dy = touchStartY.current - e.touches[0].clientY
+      if (dy > 35) { touchStartY.current = e.touches[0].clientY; advanceLoader.current() }
+    }
+    window.addEventListener('wheel', onWheel, { passive: true })
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: true })
+    const fallback = setTimeout(() => setLoaderDone(true), 8000)
+    return () => {
+      window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
+      clearTimeout(fallback)
+    }
   }, [])
 
   const locale = lang === 'fr' ? 'fr-FR' : 'en-GB'
@@ -106,7 +139,7 @@ export default function Home() {
   return (
     <>
       {/* Loader */}
-      <div className="loader">
+      <div className={`loader${loaderDone ? ' loader-exit' : ''}`}>
         <div className="loader-tagline">Marketing · Strategy · Growth</div>
         <div className="loader-phrase">Working with</div>
         <div className="loader-company-wrap">
@@ -119,6 +152,7 @@ export default function Home() {
           </span>
         </div>
         <div className="loader-line" />
+        <div className="loader-scroll-hint">scroll ↓</div>
       </div>
 
       <div style={{ position: 'relative', zIndex: 1 }}>
