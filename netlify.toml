@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[[headers]]
+  for = "/CPO-Services-2026.pdf"
+  [headers.values]
+    Content-Disposition = "attachment; filename=\"CPO-Services-2026.pdf\""
+    Content-Type = "application/pdf"
