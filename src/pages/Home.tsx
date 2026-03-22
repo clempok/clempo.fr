@@ -361,10 +361,10 @@ export default function Home() {
               >
                 <span style={{
                   display: 'inline-flex', width: 'fit-content',
-                  padding: '0.3rem 0.9rem', borderRadius: '100px',
+                  padding: '0.5rem 1.2rem', borderRadius: '100px',
                   background: item.badgeBg, color: item.badgeColor,
-                  fontSize: '0.65rem', fontWeight: 700,
-                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  fontSize: '1rem', fontWeight: 700,
+                  letterSpacing: '0.05em', textTransform: 'uppercase',
                 }}>
                   {item.badge}
                 </span>
