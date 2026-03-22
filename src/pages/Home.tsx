@@ -18,8 +18,7 @@ const clients = [
 ]
 
 const COMPANIES = [
-  'Doctolib','Kiro','Santé Académie','Cherry Biotech','Neok',
-  'Médéré','Sorcova','DocCity','Semble','Andrew','Sofia Développement',
+  'Doctolib', 'Kiro', 'Cherry Biotech', 'Santé Académie', 'DocCity', 'Corilus France',
 ]
 
 function useReveal() {
@@ -56,6 +55,8 @@ export default function Home() {
     setTimeout(() => {
       loaderCount.current += 1
       if (loaderCount.current >= COMPANIES.length) {
+        document.body.style.overflow = ''
+        window.scrollTo(0, 0)
         setLoaderDone(true)
         loaderAdvancing.current = false
         return
@@ -67,20 +68,28 @@ export default function Home() {
   }
 
   useEffect(() => {
+    // Lock page scroll while loader is active
+    document.body.style.overflow = 'hidden'
     let wheelAccum = 0
     const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
       wheelAccum += Math.abs(e.deltaY) + Math.abs(e.deltaX)
-      if (wheelAccum > 80) { wheelAccum = 0; advanceLoader.current() }
+      if (wheelAccum > 30) { wheelAccum = 0; advanceLoader.current() }
     }
     const onTouchStart = (e: TouchEvent) => { touchStartY.current = e.touches[0].clientY }
     const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault()
       const dy = touchStartY.current - e.touches[0].clientY
-      if (dy > 35) { touchStartY.current = e.touches[0].clientY; advanceLoader.current() }
+      if (dy > 20) { touchStartY.current = e.touches[0].clientY; advanceLoader.current() }
     }
-    window.addEventListener('wheel', onWheel, { passive: true })
+    window.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('touchstart', onTouchStart, { passive: true })
-    window.addEventListener('touchmove', onTouchMove, { passive: true })
-    const fallback = setTimeout(() => setLoaderDone(true), 8000)
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
+    const fallback = setTimeout(() => {
+      document.body.style.overflow = ''
+      window.scrollTo(0, 0)
+      setLoaderDone(true)
+    }, 8000)
     return () => {
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('touchstart', onTouchStart)
