@@ -14,9 +14,9 @@ export const translations = {
     },
     about: {
       title: "I'm not a marketer",
-      p1: "La plupart des marketeurs sont décevants. Trop loin du produit, trop loin des clients, trop loin du business.",
-      p2: "Avant tout, je suis un vendeur et un entrepreneur. C'est par là que ma carrière a démarré, et ce qui me passionne encore aujourd'hui : construire quelque chose de nouveau et trouver comment le vendre aux bonnes personnes.",
-      p3: "La meilleure façon que j'ai trouvée pour y parvenir ? Être à la fois vendeur, entrepreneur et product manager. Comprendre ce qui rend un produit unique, le mettre en lumière à travers du contenu, le diffuser aux bonnes personnes, et recruter l'équipe capable d'industrialiser tout ça. C'est ainsi que je me suis retrouvé à faire du marketing, par accident et par conviction.",
+      p1: "Je ne suis pas un marketeur. À vrai dire la plupart des marketeurs me laissent sceptique. Trop loin du produit, trop loin des clients, trop loin du business.",
+      p2: "Avant tout, je me considère comme un vendeur et un entrepreneur. C'est par là que ma carrière a démarré, et ce qui me passionne encore aujourd'hui : construire et vendre des choses innovantes.",
+      p3: "La meilleure façon que j'ai trouvée pour y parvenir ? Comprendre ce qui rend un produit unique, le mettre en lumière à travers du contenu, le diffuser aux bonnes personnes, et recruter l'équipe capable d'industrialiser tout ça. C'est ainsi que je me suis retrouvé à faire du marketing, par amour des offres claires et des grandes histoires.",
       cta: 'Parlons-en →',
     },
     articles_section: {
