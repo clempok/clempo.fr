@@ -107,6 +107,19 @@ a, button { cursor: none; }
   animation: loaderFadeIn 0.6s ease 1s forwards;
 }
 
+/* ─── MEDIA GRID ─── */
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+@media (max-width: 768px) {
+  .media-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
 /* ─── CURSOR ─── */
 .cursor-dot {
   width: 6px; height: 6px;
