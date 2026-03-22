@@ -41,34 +41,19 @@ export default function Home() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const [companyIdx, setCompanyIdx] = useState(0)
-  const [companyExiting, setCompanyExiting] = useState(false)
   const [loaderCompanyIdx, setLoaderCompanyIdx] = useState(0)
   const [loaderCompanyExiting, setLoaderCompanyExiting] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCompanyExiting(true)
-      setTimeout(() => {
-        setCompanyIdx(prev => (prev + 1) % COMPANIES.length)
-        setCompanyExiting(false)
-      }, 320)
-    }, 2600)
-    return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
-    let count = 0
-    const interval = setInterval(() => {
       setLoaderCompanyExiting(true)
       setTimeout(() => {
         setLoaderCompanyIdx(prev => (prev + 1) % COMPANIES.length)
         setLoaderCompanyExiting(false)
-      }, 220)
-      count++
-      if (count >= 5) clearInterval(interval)
-    }, 450)
-    return () => clearInterval(interval)
+      }, 200)
+    }, 380)
+    const stop = setTimeout(() => clearInterval(interval), 2400)
+    return () => { clearInterval(interval); clearTimeout(stop) }
   }, [])
 
   const locale = lang === 'fr' ? 'fr-FR' : 'en-GB'
@@ -172,51 +157,12 @@ export default function Home() {
           </p>
 
           {/* Tags */}
-          <p style={{ fontSize: '0.78rem', color: MUTED, fontWeight: 300, marginBottom: '1.5rem', lineHeight: 1.6, letterSpacing: '0.02em' }}>
+          <p style={{ fontSize: '0.78rem', color: MUTED, fontWeight: 300, marginBottom: '3rem', lineHeight: 1.6, letterSpacing: '0.02em' }}>
             Product Marketing <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
             Growth Marketing <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
             Revenue Strategy <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
             Team Management
           </p>
-
-          {/* Tagline + Company cycling */}
-          <div style={{ marginBottom: '3rem' }}>
-            <p style={{ fontSize: 'clamp(0.95rem, 1.5vw, 1.1rem)', color: TEXT, fontWeight: 400, marginBottom: '1.1rem', letterSpacing: '-0.01em' }}>
-              Working with the shapers of healthcare
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', height: '1.9rem' }}>
-              <div style={{ width: '22px', height: '1px', background: ACCENT, flexShrink: 0, opacity: 0.6 }} />
-              <div style={{ position: 'relative', height: '100%', flex: 1, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-                <span
-                  key={companyIdx}
-                  className={companyExiting ? 'company-out' : 'company-in'}
-                  style={{
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    fontSize: '0.9rem', fontWeight: 600, color: ACCENT,
-                    letterSpacing: '0.01em',
-                    position: 'absolute',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {COMPANIES[companyIdx]}
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: '3px', flexShrink: 0, alignItems: 'center' }}>
-                {COMPANIES.map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      width: i === companyIdx ? '14px' : '4px',
-                      height: '2px',
-                      borderRadius: '99px',
-                      background: i === companyIdx ? ACCENT : 'rgba(0,0,0,0.12)',
-                      transition: 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)',
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
 
           {/* CTAs */}
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
