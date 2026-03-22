@@ -175,7 +175,7 @@ a, button { cursor: none; }
 .animate-scroll { animation: scroll 15s linear infinite; }
 .animate-scroll:hover { animation-play-state: paused; }
 @media (max-width: 768px) {
-  .animate-scroll { animation-duration: 1.2s; }
+  .animate-scroll { animation-duration: 2.4s; }
 }
 
 /* ─── REVEAL ─── */
