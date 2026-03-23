@@ -478,7 +478,7 @@ export default function Home() {
                 icon: '🧬',
                 title: 'Pharma & Biotech',
                 text: "Vente de produits hautement techniques à des décideurs Pharma, Biotech et académiques.",
-                clients: ['Cherry Biotech'],
+                clients: ['Cherry Biotech', 'Doqboard'],
                 role: "VP Marketing — Cherry Biotech (fournisseur d'organoïdes)",
               },
               {
