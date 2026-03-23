@@ -461,6 +461,86 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ── EXPÉRIENCES SANTÉ ── */}
+        <section style={{ padding: '0 4vw 8rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+            <p style={{ fontSize: '0.68rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: ACCENT, marginBottom: '1rem', fontWeight: 500 }}>
+              Secteurs
+            </p>
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700, letterSpacing: '-0.03em', color: TEXT }}>
+              Mes expériences en santé
+            </h2>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            {[
+              {
+                icon: '🧬',
+                title: 'Pharma & Biotech',
+                text: "Vente de produits hautement techniques à des décideurs Pharma, Biotech et académiques.",
+                clients: ['Cherry Biotech'],
+                role: "VP Marketing — Cherry Biotech (fournisseur d'organoïdes)",
+              },
+              {
+                icon: '💻',
+                title: 'Healthtech',
+                text: "Vente de logiciels à des professionnels de santé et des établissements hospitaliers.",
+                clients: ['Doctolib', 'Kiro', 'Corilus France', 'Andrew', 'Semble', 'MonBilanDeSanté'],
+              },
+              {
+                icon: '🏢',
+                title: 'B2B',
+                text: "Vente de solutions santé et RH à de grandes entreprises.",
+                clients: ['HeyTeam', 'Sorcova Health', 'Neok'],
+              },
+              {
+                icon: '🏥',
+                title: 'Établissements de soins',
+                text: "Marketing pour des centres de santé afin d'attirer patients et médecins.",
+                clients: ['DocCity', 'Clinique stomatologie Dr Solène Vo Quang'],
+              },
+            ].map((item, i) => (
+              <div key={i} style={{
+                background: BG_OFF, borderRadius: '24px',
+                padding: '2.5rem', border: `1px solid ${BORDER}`,
+                display: 'flex', flexDirection: 'column', gap: '1.2rem',
+                transition: 'all 0.3s',
+              }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.boxShadow = '0 16px 50px rgba(0,0,0,0.06)'; el.style.borderColor = 'rgba(26,26,107,0.15)' }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = ''; el.style.boxShadow = ''; el.style.borderColor = BORDER }}
+              >
+                <span style={{ fontSize: '2rem', lineHeight: 1 }}>{item.icon}</span>
+                <h3 style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontSize: '1.35rem', fontWeight: 700,
+                  letterSpacing: '-0.02em', lineHeight: 1.2, color: TEXT,
+                }}>
+                  {item.title}
+                </h3>
+                <p style={{ fontSize: '0.92rem', lineHeight: 1.8, color: MUTED, fontWeight: 300 }}>
+                  {item.text}
+                </p>
+                {item.role && (
+                  <p style={{ fontSize: '0.82rem', lineHeight: 1.6, color: ACCENT, fontStyle: 'italic', fontWeight: 400 }}>
+                    {item.role}
+                  </p>
+                )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.4rem' }}>
+                  {item.clients.map((c, j) => (
+                    <span key={j} style={{
+                      padding: '0.3rem 0.9rem', borderRadius: '100px',
+                      background: 'rgba(26,26,107,0.07)', color: ACCENT,
+                      fontSize: '0.78rem', fontWeight: 500,
+                    }}>
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ── MEDIA ── */}
         <section style={{ padding: '0 4vw 8rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div ref={revealMedia} className="reveal" style={{ width: '100%', maxWidth: '72rem' }}>
