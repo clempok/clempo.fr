@@ -17,6 +17,7 @@ export function useLang() {
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
+    if (typeof window === 'undefined') return 'fr'
     const saved = localStorage.getItem('lang') as Lang
     if (saved === 'fr' || saved === 'en') return saved
     return navigator.language.toLowerCase().startsWith('fr') ? 'fr' : 'en'
