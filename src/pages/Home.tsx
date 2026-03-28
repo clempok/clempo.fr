@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { articles } from '../data/articles'
 import { useLang } from '../contexts/LangContext'
+import { useContent } from '../contexts/ContentContext'
 import SEO from '../components/SEO'
 
 const ACCENT = '#1A1A6B'
@@ -11,14 +12,12 @@ const MUTED = '#71717A'
 const TEXT = '#0A0A0A'
 const BG_OFF = '#F8F8F6'
 
-const clients = [
-  'Doctolib','Kiro','Santé Académie','Cherry Biotech','Neok',
-  'Médéré','Sorcova','DocCity','Semble','Andrew','Sofia Développement',
+const defaultClients = [
   'Doctolib','Kiro','Santé Académie','Cherry Biotech','Neok',
   'Médéré','Sorcova','DocCity','Semble','Andrew','Sofia Développement',
 ]
 
-const COMPANIES = [
+const defaultCompanies = [
   'Doctolib', 'Kiro', 'Cherry Biotech', 'Santé Académie', 'DocCity', 'Corilus France',
 ]
 
@@ -37,6 +36,14 @@ function useReveal() {
 
 export default function Home() {
   const { t, lang } = useLang()
+  const { content: c } = useContent()
+
+  const clients = [...(c?.clients || defaultClients), ...(c?.clients || defaultClients)]
+  const COMPANIES = c?.companies_loader || defaultCompanies
+  const loaderContent = c?.loader || { tagline: 'Marketing · Strategy · Growth', phrase: 'Working with the shapers of healthcare', scroll_hint: 'scroll ↓' }
+  const accomp = c?.accompagnements || null
+  const seoData = c?.seo?.[lang] || null
+
   const [formData, setFormData] = useState({ firstName: '', lastName: '', company: '', email: '', phone: '' })
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -144,12 +151,12 @@ export default function Home() {
     marginBottom: '0.4rem', color: TEXT, letterSpacing: '0.02em',
   }
 
-  const homeTitle = lang === 'fr'
+  const homeTitle = seoData?.home_title || (lang === 'fr'
     ? 'Clément Pouget-Osmont — Expert Marketing Santé Freelance | HealthTech & MedTech'
-    : 'Clément Pouget-Osmont — Freelance Healthcare Marketing Expert | HealthTech & MedTech'
-  const homeDesc = lang === 'fr'
+    : 'Clément Pouget-Osmont — Freelance Healthcare Marketing Expert | HealthTech & MedTech')
+  const homeDesc = seoData?.home_desc || (lang === 'fr'
     ? 'Directeur marketing santé freelance. J\'accompagne les entreprises healthtech, medtech et pharma dans leur stratégie de croissance. Ex-Doctolib (5 ans), 12 ans d\'expérience.'
-    : 'Freelance healthcare marketing director. I help healthtech, medtech and pharma companies build their brand and scale. Ex-Doctolib (5 years), 12 years of experience.'
+    : 'Freelance healthcare marketing director. I help healthtech, medtech and pharma companies build their brand and scale. Ex-Doctolib (5 years), 12 years of experience.')
 
   return (
     <>
@@ -185,8 +192,8 @@ export default function Home() {
       />
       {/* Loader */}
       <div className={`loader${loaderDone ? ' loader-exit' : ''}`}>
-        <div className="loader-tagline">Marketing · Strategy · Growth</div>
-        <div className="loader-phrase">Working with the shapers of healthcare</div>
+        <div className="loader-tagline">{loaderContent.tagline}</div>
+        <div className="loader-phrase">{loaderContent.phrase}</div>
         <div className="loader-company-wrap">
           <span
             key={loaderCompanyIdx}
@@ -197,7 +204,7 @@ export default function Home() {
           </span>
         </div>
         <div className="loader-line" />
-        <div className="loader-scroll-hint">scroll ↓</div>
+        <div className="loader-scroll-hint">{loaderContent.scroll_hint}</div>
       </div>
 
       <div style={{ position: 'relative', zIndex: 1 }}>
@@ -357,37 +364,39 @@ export default function Home() {
         <section style={{ padding: '0 4vw 8rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
             <p style={{ fontSize: '0.68rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: ACCENT, marginBottom: '1rem', fontWeight: 500 }}>
-              Accompagnements
+              {accomp?.badge_label || 'Accompagnements'}
             </p>
             <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700, letterSpacing: '-0.03em', color: TEXT }}>
-              Les entreprises que j'accompagne
+              {accomp?.title || "Les entreprises que j'accompagne"}
             </h2>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '4rem' }}>
-            {[
+            {(accomp?.cards || [
               {
                 badge: 'Early Stage',
-                badgeBg: 'rgba(16,185,129,0.1)',
-                badgeColor: '#059669',
                 title: 'Trouver vos premiers clients.',
                 text: "Vous avez un produit, quelques early adopters, mais pas encore de moteur d'acquisition qui tourne. Je vous aide à identifier ce qui convertit et à l'activer vite.",
               },
               {
                 badge: 'Scaleup',
-                badgeBg: 'rgba(26,26,107,0.08)',
-                badgeColor: ACCENT,
                 title: 'Maintenir un rythme de croissance soutenu.',
                 text: "La croissance est là, mais elle doit être préparée pour passer à l'échelle. Je vous aide à structurer ce qui existe pour que ça tienne dans la durée, sans perdre de vitesse.",
               },
               {
                 badge: 'ETI · Grand groupe',
-                badgeBg: 'rgba(245,158,11,0.1)',
-                badgeColor: '#B45309',
                 title: 'Garder son avance.',
                 text: "Votre CMO actuel s'en va ? Je le / la remplace en apportant ma connaissance du secteur santé et les méthodes de marketing innovantes pour garder votre avance face aux nouveaux entrants.",
               },
-            ].map((item, i) => (
+            ]).map((item: { badge: string; title: string; text: string }, i: number) => {
+              const badgeStyles = [
+                { badgeBg: 'rgba(16,185,129,0.1)', badgeColor: '#059669' },
+                { badgeBg: 'rgba(26,26,107,0.08)', badgeColor: ACCENT },
+                { badgeBg: 'rgba(245,158,11,0.1)', badgeColor: '#B45309' },
+              ]
+              const style = badgeStyles[i] || badgeStyles[0]
+              return { ...item, badgeBg: style.badgeBg, badgeColor: style.badgeColor }
+            }).map((item: { badge: string; title: string; text: string; badgeBg: string; badgeColor: string }, i: number) => (
               <div key={i} style={{
                 background: BG_OFF, borderRadius: '24px',
                 padding: '2.5rem', border: `1px solid ${BORDER}`,
@@ -456,7 +465,7 @@ export default function Home() {
                 transition: 'all 0.3s',
               }}
             >
-              Voyons ce que je peux faire pour vous <span className="cta-arrow">→</span>
+              {accomp?.cta || 'Voyons ce que je peux faire pour vous'} <span className="cta-arrow">→</span>
             </a>
           </div>
         </section>

@@ -1,0 +1,190 @@
+{
+  "translations": {
+    "fr": {
+      "nav": {
+        "home": "Accueil",
+        "articles": "Articles"
+      },
+      "hero": {
+        "title": "Healthcare Marketing Director.",
+        "tagline": "Product Marketing · Growth Marketing · Revenue Strategy · Team Management",
+        "cta_chat": "Prendre rendez-vous",
+        "cta_more": "En savoir plus"
+      },
+      "about": {
+        "title": "I'm not a marketer",
+        "p1": "Je ne suis pas un marketeur. À vrai dire la plupart des marketeurs me laissent sceptique. Trop loin du produit, trop loin des clients, trop loin du business.",
+        "p2": "Avant tout, je me considère comme un vendeur et un entrepreneur. C'est par là que ma carrière a démarré, et ce qui me passionne encore aujourd'hui : construire et vendre des choses innovantes.",
+        "p3": "La meilleure façon que j'ai trouvée pour y parvenir ? Comprendre ce qui rend un produit unique, le mettre en lumière à travers du contenu, le diffuser aux bonnes personnes, et recruter l'équipe capable d'industrialiser tout ça. C'est ainsi que je me suis retrouvé à faire du marketing, par amour des offres claires et des grandes histoires.",
+        "cta": "Parlons-en →"
+      },
+      "articles_section": {
+        "badge": "Insights",
+        "title": "Analyses des systèmes de santé dans le monde",
+        "subtitle": "Des rapports approfondis pour les professionnels de la healthtech",
+        "read": "Lire l'article →",
+        "see_all": "Voir tous les articles →"
+      },
+      "articles_page": {
+        "badge": "Blog & Analyses",
+        "title": "Analyses des systèmes de santé à travers le monde et conseils marketing aux entrepreneurs healthtech",
+        "subtitle": "",
+        "read": "Lire →",
+        "reading_time": "de lecture",
+        "doc_title": "Articles — Analyses des systèmes de santé | Clempo.fr",
+        "doc_meta": "Analyses approfondies des systèmes de santé mondiaux pour les entrepreneurs et professionnels de la healthtech. Articles de Clément Pouget-Osmont."
+      },
+      "media": {
+        "badge": "Interventions",
+        "title": "Présences médias & conférences",
+        "sc_title": "L'IA dans la santé : opportunités et enjeux pour les startups",
+        "hhm_title": "Emerging Marketing Trends in the Healthcare B2B Sector",
+        "cs_title": "Pros de santé : 12 leviers pour développer votre patientèle",
+        "watch": "Regarder",
+        "read": "Lire l'interview"
+      },
+      "brochure": {
+        "title": "Téléchargez la brochure",
+        "subtitle": "Renseignez vos coordonnées pour accéder à la présentation de mes services.",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "company": "Entreprise",
+        "email": "Email",
+        "phone": "Téléphone",
+        "submit": "Recevoir la brochure →",
+        "submitting": "Envoi en cours...",
+        "success_title": "Brochure en cours de téléchargement !",
+        "success_sub": "Si le téléchargement ne démarre pas automatiquement :",
+        "success_cta": "Télécharger la brochure →"
+      },
+      "article_page": {
+        "home": "Accueil",
+        "by": "Par",
+        "toc": "Table des matières",
+        "author_label": "À propos de l'auteur",
+        "author_bio": "Freelance Marketing Director spécialisé HealthTech, MedTech & BioTech. 12 ans d'expérience dont 5 ans chez Doctolib. Il accompagne les startups et scaleups santé dans leur croissance.",
+        "cta_title": "Besoin d'un expert marketing santé ?",
+        "cta_sub": "Découvrez comment Clément peut accélérer la croissance de votre startup healthtech.",
+        "cta_btn": "Prenons 30 minutes →"
+      },
+      "footer": {
+        "contact": "Contact"
+      }
+    },
+    "en": {
+      "nav": {
+        "home": "Home",
+        "articles": "Articles"
+      },
+      "hero": {
+        "title": "Healthcare Marketing Director.",
+        "tagline": "Product Marketing · Growth Marketing · Revenue Strategy · Team Management",
+        "cta_chat": "Book a call",
+        "cta_more": "Learn more"
+      },
+      "about": {
+        "title": "I'm not a marketer",
+        "p1": "Most marketers are disappointing. Too far from the product, too far from the customers, too far from the business.",
+        "p2": "First and foremost, I'm a salesperson and an entrepreneur. That's where my career started, and what still drives me today: building something new and figuring out how to sell it to the right people.",
+        "p3": "The best way I've found to do that? Be a salesperson, entrepreneur and product manager all at once. Understand what makes a product unique, shine a light on it through content, get it to the right people, and build the team to scale it all. That's how I ended up doing marketing, by accident and by conviction.",
+        "cta": "Let's talk →"
+      },
+      "articles_section": {
+        "badge": "Insights",
+        "title": "Healthcare Systems Analyses",
+        "subtitle": "In-depth analyses of global healthcare systems for healthtech entrepreneurs and professionals",
+        "read": "Read article →",
+        "see_all": "View all articles →"
+      },
+      "articles_page": {
+        "badge": "Blog & Analyses",
+        "title": "Healthcare Systems Analyses",
+        "subtitle": "In-depth analyses of global healthcare systems for healthtech entrepreneurs and professionals",
+        "read": "Read →",
+        "reading_time": "read",
+        "doc_title": "Articles — Healthcare Systems Analyses | Clempo.fr",
+        "doc_meta": "In-depth analyses of global healthcare systems for healthtech entrepreneurs and professionals. By Clément Pouget-Osmont."
+      },
+      "media": {
+        "badge": "In the Media",
+        "title": "Media appearances & talks",
+        "sc_title": "AI in Healthcare: Opportunities and Challenges for Startups",
+        "hhm_title": "Emerging Marketing Trends in the Healthcare B2B Sector",
+        "cs_title": "Healthcare Professionals: 12 Levers to Grow Your Practice",
+        "watch": "Watch",
+        "read": "Read the interview"
+      },
+      "brochure": {
+        "title": "Download the Brochure",
+        "subtitle": "Fill in your details to access the services presentation.",
+        "first_name": "First Name",
+        "last_name": "Last Name",
+        "company": "Company",
+        "email": "Email",
+        "phone": "Phone",
+        "submit": "Get the brochure →",
+        "submitting": "Sending...",
+        "success_title": "Your download is starting!",
+        "success_sub": "If the download doesn't start automatically:",
+        "success_cta": "Download brochure →"
+      },
+      "article_page": {
+        "home": "Home",
+        "by": "By",
+        "toc": "Table of Contents",
+        "author_label": "About the author",
+        "author_bio": "Freelance Marketing Director specialized in HealthTech, MedTech & BioTech. 12 years of experience including 5 years at Doctolib. Helping healthcare startups and scaleups grow faster.",
+        "cta_title": "Need a healthcare marketing expert?",
+        "cta_sub": "Discover how Clément can accelerate the growth of your healthtech startup.",
+        "cta_btn": "Let's take 30 minutes →"
+      },
+      "footer": {
+        "contact": "Contact"
+      }
+    }
+  },
+  "clients": [
+    "Doctolib", "Kiro", "Santé Académie", "Cherry Biotech", "Neok",
+    "Médéré", "Sorcova", "DocCity", "Semble", "Andrew", "Sofia Développement"
+  ],
+  "companies_loader": [
+    "Doctolib", "Kiro", "Cherry Biotech", "Santé Académie", "DocCity", "Corilus France"
+  ],
+  "loader": {
+    "tagline": "Marketing · Strategy · Growth",
+    "phrase": "Working with the shapers of healthcare",
+    "scroll_hint": "scroll ↓"
+  },
+  "accompagnements": {
+    "badge_label": "Accompagnements",
+    "title": "Les entreprises que j'accompagne",
+    "cta": "Voyons ce que je peux faire pour vous",
+    "cards": [
+      {
+        "badge": "Early Stage",
+        "title": "Trouver vos premiers clients.",
+        "text": "Vous avez un produit, quelques early adopters, mais pas encore de moteur d'acquisition qui tourne. Je vous aide à identifier ce qui convertit et à l'activer vite."
+      },
+      {
+        "badge": "Scaleup",
+        "title": "Maintenir un rythme de croissance soutenu.",
+        "text": "La croissance est là, mais elle doit être préparée pour passer à l'échelle. Je vous aide à structurer ce qui existe pour que ça tienne dans la durée, sans perdre de vitesse."
+      },
+      {
+        "badge": "ETI · Grand groupe",
+        "title": "Garder son avance.",
+        "text": "Votre CMO actuel s'en va ? Je le / la remplace en apportant ma connaissance du secteur santé et les méthodes de marketing innovantes pour garder votre avance face aux nouveaux entrants."
+      }
+    ]
+  },
+  "seo": {
+    "fr": {
+      "home_title": "Clément Pouget-Osmont — Expert Marketing Santé Freelance | HealthTech & MedTech",
+      "home_desc": "Directeur marketing santé freelance. J'accompagne les entreprises healthtech, medtech et pharma dans leur stratégie de croissance. Ex-Doctolib (5 ans), 12 ans d'expérience."
+    },
+    "en": {
+      "home_title": "Clément Pouget-Osmont — Freelance Healthcare Marketing Expert | HealthTech & MedTech",
+      "home_desc": "Freelance healthcare marketing director. I help healthtech, medtech and pharma companies build their brand and scale. Ex-Doctolib (5 years), 12 years of experience."
+    }
+  }
+}

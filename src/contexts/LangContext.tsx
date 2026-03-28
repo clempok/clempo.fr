@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
-import { translations, type Lang } from '../i18n/translations'
+import { translations as defaultTranslations, type Lang } from '../i18n/translations'
+import { useContent } from './ContentContext'
 
 interface LangContextType {
   lang: Lang
@@ -16,6 +17,8 @@ export function useLang() {
 }
 
 export function LangProvider({ children }: { children: ReactNode }) {
+  const { content } = useContent()
+
   const [lang, setLangState] = useState<Lang>(() => {
     if (typeof window === 'undefined') return 'fr'
     const saved = localStorage.getItem('lang') as Lang
@@ -29,7 +32,12 @@ export function LangProvider({ children }: { children: ReactNode }) {
   }
 
   const t = (section: string, key: string): string => {
-    const s = (translations[lang] as any)[section]
+    // Try content.json first, fallback to default translations
+    if (content?.translations?.[lang]?.[section]?.[key]) {
+      return content.translations[lang][section][key]
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const s = (defaultTranslations[lang] as any)[section]
     return s?.[key] ?? key
   }
 
