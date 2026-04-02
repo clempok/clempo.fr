@@ -120,3 +120,178 @@ Sections de traduction : `nav`, `hero`, `about`, `articles_section`, `articles_p
 1. Styles inline dans les composants React (Home.tsx principalement)
 2. Animations et styles globaux dans `src/index.css`
 3. Variables CSS dans `:root` de index.css
+
+---
+---
+
+# 🔍 SEO — Audit et recommandations (mis à jour le 2 avril 2026)
+
+> Score SEO estimé : **55/100** (progression : 12 → 38 → 55)
+> Objectif : ranker en page 1 sur "marketing santé" et variantes
+
+---
+
+## 🎯 Mots-clés cibles
+
+| Mot-clé | Volume est. | Page cible | Statut |
+|---------|-------------|------------|--------|
+| marketing santé | 720/mois | `/` + article pilier à créer | ⬜ Article à créer |
+| consultant marketing santé | 170/mois | `/consultant-marketing-sante` | ⬜ Page à créer |
+| freelance marketing santé | 50/mois | `/consultant-marketing-sante` | ⬜ Page à créer |
+| marketing digital santé | 320/mois | `/articles/guide-marketing-digital-sante` | ⬜ Article à créer |
+| marketing healthtech | 90/mois | `/` | ✅ Existant |
+| stratégie marketing pharma | 110/mois | `/articles/strategie-marketing-pharma` | ⬜ Article à créer |
+| SEO santé | 90/mois | `/articles/seo-healthtech` | ⬜ Article à créer |
+| CMO freelance santé | 30/mois | `/consultant-marketing-sante` | ⬜ Page à créer |
+| système de santé USA | 260/mois | `/articles/systeme-sante-etats-unis` | ✅ Existant |
+| système de santé Europe | 210/mois | `/articles/systeme-sante-europe` | ✅ Existant |
+| lead generation santé | 40/mois | `/articles/generer-leads-ia-healthtech-2025` | ✅ Existant |
+| outils marketing santé | 30/mois | `/articles/17-outils-generer-leads-startup-sante` | ✅ Existant |
+
+---
+
+## 🔴 Corrections prioritaires (P0 — CRITIQUE)
+
+### Conflit de domaine canonique www / non-www
+- Google indexe des pages sur `clempo.fr` ET `www.clempo.fr` → l'autorité est divisée en deux
+- Les anciennes URLs (`/les-systemes-de-sante-en-europe`, `/le-systeme-de-sante-des-etats-unis`) sont encore indexées sur `clempo.fr` sans www
+- **Action** : Forcer `www.clempo.fr` comme canonique. Ajouter `<link rel="canonical">` sur chaque page.
+- **Où agir** : DNS Netlify + `public/_redirects` ou `netlify.toml`
+
+### Anciennes URLs zombies encore indexées
+Ajouter ces redirections 301 dans `public/_redirects` :
+```
+/les-systemes-de-sante-en-europe      /articles/systeme-sante-europe       301
+/le-systeme-de-sante-des-etats-unis   /articles/systeme-sante-etats-unis   301
+/systeme-sante-monde                  /articles                            301
+/systemes-sante-incription            /articles/systeme-sante-europe       301
+/a-propos                             /#about                              301
+```
+
+---
+
+## 🟡 Améliorations importantes (P1 — ÉLEVÉ)
+
+### Titles et meta-descriptions à optimiser
+- **Page `/`** : Title actuel trop long (77 car., Google tronque à ~60)
+  - **Recommandé** : `Expert Marketing Santé Freelance — Clempo | HealthTech & MedTech` (62 car.)
+  - **Meta desc** : `Clément Pouget-Osmont, directeur marketing santé freelance. 12 ans d'expérience dont 5 chez Doctolib. Part-Time CMO et coaching pour startups santé.` (155 car.)
+  - **Où** : balise `<title>` et `<meta name="description">` dans `index.html` ou via React Helmet dans `Home.tsx`
+- **Page `/articles`** : Title trop long aussi
+  - **Recommandé** : `Blog Marketing Santé & Systèmes de Santé Monde — Clempo` (55 car.)
+- **Articles individuels** : Titles et meta-desc déjà bons ✅ (vérifier via `metaDescription` dans `articles.ts`)
+
+### Créer la page transactionnelle `/consultant-marketing-sante`
+C'est le chaînon manquant pour ranker sur les mots-clés business. À implémenter :
+1. Créer `src/pages/ConsultantMarketingSante.tsx`
+2. Ajouter la route dans `App.tsx` : `<Route path="/consultant-marketing-sante" element={<ConsultantMarketingSante />} />`
+3. Ajouter les traductions dans `translations.ts`
+4. Contenu requis :
+   - **H1** : "Consultant Marketing Santé Freelance"
+   - Détail des 3 offres (Early Stage, Scaleup, ETI/Grand groupe)
+   - Liste des clients avec résultats chiffrés
+   - Témoignages
+   - FAQ SEO ("Qu'est-ce qu'un consultant marketing santé ?", "Combien coûte un CMO freelance ?")
+   - CTA Lemcal
+   - 1 500-2 000 mots minimum
+
+---
+
+## 🔵 Fondation SEO (P2 — MOYEN)
+
+### Données structurées Schema.org
+Injecter en JSON-LD dans le `<head>` (via un composant React `<SEOHead>` ou directement dans `index.html`).
+
+**Homepage — ProfessionalService :**
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "name": "Clempo — Marketing Santé",
+  "description": "Consultant marketing santé freelance spécialisé HealthTech, MedTech & Pharma",
+  "url": "https://www.clempo.fr",
+  "founder": {
+    "@type": "Person",
+    "name": "Clément Pouget-Osmont",
+    "jobTitle": "Healthcare Marketing Director",
+    "url": "https://www.linkedin.com/in/clementpougetosmont/"
+  },
+  "areaServed": "FR",
+  "address": { "@type": "PostalAddress", "addressLocality": "Saint-Ouen-sur-Seine", "addressCountry": "FR" }
+}
+```
+
+**Chaque article — Article :**
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "TITRE",
+  "author": { "@type": "Person", "name": "Clément Pouget-Osmont" },
+  "datePublished": "DATE",
+  "image": "URL_IMAGE",
+  "description": "META_DESCRIPTION"
+}
+```
+
+**Articles avec FAQ — FAQPage :**
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "...", "acceptedAnswer": { "@type": "Answer", "text": "..." } }
+  ]
+}
+```
+
+### Maillage interne
+Dans `src/data/articles.ts`, pour chaque article existant, enrichir le champ `content` avec :
+- 2-3 liens `<a href="/articles/autre-slug">` vers d'autres articles pertinents
+- Un lien vers `/consultant-marketing-sante` (quand elle existera) dans l'intro ou conclusion
+
+### Sitemap et robots.txt
+- Mettre à jour `/public/sitemap.xml` pour lister TOUTES les URLs (15 articles + `/` + `/articles` + future `/consultant-marketing-sante`)
+- Vérifier `/public/robots.txt` contient `Sitemap: https://www.clempo.fr/sitemap.xml`
+
+---
+
+## 🟢 Articles à créer (P3)
+
+| Article | Slug | Mots-clés |
+|---------|------|-----------|
+| Le guide complet du marketing digital en santé (2026) | `guide-marketing-digital-sante` | marketing digital santé, marketing santé |
+| SEO pour startups santé : comment ranker quand on vend aux médecins | `seo-healthtech` | SEO santé, référencement santé |
+| Stratégie marketing pharma 2026 | `strategie-marketing-pharma` | marketing pharma |
+| Marketing MedTech : comment vendre un dispositif médical | `marketing-medtech` | marketing medtech |
+| Comment l'IA transforme le marketing en santé | `ia-marketing-sante` | IA santé marketing |
+
+Ajouter dans `src/data/articles.ts` au format existant. Ces articles NE commencent PAS par `systeme-sante` donc ils iront dans la section "Conseils marketing" de `/articles`.
+
+---
+
+## ✅ Checklist SEO pour chaque nouvelle page
+
+```
+□ Title < 60 caractères, contient le mot-clé cible
+□ Meta description 120-155 caractères, contient le mot-clé
+□ H1 unique, contient le mot-clé principal
+□ <link rel="canonical" href="https://www.clempo.fr/[path]">
+□ Au moins 1 image avec alt text descriptif
+□ Liens internes : 2+ vers d'autres pages du site
+□ CTA Lemcal en bas de page
+□ Schema.org JSON-LD (Article + FAQPage si FAQ)
+□ URL slug court et descriptif
+□ Auteur "Clément Pouget-Osmont" + date
+□ Ajouté au sitemap.xml
+□ Pas de casse d'URL sans redirection 301 dans public/_redirects
+```
+
+## ⚠️ Règles SEO obligatoires pour Claude Code
+
+1. **Ne JAMAIS supprimer ou renommer une URL** sans ajouter une redirection 301 dans `public/_redirects`
+2. **Toujours utiliser `www.clempo.fr`** comme domaine canonique
+3. **Toujours mettre à jour `public/sitemap.xml`** après ajout de pages
+4. **Les slugs d'articles marketing** ne commencent PAS par `systeme-sante` (sinon ils sont classés dans la mauvaise section)
+5. **Ton des articles** : expert, accessible, direct, pas corporate. Vouvoiement. Style "insider santé".
+6. **CTA standard** : lien Lemcal `https://app.lemcal.com/@clementpougetosmont/30minutes`
