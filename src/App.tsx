@@ -8,6 +8,7 @@ import Home from './pages/Home'
 import Articles from './pages/Articles'
 import ArticlePage from './pages/ArticlePage'
 import Confirmation from './pages/Confirmation'
+import Admin from './pages/Admin'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/articles" element={<Articles />} />
             <Route path="/articles/:slug" element={<ArticlePage />} />
             <Route path="/confirmation" element={<Confirmation />} />
+            <Route path="/admin" element={<Admin />} />
           </Routes>
           <Footer />
         </div>
