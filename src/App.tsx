@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { LangProvider } from './contexts/LangContext'
+import { ContentProvider } from './contexts/ContentContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Background from './components/Background'
@@ -13,21 +14,23 @@ import Admin from './pages/Admin'
 export default function App() {
   return (
     <BrowserRouter>
-      <LangProvider>
-        <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', position: 'relative' }}>
-          <LiquidCursor />
-          <Background />
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/articles" element={<Articles />} />
-            <Route path="/articles/:slug" element={<ArticlePage />} />
-            <Route path="/confirmation" element={<Confirmation />} />
-            <Route path="/admin" element={<Admin />} />
-          </Routes>
-          <Footer />
-        </div>
-      </LangProvider>
+      <ContentProvider>
+        <LangProvider>
+          <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', position: 'relative' }}>
+            <LiquidCursor />
+            <Background />
+            <Navbar />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/articles" element={<Articles />} />
+              <Route path="/articles/:slug" element={<ArticlePage />} />
+              <Route path="/confirmation" element={<Confirmation />} />
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+            <Footer />
+          </div>
+        </LangProvider>
+      </ContentProvider>
     </BrowserRouter>
   )
 }
