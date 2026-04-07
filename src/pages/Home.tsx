@@ -210,16 +210,7 @@ export default function Home() {
       <div style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ── HERO ── */}
-        <section style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '8rem 4vw 4rem' }}>
-          {/* Profile photo */}
-          <div className="reveal" ref={undefined} style={{ opacity: 1, transform: 'none' }}>
-            <img
-              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6913248fb7d48a3e5503c26d/d9c4651cb_Profile-Nano-Clem.png"
-              alt="Clément Pouget-Osmont"
-              style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', marginBottom: '2rem', boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}
-            />
-          </div>
-
+        <section style={{ minHeight: '75vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '6rem 4vw 3rem' }}>
           {/* Mega name */}
           <h1 style={{
             fontFamily: "'Space Grotesk', sans-serif",
