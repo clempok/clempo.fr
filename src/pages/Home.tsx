@@ -332,7 +332,7 @@ export default function Home() {
                 fontSize: 'clamp(1.8rem, 3vw, 2.8rem)',
                 fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '2rem', color: TEXT,
               }}>
-                I'm not a marketer
+                {t('about', 'title')}
               </h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
                 {['p1','p2','p3'].map(k => (
