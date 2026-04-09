@@ -3,13 +3,8 @@
   publish = "dist"
   functions = "netlify/functions"
 
-# Netlify Functions — ne pas intercepter par le SPA fallback
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
 # SPA fallback — toutes les routes React sont gérées par index.html
+# Note: /.netlify/* paths are automatically excluded by Netlify
 [[redirects]]
   from = "/*"
   to = "/index.html"

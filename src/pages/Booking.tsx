@@ -118,7 +118,7 @@ export default function Booking() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [step, setStep] = useState<Step>('select')
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', message: '' })
-  const [submitting, setSubmitting] = useState(false)
+  const submitting = false
 
   // Build week days
   const weekDays = useMemo(() => {
