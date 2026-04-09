@@ -168,32 +168,27 @@ export default function Booking() {
     setStep('select')
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedSlot) return
-    setSubmitting(true)
 
-    try {
-      const res = await fetch('/.netlify/functions/book-meeting', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: selectedSlot.date.toISOString().split('T')[0],
-          hour: selectedSlot.hour,
-          minute: selectedSlot.minute,
-          firstName: form.firstName,
-          lastName: form.lastName,
-          email: form.email,
-          message: form.message,
-          lang,
-        }),
-      })
+    // Show confirmation immediately, send email in background
+    setStep('confirmed')
 
-      setStep('confirmed')
-    } catch {
-      setStep('confirmed')
-    } finally {
-      setSubmitting(false)
+    fetch('/.netlify/functions/book-meeting', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: selectedSlot.date.toISOString().split('T')[0],
+        hour: selectedSlot.hour,
+        minute: selectedSlot.minute,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        message: form.message,
+        lang,
+      }),
+    }).catch(() => {
     }
   }
 
