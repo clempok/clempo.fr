@@ -178,7 +178,7 @@ const handler: Handler = async (event) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Clempo.fr <onboarding@resend.dev>',
+          from: 'Clempo.fr <noreply@clempo.fr>',
           to: [to],
           subject,
           html,
