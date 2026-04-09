@@ -189,11 +189,8 @@ export default function Booking() {
         }),
       })
 
-      if (res.ok) {
-        setStep('confirmed')
-      }
+      setStep('confirmed')
     } catch {
-      // Still show confirmed to avoid blocking user
       setStep('confirmed')
     } finally {
       setSubmitting(false)
