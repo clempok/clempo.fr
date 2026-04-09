@@ -4,18 +4,38 @@ function pad(n: number): string {
   return n.toString().padStart(2, '0')
 }
 
-function formatICSDate(date: string, hour: number, minute: number): string {
-  // date is YYYY-MM-DD, return YYYYMMDDTHHMMSS format (local Paris time treated as UTC for simplicity)
-  const d = date.replace(/-/g, '')
-  return `${d}T${pad(hour)}${pad(minute)}00`
-}
-
 function generateUID(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}@clempo.fr`
 }
 
 function escapeICS(text: string): string {
   return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
+}
+
+// Convert Paris local time to UTC Date
+function parisToUTC(dateStr: string, hour: number, minute: number): Date {
+  // Create a date string in Europe/Paris timezone and convert to UTC
+  const dt = new Date(`${dateStr}T${pad(hour)}:${pad(minute)}:00`)
+  // Use Intl to figure out the offset for Paris on that date
+  const parisStr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Paris',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).format(dt)
+  // Parse the Paris-formatted date back
+  const [monthDay, time] = parisStr.split(', ')
+  const [month, day, year] = monthDay.split('/')
+  const [h, m, s] = time.split(':')
+  const parisDate = new Date(Date.UTC(+year, +month - 1, +day, +h, +m, +s))
+  // The offset is the difference
+  const offset = parisDate.getTime() - dt.getTime()
+  // Adjust: we want UTC = Paris local - offset
+  return new Date(dt.getTime() - offset)
+}
+
+function toICSDateUTC(d: Date): string {
+  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
 }
 
 const handler: Handler = async (event) => {
@@ -40,51 +60,34 @@ const handler: Handler = async (event) => {
     const endMinute = (minute + 30) % 60
     const endHour = minute + 30 >= 60 ? hour + 1 : hour
 
-    const startStr = formatICSDate(date, hour, minute)
-    const endStr = formatICSDate(date, endHour, endMinute)
-    const uid = generateUID()
-    const now = new Date()
-    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}T${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+    // Convert Paris time to UTC for ICS
+    const startUTC = parisToUTC(date, hour, minute)
+    const endUTC = parisToUTC(date, endHour, endMinute)
+    const nowUTC = toICSDateUTC(new Date())
 
+    const uid = generateUID()
     const summary = `RDV Clément Pouget-Osmont / ${firstName} ${lastName}`
     const description = message
       ? `Message: ${escapeICS(message)}`
       : (isFr ? 'Rendez-vous de 30 minutes' : '30-minute meeting')
 
-    // Generate ICS content
+    // Generate ICS content — use UTC dates for maximum compatibility
     const ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//clempo.fr//Booking//FR',
       'CALSCALE:GREGORIAN',
       'METHOD:REQUEST',
-      'BEGIN:VTIMEZONE',
-      'TZID:Europe/Paris',
-      'BEGIN:STANDARD',
-      'DTSTART:19701025T030000',
-      'RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10',
-      'TZOFFSETFROM:+0200',
-      'TZOFFSETTO:+0100',
-      'TZNAME:CET',
-      'END:STANDARD',
-      'BEGIN:DAYLIGHT',
-      'DTSTART:19700329T020000',
-      'RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3',
-      'TZOFFSETFROM:+0100',
-      'TZOFFSETTO:+0200',
-      'TZNAME:CEST',
-      'END:DAYLIGHT',
-      'END:VTIMEZONE',
       'BEGIN:VEVENT',
       `UID:${uid}`,
-      `DTSTAMP:${stamp}`,
-      `DTSTART;TZID=Europe/Paris:${startStr}`,
-      `DTEND;TZID=Europe/Paris:${endStr}`,
+      `DTSTAMP:${nowUTC}`,
+      `DTSTART:${toICSDateUTC(startUTC)}`,
+      `DTEND:${toICSDateUTC(endUTC)}`,
       `SUMMARY:${escapeICS(summary)}`,
       `DESCRIPTION:${description}`,
-      `ORGANIZER;CN=Clément Pouget-Osmont:mailto:clement.pougetosmont@gmail.com`,
-      `ATTENDEE;RSVP=TRUE;CN=${escapeICS(firstName)} ${escapeICS(lastName)}:mailto:${email}`,
-      `ATTENDEE;CN=Clément Pouget-Osmont:mailto:clement.pougetosmont@gmail.com`,
+      `ORGANIZER;CN=Clement Pouget-Osmont:mailto:clement.pougetosmont@gmail.com`,
+      `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${firstName} ${lastName}:mailto:${email}`,
+      `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=Clement Pouget-Osmont:mailto:clement.pougetosmont@gmail.com`,
       'STATUS:CONFIRMED',
       'SEQUENCE:0',
       'END:VEVENT',
@@ -112,7 +115,7 @@ const handler: Handler = async (event) => {
           </tr>
           <tr>
             <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Horaire</td>
-            <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${timeFormatted}</td>
+            <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${timeFormatted} (Paris)</td>
           </tr>
           <tr>
             <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Nom</td>
@@ -166,8 +169,8 @@ const handler: Handler = async (event) => {
       </div>
     `
 
-    // Send both emails via Resend
-    const sendEmail = (to: string, subject: string, html: string, attachIcs: boolean) =>
+    // Send emails via Resend
+    const sendEmail = (to: string, subject: string, html: string) =>
       fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -179,33 +182,37 @@ const handler: Handler = async (event) => {
           to: [to],
           subject,
           html,
-          ...(attachIcs ? {
-            attachments: [{
-              filename: 'invitation.ics',
-              content: icsBase64,
-              content_type: 'text/calendar; method=REQUEST',
-            }],
-          } : {}),
+          attachments: [{
+            filename: 'invite.ics',
+            content: icsBase64,
+          }],
         }),
       })
 
-    // Send to Clément
+    // Send to Clément (always works — same as account owner)
     const notifSubject = `RDV ${firstName} ${lastName} — ${dateFormatted}`
-    const [res1, res2] = await Promise.all([
-      sendEmail('clement.pougetosmont@gmail.com', notifSubject, notifHtml, true),
-      sendEmail(email, isFr ? 'Votre rendez-vous — clempo.fr' : 'Your meeting — clempo.fr', confirmHtml, true),
-    ])
+    const res1 = await sendEmail('clement.pougetosmont@gmail.com', notifSubject, notifHtml)
 
     if (!res1.ok) {
       const err = await res1.text()
       console.error('Resend error (notif):', err)
     }
-    if (!res2.ok) {
-      const err = await res2.text()
-      console.error('Resend error (confirm):', err)
+
+    // Try sending to guest — may fail on free Resend plan without verified domain
+    try {
+      const res2 = await sendEmail(email, isFr ? 'Votre rendez-vous — clempo.fr' : 'Your meeting — clempo.fr', confirmHtml)
+      if (!res2.ok) {
+        const err = await res2.text()
+        console.error('Resend error (confirm to guest):', err)
+      }
+    } catch (e) {
+      console.error('Could not send to guest:', e)
     }
 
-    return { statusCode: 200, body: JSON.stringify({ success: true }) }
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ success: true, notifSent: res1.ok }),
+    }
   } catch (err) {
     console.error('Function error:', err)
     return { statusCode: 500, body: String(err) }
