@@ -188,8 +188,7 @@ export default function Booking() {
         message: form.message,
         lang,
       }),
-    }).catch(() => {
-    }
+    }).catch(() => {})
   }
 
   const resetBooking = () => {
