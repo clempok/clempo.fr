@@ -7,6 +7,7 @@ import LiquidCursor from './components/LiquidCursor'
 import Home from './pages/Home'
 import Articles from './pages/Articles'
 import ArticlePage from './pages/ArticlePage'
+import Booking from './pages/Booking'
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/articles" element={<Articles />} />
             <Route path="/articles/:slug" element={<ArticlePage />} />
+            <Route path="/booking" element={<Booking />} />
           </Routes>
           <Footer />
         </div>

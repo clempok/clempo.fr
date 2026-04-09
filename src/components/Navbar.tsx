@@ -78,9 +78,8 @@ export default function Navbar() {
         </div>
 
         {/* CTA button */}
-        <a
-          href="https://app.lemcal.com/@clementpougetosmont/30minutes"
-          target="_blank" rel="noopener noreferrer"
+        <Link
+          to="/booking"
           className="hidden md:inline-flex"
           style={{
             alignItems: 'center', gap: '0.4rem',
@@ -94,7 +93,7 @@ export default function Navbar() {
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#0A0A0A' }}
         >
           Let's talk →
-        </a>
+        </Link>
 
         {/* Mobile burger */}
         <button
@@ -138,9 +137,9 @@ export default function Navbar() {
               </button>
             ))}
           </div>
-          <a
-            href="https://app.lemcal.com/@clementpougetosmont/30minutes"
-            target="_blank" rel="noopener noreferrer"
+          <Link
+            to="/booking"
+            onClick={() => setMobileOpen(false)}
             style={{
               display: 'inline-flex', justifyContent: 'center',
               padding: '0.75rem 1.5rem', background: '#0A0A0A', color: '#fff',
@@ -149,7 +148,7 @@ export default function Navbar() {
             }}
           >
             Let's talk →
-          </a>
+          </Link>
         </div>
       )}
     </nav>
