@@ -77,7 +77,7 @@ const handler: Handler = async (event) => {
     const summary = `RDV Clement Pouget-Osmont / ${firstName} ${lastName}`
     const desc = message || (isFr ? 'Rendez-vous de 30 minutes' : '30-minute meeting')
 
-    // ICS — keep lines short, use UTC Z format for max compatibility
+    // ICS — UTC Z format, single lines (no folding for Gmail compat)
     const ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
@@ -91,11 +91,9 @@ const handler: Handler = async (event) => {
       `DTEND:${dtEnd}`,
       `SUMMARY:${summary}`,
       `DESCRIPTION:${desc}`,
-      `ORGANIZER;CN=Clement Pouget-Osmont:mailto:clement.pougetosmont@gmail.com`,
-      `ATTENDEE;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${firstName} ${lastName}`,
-      ` :mailto:${email}`,
-      `ATTENDEE;PARTSTAT=ACCEPTED;CN=Clement Pouget-Osmont`,
-      ` :mailto:clement.pougetosmont@gmail.com`,
+      `ORGANIZER:mailto:clement.pougetosmont@gmail.com`,
+      `ATTENDEE;RSVP=TRUE:mailto:${email}`,
+      `ATTENDEE:mailto:clement.pougetosmont@gmail.com`,
       'STATUS:CONFIRMED',
       'SEQUENCE:0',
       'END:VEVENT',
@@ -184,9 +182,13 @@ const handler: Handler = async (event) => {
           to: [to],
           subject,
           html,
+          headers: {
+            'Content-Type': 'multipart/mixed',
+          },
           attachments: [{
             filename: 'invite.ics',
             content: icsBase64,
+            content_type: 'text/calendar; charset=utf-8; method=REQUEST',
           }],
         }),
       })
