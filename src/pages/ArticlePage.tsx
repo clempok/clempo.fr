@@ -461,14 +461,14 @@ export default function ArticlePage() {
               <p style={{ color: '#71717A', fontSize: '0.9375rem', marginBottom: '1.5rem' }}>
                 {t('article_page', 'cta_sub')}
               </p>
-              <a href="https://app.lemcal.com/@clementpougetosmont/30minutes" target="_blank" rel="noopener noreferrer"
+              <Link to="/booking"
                 className="inline-flex items-center font-bold rounded-full"
                 style={{ backgroundColor: '#1A1A6B', color: '#fff', padding: '0.75rem 1.75rem', fontSize: '0.9375rem', textDecoration: 'none', transition: 'all 0.2s' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#2D2D8A'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#1A1A6B'; (e.currentTarget as HTMLElement).style.transform = '' }}
               >
                 {t('article_page', 'cta_btn')}
-              </a>
+              </Link>
             </div>
 
             <div style={{ height: '5rem' }} />

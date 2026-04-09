@@ -243,9 +243,8 @@ export default function Home() {
 
           {/* CTAs */}
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <a
-              href="https://app.lemcal.com/@clementpougetosmont/30minutes"
-              target="_blank" rel="noopener noreferrer"
+            <Link
+              to="/booking"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                 padding: '1rem 2.2rem', background: ACCENT, color: '#fff',
@@ -257,7 +256,7 @@ export default function Home() {
               onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = ACCENT; el.style.transform = ''; el.style.boxShadow = '' }}
             >
               📅 {t('hero', 'cta_chat')}
-            </a>
+            </Link>
             <a
               href="#about"
               style={{
@@ -332,9 +331,8 @@ export default function Home() {
                   </p>
                 ))}
               </div>
-              <a
-                href="https://app.lemcal.com/@clementpougetosmont/30minutes"
-                target="_blank" rel="noopener noreferrer"
+              <Link
+                to="/booking"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
                   textDecoration: 'none', color: TEXT,
@@ -346,7 +344,7 @@ export default function Home() {
                 onMouseLeave={e => (e.currentTarget.style.gap = '0.75rem')}
               >
                 {t('about', 'cta')} →
-              </a>
+              </Link>
             </div>
           </div>
         </section>
@@ -444,9 +442,8 @@ export default function Home() {
                 transform: translateX(5px);
               }
             `}</style>
-            <a
-              href="https://app.lemcal.com/@clementpougetosmont/30minutes"
-              target="_blank" rel="noopener noreferrer"
+            <Link
+              to="/booking"
               className="cta-main"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
@@ -457,7 +454,7 @@ export default function Home() {
               }}
             >
               {accomp?.cta || 'Voyons ce que je peux faire pour vous'} <span className="cta-arrow">→</span>
-            </a>
+            </Link>
           </div>
         </section>
 

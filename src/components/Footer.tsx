@@ -30,14 +30,13 @@ export default function Footer() {
         >
           {t('nav', 'articles')}
         </Link>
-        <a href="https://app.lemcal.com/@clementpougetosmont/30minutes"
-          target="_blank" rel="noopener noreferrer"
+        <Link to="/booking"
           style={{ textDecoration: 'none', color: '#71717A', fontSize: '0.78rem', transition: 'color 0.2s' }}
           onMouseEnter={e => (e.currentTarget.style.color = '#1A1A6B')}
           onMouseLeave={e => (e.currentTarget.style.color = '#71717A')}
         >
           {t('footer', 'contact')}
-        </a>
+        </Link>
         <a href="https://linkedin.com/in/clementpougetosmont"
           target="_blank" rel="noopener noreferrer"
           style={{ textDecoration: 'none', color: '#71717A', fontSize: '0.78rem', transition: 'color 0.2s' }}
