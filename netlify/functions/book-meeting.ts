@@ -126,6 +126,64 @@ const handler: Handler = async (event) => {
 
     const eventData = await calendarRes.json()
     const dateFormatted = formatDateParis(date, isFr ? 'fr-FR' : 'en-GB')
+    const timeFormatted = `${pad(hour)}:${pad(minute)} — ${pad(endHour)}:${pad(endMinute)}`
+
+    // Send notification email to Clement via Resend (Google doesn't email organizer)
+    const resendKey = process.env.RESEND_API_KEY
+    if (resendKey) {
+      const notifHtml = `
+        <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
+          <h2 style="color: #1A1A6B; margin-bottom: 24px;">Nouveau rendez-vous</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666; width: 120px;">Date</td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${dateFormatted}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Horaire</td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${timeFormatted} (Paris)</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Nom</td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${firstName} ${lastName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Email</td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">
+                <a href="mailto:${email}" style="color: #1A1A6B;">${email}</a>
+              </td>
+            </tr>
+            ${message ? `
+            <tr>
+              <td style="padding: 10px 0; color: #666;">Message</td>
+              <td style="padding: 10px 0; font-weight: 600;">${message}</td>
+            </tr>` : ''}
+          </table>
+          ${eventData.htmlLink ? `
+          <p style="margin-top: 24px;">
+            <a href="${eventData.htmlLink}" style="color: #1A1A6B; font-weight: 600;">Voir dans Google Calendar →</a>
+          </p>` : ''}
+        </div>
+      `
+
+      try {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Clempo.fr <noreply@clempo.fr>',
+            to: ['clement.pougetosmont@gmail.com'],
+            subject: `RDV ${firstName} ${lastName} - ${dateFormatted}`,
+            html: notifHtml,
+          }),
+        })
+      } catch (e) {
+        console.error('Resend notification failed:', e)
+      }
+    }
 
     return {
       statusCode: 200,

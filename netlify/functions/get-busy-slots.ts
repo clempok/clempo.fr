@@ -68,7 +68,7 @@ const handler: Handler = async () => {
     return {
       statusCode: 200,
       headers: {
-        'Cache-Control': 'public, max-age=60',
+        'Cache-Control': 'no-store, max-age=0',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ success: true, busy }),

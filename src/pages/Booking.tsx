@@ -132,22 +132,33 @@ export default function Booking() {
   const [busy, setBusy] = useState<BusyInterval[]>([])
   const submitting = false
 
-  // Fetch busy slots from Google Calendar on mount
+  // Fetch busy slots from Google Calendar (refetch on week change + focus)
   useEffect(() => {
-    fetch('/.netlify/functions/get-busy-slots')
-      .then(r => r.json())
-      .then(data => {
-        if (data?.success && Array.isArray(data.busy)) {
-          setBusy(
-            data.busy.map((b: { start: string; end: string }) => ({
-              start: new Date(b.start),
-              end: new Date(b.end),
-            }))
-          )
-        }
-      })
-      .catch(() => {})
-  }, [])
+    let cancelled = false
+    const load = () => {
+      fetch('/.netlify/functions/get-busy-slots', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(data => {
+          if (cancelled) return
+          if (data?.success && Array.isArray(data.busy)) {
+            setBusy(
+              data.busy.map((b: { start: string; end: string }) => ({
+                start: new Date(b.start),
+                end: new Date(b.end),
+              }))
+            )
+          }
+        })
+        .catch(() => {})
+    }
+    load()
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [weekStart.getTime()])
 
   // Build week days
   const weekDays = useMemo(() => {
