@@ -67,11 +67,8 @@ const handler: Handler = async (event) => {
 
     const dtStart = parisToICSUtc(date, hour, minute)
     const dtEnd = parisToICSUtc(date, endHour, endMinute)
-    const dtStamp = parisToICSUtc(
-      new Date().toISOString().slice(0, 10),
-      new Date().getUTCHours(),
-      new Date().getUTCMinutes()
-    )
+    const now = new Date()
+    const dtStamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
     const uid = generateUID()
 
     const summary = `RDV Clement Pouget-Osmont / ${firstName} ${lastName}`
@@ -225,7 +222,11 @@ const handler: Handler = async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true, results }),
+      body: JSON.stringify({
+        success: true,
+        results,
+        debug: { date, hour, minute, dateFormatted, dtStart, dtEnd },
+      }),
     }
   } catch (err) {
     console.error('Function error:', err)
