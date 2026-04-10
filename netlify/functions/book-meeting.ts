@@ -4,36 +4,9 @@ function pad(n: number): string {
   return n.toString().padStart(2, '0')
 }
 
-function generateUID(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}@clempo.fr`
-}
-
-// Get Paris UTC offset for a given date (+1 in winter, +2 in summer)
-function getParisOffset(dateStr: string): number {
-  const d = new Date(`${dateStr}T12:00:00Z`)
-  const parisHour = parseInt(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Europe/Paris',
-      hour: 'numeric',
-      hour12: false,
-    }).format(d)
-  )
-  return parisHour - d.getUTCHours()
-}
-
-// Convert Paris local time to UTC ICS format (YYYYMMDDTHHMMSSZ)
-function parisToICSUtc(dateStr: string, hour: number, minute: number): string {
-  const offset = getParisOffset(dateStr)
-  const y = parseInt(dateStr.slice(0, 4))
-  const m = parseInt(dateStr.slice(5, 7)) - 1
-  const day = parseInt(dateStr.slice(8, 10))
-  const utc = new Date(Date.UTC(y, m, day, hour - offset, minute, 0))
-  return `${utc.getUTCFullYear()}${pad(utc.getUTCMonth() + 1)}${pad(utc.getUTCDate())}T${pad(utc.getUTCHours())}${pad(utc.getUTCMinutes())}00Z`
-}
-
 // Format date for display (always in Paris timezone)
 function formatDateParis(dateStr: string, locale: string): string {
-  const d = new Date(`${dateStr}T12:00:00Z`) // noon UTC to avoid day shift
+  const d = new Date(`${dateStr}T12:00:00Z`)
   return d.toLocaleDateString(locale, {
     weekday: 'long',
     day: 'numeric',
@@ -41,6 +14,41 @@ function formatDateParis(dateStr: string, locale: string): string {
     year: 'numeric',
     timeZone: 'Europe/Paris',
   })
+}
+
+// Build a local Paris dateTime string (Google accepts this with timeZone field)
+function toLocalDateTime(dateStr: string, hour: number, minute: number): string {
+  return `${dateStr}T${pad(hour)}:${pad(minute)}:00`
+}
+
+// Exchange refresh token for access token
+async function getAccessToken(): Promise<string> {
+  const clientId = process.env.GOOGLE_CLIENT_ID
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error('Missing Google OAuth credentials')
+  }
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }).toString(),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Token refresh failed: ${err}`)
+  }
+
+  const data = await res.json()
+  return data.access_token
 }
 
 const handler: Handler = async (event) => {
@@ -55,177 +63,77 @@ const handler: Handler = async (event) => {
       return { statusCode: 400, body: 'Missing required fields' }
     }
 
-    const apiKey = process.env.RESEND_API_KEY
-    if (!apiKey) {
-      console.error('RESEND_API_KEY not set')
-      return { statusCode: 500, body: 'Missing API key' }
-    }
-
     const isFr = lang === 'fr'
     const endMinute = (minute + 30) % 60
     const endHour = minute + 30 >= 60 ? hour + 1 : hour
 
-    const dtStart = parisToICSUtc(date, hour, minute)
-    const dtEnd = parisToICSUtc(date, endHour, endMinute)
-    const now = new Date()
-    const dtStamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
-    const uid = generateUID()
+    const startDateTime = toLocalDateTime(date, hour, minute)
+    const endDateTime = toLocalDateTime(date, endHour, endMinute)
 
     const summary = `RDV Clement Pouget-Osmont / ${firstName} ${lastName}`
-    const desc = message || (isFr ? 'Rendez-vous de 30 minutes' : '30-minute meeting')
+    const description = [
+      isFr ? 'Rendez-vous de 30 minutes' : '30-minute meeting',
+      '',
+      `${firstName} ${lastName} <${email}>`,
+      message ? '' : null,
+      message || null,
+    ].filter(x => x !== null).join('\n')
 
-    // ICS — UTC Z format, single lines (no folding for Gmail compat)
-    const ics = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//clempo.fr//Booking//FR',
-      'CALSCALE:GREGORIAN',
-      'METHOD:REQUEST',
-      'BEGIN:VEVENT',
-      `UID:${uid}`,
-      `DTSTAMP:${dtStamp}`,
-      `DTSTART:${dtStart}`,
-      `DTEND:${dtEnd}`,
-      `SUMMARY:${summary}`,
-      `DESCRIPTION:${desc}`,
-      `ORGANIZER:mailto:clement.pougetosmont@gmail.com`,
-      `ATTENDEE;RSVP=TRUE:mailto:${email}`,
-      `ATTENDEE:mailto:clement.pougetosmont@gmail.com`,
-      'STATUS:CONFIRMED',
-      'SEQUENCE:0',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\r\n')
+    // Get Google OAuth access token
+    const accessToken = await getAccessToken()
 
-    const icsBase64 = Buffer.from(ics).toString('base64')
-
-    const dateFormatted = formatDateParis(date, isFr ? 'fr-FR' : 'en-GB')
-    const timeFormatted = `${pad(hour)}:${pad(minute)} — ${pad(endHour)}:${pad(endMinute)}`
-
-    // Notification email to Clément
-    const notifHtml = `
-      <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-        <h2 style="color: #1A1A6B; margin-bottom: 24px;">Nouveau rendez-vous</h2>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666; width: 120px;">Date</td>
-            <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${dateFormatted}</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Horaire</td>
-            <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${timeFormatted} (Paris)</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Nom</td>
-            <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${firstName} ${lastName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Email</td>
-            <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">
-              <a href="mailto:${email}" style="color: #1A1A6B;">${email}</a>
-            </td>
-          </tr>
-          ${message ? `
-          <tr>
-            <td style="padding: 10px 0; color: #666;">Message</td>
-            <td style="padding: 10px 0; font-weight: 600;">${message}</td>
-          </tr>` : ''}
-        </table>
-      </div>
-    `
-
-    // Confirmation email to guest
-    const confirmHtml = isFr ? `
-      <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-        <h2 style="color: #1A1A6B; margin-bottom: 24px;">Votre rendez-vous est confirme</h2>
-        <p style="color: #333; line-height: 1.6;">Bonjour ${firstName},</p>
-        <p style="color: #333; line-height: 1.6;">Votre rendez-vous avec Clement Pouget-Osmont a bien ete enregistre.</p>
-        <div style="background: #f8f8f6; border-radius: 12px; padding: 20px; margin: 24px 0;">
-          <p style="margin: 0 0 8px; font-weight: 600; color: #0A0A0A;">${dateFormatted}</p>
-          <p style="margin: 0 0 8px; color: #1A1A6B; font-weight: 500;">${timeFormatted} (heure de Paris)</p>
-          <p style="margin: 0; color: #666; font-size: 13px;">Duree : 30 minutes</p>
-        </div>
-        <p style="color: #666; font-size: 13px; line-height: 1.5;">
-          Vous trouverez l'invitation calendrier en piece jointe.<br/>
-          Pour toute question : clement.pougetosmont@gmail.com
-        </p>
-      </div>
-    ` : `
-      <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-        <h2 style="color: #1A1A6B; margin-bottom: 24px;">Your meeting is confirmed</h2>
-        <p style="color: #333; line-height: 1.6;">Hi ${firstName},</p>
-        <p style="color: #333; line-height: 1.6;">Your meeting with Clement Pouget-Osmont has been confirmed.</p>
-        <div style="background: #f8f8f6; border-radius: 12px; padding: 20px; margin: 24px 0;">
-          <p style="margin: 0 0 8px; font-weight: 600; color: #0A0A0A;">${dateFormatted}</p>
-          <p style="margin: 0 0 8px; color: #1A1A6B; font-weight: 500;">${timeFormatted} (Paris time)</p>
-          <p style="margin: 0; color: #666; font-size: 13px;">Duration: 30 minutes</p>
-        </div>
-        <p style="color: #666; font-size: 13px; line-height: 1.5;">
-          Please find the calendar invitation attached.<br/>
-          Any questions? clement.pougetosmont@gmail.com
-        </p>
-      </div>
-    `
-
-    const sendEmail = (to: string, subject: string, html: string) =>
-      fetch('https://api.resend.com/emails', {
+    // Create event in Google Calendar with guest as attendee
+    // sendUpdates=all → Google sends calendar invitation email to attendees natively
+    const calendarRes = await fetch(
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all',
+      {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Clempo.fr <noreply@clempo.fr>',
-          to: [to],
-          subject,
-          html,
-          headers: {
-            'Content-Type': 'multipart/mixed',
+          summary,
+          description,
+          start: {
+            dateTime: startDateTime,
+            timeZone: 'Europe/Paris',
           },
-          attachments: [{
-            filename: 'invite.ics',
-            content: icsBase64,
-            content_type: 'text/calendar; charset=utf-8; method=REQUEST',
-          }],
+          end: {
+            dateTime: endDateTime,
+            timeZone: 'Europe/Paris',
+          },
+          attendees: [
+            { email, displayName: `${firstName} ${lastName}` },
+          ],
+          reminders: {
+            useDefault: true,
+          },
+          guestsCanModify: false,
+          guestsCanInviteOthers: false,
         }),
-      })
-
-    const notifSubject = `RDV ${firstName} ${lastName} - ${dateFormatted}`
-    const results: string[] = []
-
-    const res1 = await sendEmail('clement.pougetosmont@gmail.com', notifSubject, notifHtml)
-    if (!res1.ok) {
-      const err = await res1.text()
-      console.error('Resend error (notif):', err)
-      results.push(`notif: ${err}`)
-    } else {
-      results.push('notif: ok')
-    }
-
-    try {
-      const res2 = await sendEmail(
-        email,
-        isFr ? 'Votre rendez-vous - clempo.fr' : 'Your meeting - clempo.fr',
-        confirmHtml
-      )
-      if (!res2.ok) {
-        const err = await res2.text()
-        console.error('Resend error (guest):', err)
-        results.push(`guest: ${err}`)
-      } else {
-        results.push('guest: ok')
       }
-    } catch (e) {
-      console.error('Could not send to guest:', e)
-      results.push(`guest: ${String(e)}`)
+    )
+
+    if (!calendarRes.ok) {
+      const err = await calendarRes.text()
+      console.error('Google Calendar error:', err)
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ success: false, error: err }),
+      }
     }
+
+    const eventData = await calendarRes.json()
+    const dateFormatted = formatDateParis(date, isFr ? 'fr-FR' : 'en-GB')
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         success: true,
-        results,
-        debug: { date, hour, minute, dateFormatted, dtStart, dtEnd },
+        eventId: eventData.id,
+        htmlLink: eventData.htmlLink,
+        debug: { date, hour, minute, dateFormatted, startDateTime, endDateTime },
       }),
     }
   } catch (err) {

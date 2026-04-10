@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { Calendar, Clock, ChevronLeft, ChevronRight, Check, User, Mail, MessageSquare, ArrowLeft } from 'lucide-react'
 
@@ -52,7 +52,12 @@ function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
-function getSlotsForDay(date: Date): Slot[] {
+interface BusyInterval {
+  start: Date
+  end: Date
+}
+
+function getSlotsForDay(date: Date, busy: BusyInterval[] = []): Slot[] {
   const dow = date.getDay()
   const ranges = AVAILABILITY[dow]
   if (!ranges) return []
@@ -63,12 +68,18 @@ function getSlotsForDay(date: Date): Slot[] {
     for (let h = startH; h < endH; h++) {
       for (const m of [0, 30]) {
         if (h === endH - 1 && m === 30 && SLOT_DURATION === 30) continue
-        const slotTime = new Date(date)
-        slotTime.setHours(h, m, 0, 0)
+        const slotStart = new Date(date)
+        slotStart.setHours(h, m, 0, 0)
         // Don't show past slots
-        if (slotTime > now) {
-          slots.push({ date: new Date(date), hour: h, minute: m })
-        }
+        if (slotStart <= now) continue
+
+        const slotEnd = new Date(slotStart.getTime() + SLOT_DURATION * 60 * 1000)
+
+        // Skip if overlaps with any busy interval
+        const isBusy = busy.some(b => slotStart < b.end && slotEnd > b.start)
+        if (isBusy) continue
+
+        slots.push({ date: new Date(date), hour: h, minute: m })
       }
     }
   }
@@ -118,7 +129,25 @@ export default function Booking() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [step, setStep] = useState<Step>('select')
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', message: '' })
+  const [busy, setBusy] = useState<BusyInterval[]>([])
   const submitting = false
+
+  // Fetch busy slots from Google Calendar on mount
+  useEffect(() => {
+    fetch('/.netlify/functions/get-busy-slots')
+      .then(r => r.json())
+      .then(data => {
+        if (data?.success && Array.isArray(data.busy)) {
+          setBusy(
+            data.busy.map((b: { start: string; end: string }) => ({
+              start: new Date(b.start),
+              end: new Date(b.end),
+            }))
+          )
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // Build week days
   const weekDays = useMemo(() => {
@@ -131,15 +160,15 @@ export default function Booking() {
   // Available days in this week
   const availableDays = useMemo(() => {
     return weekDays.filter(d => {
-      const slots = getSlotsForDay(d)
+      const slots = getSlotsForDay(d, busy)
       return slots.length > 0
     })
-  }, [weekDays])
+  }, [weekDays, busy])
 
   const slotsForSelectedDay = useMemo(() => {
     if (!selectedDay) return []
-    return getSlotsForDay(selectedDay)
-  }, [selectedDay])
+    return getSlotsForDay(selectedDay, busy)
+  }, [selectedDay, busy])
 
   const canGoPrev = weekStart > today
 
