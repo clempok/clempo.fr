@@ -179,7 +179,7 @@ export default function Booking() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        date: selectedSlot.date.toISOString().split('T')[0],
+        date: `${selectedSlot.date.getFullYear()}-${String(selectedSlot.date.getMonth() + 1).padStart(2, '0')}-${String(selectedSlot.date.getDate()).padStart(2, '0')}`,
         hour: selectedSlot.hour,
         minute: selectedSlot.minute,
         firstName: form.firstName,
