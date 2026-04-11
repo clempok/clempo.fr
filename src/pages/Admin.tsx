@@ -70,11 +70,36 @@ type AnalyticsResponse = {
   visits: Record<string, number>
 }
 
+const CRM_STATUSES = ['Non qualifié', 'Prospect', 'Lead', 'Opportunité', 'Client', 'Lost'] as const
+type CrmStatus = (typeof CRM_STATUSES)[number]
+
+type CrmContact = {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  company: string
+  status: CrmStatus
+  source: string
+  notes: string
+  createdAt: string
+  updatedAt: string
+}
+
+const STATUS_COLORS: Record<CrmStatus, { bg: string; fg: string }> = {
+  'Non qualifié': { bg: '#f4f4f5', fg: '#52525b' },
+  'Prospect':     { bg: '#dbeafe', fg: '#1e40af' },
+  'Lead':         { bg: '#fef3c7', fg: '#92400e' },
+  'Opportunité':  { bg: '#e9d5ff', fg: '#6b21a8' },
+  'Client':       { bg: '#d1fae5', fg: '#065f46' },
+  'Lost':         { bg: '#fee2e2', fg: '#991b1b' },
+}
+
 export default function Admin() {
   const [password, setPassword] = useState(() => sessionStorage.getItem(AUTH_KEY) || '')
   const [authInput, setAuthInput] = useState('')
   const [authError, setAuthError] = useState('')
-  const [view, setView] = useState<'analytics' | 'cms'>('analytics')
+  const [view, setView] = useState<'analytics' | 'crm' | 'cms'>('analytics')
 
   // Restore native cursor on /admin (body has `cursor: none` globally)
   useEffect(() => {
@@ -186,6 +211,12 @@ export default function Admin() {
             📊 Analytics
           </button>
           <button
+            onClick={() => setView('crm')}
+            style={tabStyle(view === 'crm')}
+          >
+            👥 CRM
+          </button>
+          <button
             onClick={() => setView('cms')}
             style={tabStyle(view === 'cms')}
           >
@@ -209,6 +240,8 @@ export default function Admin() {
       <main style={{ flex: 1, overflowY: 'auto', background: '#fff' }}>
         {view === 'analytics' ? (
           <AnalyticsView password={password} />
+        ) : view === 'crm' ? (
+          <CrmView password={password} />
         ) : (
           <CMSView />
         )}
@@ -480,6 +513,391 @@ function tabStyle(active: boolean): React.CSSProperties {
     color: active ? ACCENT : '#555',
     fontWeight: active ? 600 : 500,
   }
+}
+
+/* ---------- CRM ---------- */
+
+function CrmView({ password }: { password: string }) {
+  const [contacts, setContacts] = useState<CrmContact[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<CrmStatus | 'all'>('all')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [showAdd, setShowAdd] = useState(false)
+
+  const authHeaders = useMemo(
+    () => ({ Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' }),
+    [password],
+  )
+
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', { headers: authHeaders })
+      const body = await res.text()
+      if (!res.ok) throw new Error(`${res.status}: ${body}`)
+      const json = JSON.parse(body)
+      setContacts(json.contacts)
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [authHeaders])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  const updateContact = async (id: string, fields: Partial<CrmContact>) => {
+    // Optimistic update
+    setContacts(prev => prev?.map(c => c.id === id ? { ...c, ...fields } : c) || null)
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ action: 'update', id, fields }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+    } catch (err) {
+      alert(`Erreur : ${String(err)}`)
+      refresh()
+    }
+  }
+
+  const deleteContact = async (id: string) => {
+    if (!confirm('Supprimer ce contact ?')) return
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ action: 'delete', id }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      setContacts(prev => prev?.filter(c => c.id !== id) || null)
+      if (expandedId === id) setExpandedId(null)
+    } catch (err) {
+      alert(`Erreur : ${String(err)}`)
+    }
+  }
+
+  const createContact = async (fields: Partial<CrmContact>) => {
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ action: 'create', fields }),
+      })
+      const body = await res.text()
+      if (!res.ok) throw new Error(body)
+      const { contact } = JSON.parse(body)
+      setContacts(prev => [contact, ...(prev || [])])
+      setShowAdd(false)
+    } catch (err) {
+      alert(`Erreur : ${String(err)}`)
+    }
+  }
+
+  const filtered = useMemo(() => {
+    if (!contacts) return []
+    const q = search.trim().toLowerCase()
+    return contacts
+      .filter(c => statusFilter === 'all' || c.status === statusFilter)
+      .filter(c => !q ||
+        c.email.toLowerCase().includes(q) ||
+        c.firstName.toLowerCase().includes(q) ||
+        c.lastName.toLowerCase().includes(q) ||
+        c.company.toLowerCase().includes(q),
+      )
+      .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
+  }, [contacts, search, statusFilter])
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: contacts?.length || 0 }
+    CRM_STATUSES.forEach(s => { c[s] = 0 })
+    contacts?.forEach(ct => { c[ct.status] = (c[ct.status] || 0) + 1 })
+    return c
+  }, [contacts])
+
+  if (loading && !contacts) return <div style={{ padding: '3rem' }}>Chargement...</div>
+  if (error && !contacts) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error}</div>
+
+  return (
+    <div style={{ padding: '2rem 3rem', maxWidth: '1200px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', margin: 0 }}>CRM</h2>
+          <p style={{ fontSize: '0.75rem', color: '#999', margin: '0.25rem 0 0' }}>
+            {contacts?.length || 0} contacts
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={() => setShowAdd(true)}
+            style={{
+              padding: '0.5rem 0.9rem', border: 'none', borderRadius: '8px',
+              background: ACCENT, color: '#fff', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            + Nouveau contact
+          </button>
+          <button
+            onClick={refresh}
+            style={{
+              padding: '0.5rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+              background: '#fff', color: '#555', fontSize: '0.8rem', cursor: 'pointer',
+            }}
+          >
+            ⟳ Rafraîchir
+          </button>
+        </div>
+      </div>
+
+      {/* Status filter pills */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        <FilterPill
+          label={`Tous (${counts.all})`}
+          active={statusFilter === 'all'}
+          onClick={() => setStatusFilter('all')}
+        />
+        {CRM_STATUSES.map(s => (
+          <FilterPill
+            key={s}
+            label={`${s} (${counts[s] || 0})`}
+            active={statusFilter === s}
+            onClick={() => setStatusFilter(s)}
+            color={STATUS_COLORS[s]}
+          />
+        ))}
+      </div>
+
+      {/* Search */}
+      <input
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Rechercher par nom, email, entreprise..."
+        style={{
+          width: '100%', padding: '0.7rem 0.9rem', marginBottom: '1rem',
+          border: '1px solid #e0e0e0', borderRadius: '10px', fontSize: '0.85rem',
+          outline: 'none', background: '#fafafa', boxSizing: 'border-box',
+        }}
+      />
+
+      {showAdd && (
+        <NewContactForm
+          onSave={createContact}
+          onCancel={() => setShowAdd(false)}
+        />
+      )}
+
+      {/* Contacts list */}
+      <div style={{ border: '1px solid #eee', borderRadius: '14px', overflow: 'hidden', background: '#fff' }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#999', fontSize: '0.85rem' }}>
+            Aucun contact.
+          </div>
+        ) : (
+          filtered.map(c => (
+            <div key={c.id} style={{ borderBottom: '1px solid #f4f4f5' }}>
+              <div
+                onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 2fr 2fr 1.5fr auto',
+                  gap: '1rem',
+                  alignItems: 'center',
+                  padding: '0.9rem 1rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600, color: '#111' }}>
+                    {[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}
+                  </div>
+                  <div style={{ color: '#999', fontSize: '0.7rem' }}>{c.source}</div>
+                </div>
+                <div style={{ color: '#555', wordBreak: 'break-all' }}>{c.email}</div>
+                <div style={{ color: '#555' }}>{c.company || '—'}</div>
+                <select
+                  value={c.status}
+                  onClick={e => e.stopPropagation()}
+                  onChange={e => updateContact(c.id, { status: e.target.value as CrmStatus })}
+                  style={{
+                    padding: '4px 8px', borderRadius: '6px', border: 'none',
+                    background: STATUS_COLORS[c.status].bg,
+                    color: STATUS_COLORS[c.status].fg,
+                    fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {CRM_STATUSES.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <div style={{ fontSize: '0.7rem', color: '#bbb' }}>
+                  {expandedId === c.id ? '▲' : '▼'}
+                </div>
+              </div>
+
+              {expandedId === c.id && (
+                <div style={{ padding: '0 1rem 1rem 1rem', background: '#fafafa' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', paddingTop: '0.5rem' }}>
+                    <EditField label="Prénom" value={c.firstName} onSave={v => updateContact(c.id, { firstName: v })} />
+                    <EditField label="Nom" value={c.lastName} onSave={v => updateContact(c.id, { lastName: v })} />
+                    <EditField label="Entreprise" value={c.company} onSave={v => updateContact(c.id, { company: v })} />
+                    <EditField label="Source" value={c.source} onSave={v => updateContact(c.id, { source: v })} />
+                  </div>
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 600, color: '#666', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Notes
+                    </label>
+                    <textarea
+                      value={c.notes}
+                      onChange={e => setContacts(prev => prev?.map(x => x.id === c.id ? { ...x, notes: e.target.value } : x) || null)}
+                      onBlur={e => updateContact(c.id, { notes: e.target.value })}
+                      rows={3}
+                      style={{
+                        width: '100%', padding: '0.5rem 0.7rem', border: '1px solid #e0e0e0',
+                        borderRadius: '8px', fontSize: '0.8rem', outline: 'none',
+                        background: '#fff', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif",
+                        resize: 'vertical',
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
+                    <p style={{ fontSize: '0.65rem', color: '#bbb', margin: 0 }}>
+                      Créé : {new Date(c.createdAt).toLocaleDateString('fr-FR')} · Maj : {new Date(c.updatedAt).toLocaleString('fr-FR')}
+                    </p>
+                    <button
+                      onClick={() => deleteContact(c.id)}
+                      style={{
+                        padding: '0.4rem 0.7rem', border: '1px solid #fecaca', borderRadius: '6px',
+                        background: '#fff', color: '#dc2626', fontSize: '0.7rem', cursor: 'pointer',
+                      }}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+function FilterPill({ label, active, onClick, color }: {
+  label: string
+  active: boolean
+  onClick: () => void
+  color?: { bg: string; fg: string }
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '0.35rem 0.7rem', border: '1px solid transparent', borderRadius: '8px',
+        background: active ? (color?.bg || ACCENT) : '#f4f4f5',
+        color: active ? (color?.fg || '#fff') : '#555',
+        fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+        borderColor: active ? (color?.fg || ACCENT) + '33' : 'transparent',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+function EditField({ label, value, onSave }: { label: string; value: string; onSave: (v: string) => void }) {
+  const [local, setLocal] = useState(value)
+  useEffect(() => { setLocal(value) }, [value])
+  return (
+    <div>
+      <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 600, color: '#666', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        {label}
+      </label>
+      <input
+        type="text"
+        value={local}
+        onChange={e => setLocal(e.target.value)}
+        onBlur={() => { if (local !== value) onSave(local) }}
+        style={{
+          width: '100%', padding: '0.5rem 0.7rem', border: '1px solid #e0e0e0',
+          borderRadius: '8px', fontSize: '0.8rem', outline: 'none',
+          background: '#fff', boxSizing: 'border-box',
+        }}
+      />
+    </div>
+  )
+}
+
+function NewContactForm({ onSave, onCancel }: {
+  onSave: (fields: Partial<CrmContact>) => void
+  onCancel: () => void
+}) {
+  const [fields, setFields] = useState<Partial<CrmContact>>({
+    email: '', firstName: '', lastName: '', company: '',
+    status: 'Non qualifié', source: 'Manual', notes: '',
+  })
+  const upd = (k: keyof CrmContact, v: string) => setFields(p => ({ ...p, [k]: v }))
+
+  return (
+    <div style={{
+      border: '1px solid #e0e0e0', borderRadius: '12px', padding: '1rem',
+      marginBottom: '1rem', background: '#fafafa',
+    }}>
+      <p style={{ fontSize: '0.8rem', fontWeight: 600, color: ACCENT, margin: '0 0 0.75rem' }}>
+        Nouveau contact
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+        <input placeholder="Email *" value={fields.email} onChange={e => upd('email', e.target.value)} style={newFieldStyle} />
+        <select value={fields.status} onChange={e => upd('status', e.target.value)} style={newFieldStyle}>
+          {CRM_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <input placeholder="Prénom" value={fields.firstName} onChange={e => upd('firstName', e.target.value)} style={newFieldStyle} />
+        <input placeholder="Nom" value={fields.lastName} onChange={e => upd('lastName', e.target.value)} style={newFieldStyle} />
+        <input placeholder="Entreprise" value={fields.company} onChange={e => upd('company', e.target.value)} style={newFieldStyle} />
+        <input placeholder="Source" value={fields.source} onChange={e => upd('source', e.target.value)} style={newFieldStyle} />
+      </div>
+      <textarea
+        placeholder="Notes"
+        value={fields.notes}
+        onChange={e => upd('notes', e.target.value)}
+        rows={2}
+        style={{ ...newFieldStyle, width: '100%', marginTop: '0.5rem', fontFamily: "'Inter', sans-serif", resize: 'vertical' }}
+      />
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', justifyContent: 'flex-end' }}>
+        <button
+          onClick={onCancel}
+          style={{
+            padding: '0.45rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+            background: '#fff', color: '#555', fontSize: '0.75rem', cursor: 'pointer',
+          }}
+        >
+          Annuler
+        </button>
+        <button
+          onClick={() => fields.email && onSave(fields)}
+          disabled={!fields.email}
+          style={{
+            padding: '0.45rem 0.9rem', border: 'none', borderRadius: '8px',
+            background: ACCENT, color: '#fff', fontSize: '0.75rem', fontWeight: 600,
+            cursor: fields.email ? 'pointer' : 'not-allowed',
+            opacity: fields.email ? 1 : 0.5,
+          }}
+        >
+          Créer
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const newFieldStyle: React.CSSProperties = {
+  padding: '0.5rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+  fontSize: '0.8rem', outline: 'none', background: '#fff', boxSizing: 'border-box',
 }
 
 /* ---------- CMS (existing content editor) ---------- */

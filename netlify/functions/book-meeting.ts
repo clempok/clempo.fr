@@ -1,5 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { recordEvent } from './_analytics'
+import { upsertContact } from './_crm'
 
 function pad(n: number): string {
   return n.toString().padStart(2, '0')
@@ -137,6 +138,18 @@ const handler: Handler = async (event) => {
       message,
       lang,
     })
+
+    // Upsert into CRM with status "Lead"
+    await upsertContact(
+      {
+        email,
+        firstName,
+        lastName,
+        source: 'Booking',
+        notes: message ? `RDV ${date} ${hour}:${minute} — ${message}` : `RDV ${date} ${hour}:${minute}`,
+      },
+      'Lead',
+    )
 
     const eventData = await calendarRes.json()
     const dateFormatted = formatDateParis(date, isFr ? 'fr-FR' : 'en-GB')
