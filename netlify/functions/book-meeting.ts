@@ -1,4 +1,5 @@
 import type { Handler } from '@netlify/functions'
+import { recordEvent } from './_analytics'
 
 function pad(n: number): string {
   return n.toString().padStart(2, '0')
@@ -123,6 +124,19 @@ const handler: Handler = async (event) => {
         body: JSON.stringify({ success: false, error: err }),
       }
     }
+
+    // Record booking event in analytics store (non-blocking failure)
+    await recordEvent({
+      type: 'booking',
+      firstName,
+      lastName,
+      email,
+      date,
+      hour,
+      minute,
+      message,
+      lang,
+    })
 
     const eventData = await calendarRes.json()
     const dateFormatted = formatDateParis(date, isFr ? 'fr-FR' : 'en-GB')

@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { LangProvider } from './contexts/LangContext'
 import { ContentProvider } from './contexts/ContentContext'
 import Navbar from './components/Navbar'
@@ -12,12 +13,36 @@ import Confirmation from './pages/Confirmation'
 import Admin from './pages/Admin'
 import Booking from './pages/Booking'
 
+function VisitTracker() {
+  const location = useLocation()
+  useEffect(() => {
+    // Don't count admin visits
+    if (location.pathname.startsWith('/admin')) return
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      const key = `clempo_visit_${today}`
+      if (sessionStorage.getItem(key)) return
+      sessionStorage.setItem(key, '1')
+      fetch('/.netlify/functions/track-visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: today }),
+        keepalive: true,
+      }).catch(() => {})
+    } catch {
+      /* ignore */
+    }
+  }, [location.pathname])
+  return null
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <ContentProvider>
         <LangProvider>
           <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', position: 'relative' }}>
+            <VisitTracker />
             <LiquidCursor />
             <Background />
             <Navbar />

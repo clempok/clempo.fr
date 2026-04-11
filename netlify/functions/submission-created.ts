@@ -1,4 +1,5 @@
 import type { Handler } from '@netlify/functions'
+import { recordEvent } from './_analytics'
 
 const handler: Handler = async (event) => {
   try {
@@ -10,6 +11,16 @@ const handler: Handler = async (event) => {
     const company = data.company || ''
     const email = data.email || ''
     const phone = data.phone || ''
+
+    // Record brochure download event
+    await recordEvent({
+      type: 'brochure',
+      firstName,
+      lastName,
+      email,
+      company,
+      phone,
+    })
 
     const apiKey = process.env.RESEND_API_KEY
     if (!apiKey) {
