@@ -76,6 +76,19 @@ export default function Admin() {
   const [authError, setAuthError] = useState('')
   const [view, setView] = useState<'analytics' | 'cms'>('analytics')
 
+  // Restore native cursor on /admin (body has `cursor: none` globally)
+  useEffect(() => {
+    const prevBody = document.body.style.cursor
+    document.body.style.cursor = 'auto'
+    const style = document.createElement('style')
+    style.textContent = 'body, a, button, input, textarea, select { cursor: auto !important; } a, button { cursor: pointer !important; }'
+    document.head.appendChild(style)
+    return () => {
+      document.body.style.cursor = prevBody
+      document.head.removeChild(style)
+    }
+  }, [])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setAuthError('')
@@ -211,18 +224,37 @@ function AnalyticsView({ password }: { password: string }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [range, setRange] = useState<7 | 30 | 90>(30)
+  const [diag, setDiag] = useState('')
 
-  useEffect(() => {
-    let cancelled = false
+  const refresh = useCallback(() => {
     setLoading(true)
     fetch('/.netlify/functions/admin-data', {
       headers: { Authorization: `Bearer ${password}` },
     })
-      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
-      .then(d => { if (!cancelled) { setData(d); setLoading(false) } })
-      .catch(err => { if (!cancelled) { setError(String(err)); setLoading(false) } })
-    return () => { cancelled = true }
+      .then(async r => {
+        const body = await r.text()
+        if (!r.ok) throw new Error(`${r.status}: ${body}`)
+        return JSON.parse(body)
+      })
+      .then(d => { setData(d); setLoading(false) })
+      .catch(err => { setError(String(err)); setLoading(false) })
   }, [password])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  const runTestWrite = async () => {
+    setDiag('Test en cours…')
+    try {
+      const res = await fetch('/.netlify/functions/admin-data?testwrite=1', {
+        headers: { Authorization: `Bearer ${password}` },
+      })
+      const body = await res.text()
+      setDiag(`HTTP ${res.status} — ${body.slice(0, 800)}`)
+      if (res.ok) refresh()
+    } catch (err) {
+      setDiag(`Network error: ${String(err)}`)
+    }
+  }
 
   const stats = useMemo(() => {
     if (!data) return null
@@ -258,28 +290,58 @@ function AnalyticsView({ password }: { password: string }) {
 
   return (
     <div style={{ padding: '2rem 3rem', maxWidth: '1100px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', margin: 0 }}>
           Analytics
         </h2>
-        <div style={{ display: 'flex', gap: '4px', background: '#f4f4f5', padding: '4px', borderRadius: '10px' }}>
-          {([7, 30, 90] as const).map(d => (
-            <button
-              key={d}
-              onClick={() => setRange(d)}
-              style={{
-                padding: '0.4rem 0.8rem', border: 'none', borderRadius: '6px',
-                background: range === d ? '#fff' : 'transparent',
-                color: range === d ? ACCENT : '#666',
-                fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                boxShadow: range === d ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-              }}
-            >
-              {d}j
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            onClick={runTestWrite}
+            style={{
+              padding: '0.4rem 0.8rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+              background: '#fff', color: '#555', fontSize: '0.75rem', cursor: 'pointer',
+            }}
+            title="Teste l'écriture dans Netlify Blobs"
+          >
+            🧪 Tester le stockage
+          </button>
+          <button
+            onClick={refresh}
+            style={{
+              padding: '0.4rem 0.8rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+              background: '#fff', color: '#555', fontSize: '0.75rem', cursor: 'pointer',
+            }}
+          >
+            ⟳ Rafraîchir
+          </button>
+          <div style={{ display: 'flex', gap: '4px', background: '#f4f4f5', padding: '4px', borderRadius: '10px' }}>
+            {([7, 30, 90] as const).map(d => (
+              <button
+                key={d}
+                onClick={() => setRange(d)}
+                style={{
+                  padding: '0.4rem 0.8rem', border: 'none', borderRadius: '6px',
+                  background: range === d ? '#fff' : 'transparent',
+                  color: range === d ? ACCENT : '#666',
+                  fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                  boxShadow: range === d ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                {d}j
+              </button>
+            ))}
+          </div>
         </div>
       </div>
+
+      {diag && (
+        <pre style={{
+          background: '#0a0a0a', color: '#9fe8a7', padding: '1rem', borderRadius: '10px',
+          fontSize: '0.7rem', marginBottom: '1.5rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+        }}>
+          {diag}
+        </pre>
+      )}
 
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>

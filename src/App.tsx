@@ -28,7 +28,10 @@ function VisitTracker() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: today }),
         keepalive: true,
-      }).catch(() => {})
+      })
+        .then(r => r.ok ? r.json() : r.text().then(t => Promise.reject(t)))
+        .then(d => console.log('[clempo] visit tracked', d))
+        .catch(err => console.warn('[clempo] track-visit failed', err))
     } catch {
       /* ignore */
     }
