@@ -36,26 +36,35 @@ function VisitTracker() {
   return null
 }
 
+function Shell() {
+  const location = useLocation()
+  const isAdmin = location.pathname.startsWith('/admin')
+
+  return (
+    <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', position: 'relative' }}>
+      <VisitTracker />
+      {!isAdmin && <LiquidCursor />}
+      {!isAdmin && <Background />}
+      {!isAdmin && <Navbar />}
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/articles" element={<Articles />} />
+        <Route path="/articles/:slug" element={<ArticlePage />} />
+        <Route path="/confirmation" element={<Confirmation />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/booking" element={<Booking />} />
+      </Routes>
+      {!isAdmin && <Footer />}
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <ContentProvider>
         <LangProvider>
-          <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', position: 'relative' }}>
-            <VisitTracker />
-            <LiquidCursor />
-            <Background />
-            <Navbar />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/articles" element={<Articles />} />
-              <Route path="/articles/:slug" element={<ArticlePage />} />
-              <Route path="/confirmation" element={<Confirmation />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/booking" element={<Booking />} />
-            </Routes>
-            <Footer />
-          </div>
+          <Shell />
         </LangProvider>
       </ContentProvider>
     </BrowserRouter>
