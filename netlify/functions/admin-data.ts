@@ -1,6 +1,5 @@
 import type { Handler } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
-import { checkAuth } from './_analytics'
+import { checkAuth, getAnalyticsStore } from './_analytics'
 
 const handler: Handler = async (event) => {
   if (!checkAuth(event.headers as Record<string, string | undefined>)) {
@@ -11,11 +10,14 @@ const handler: Handler = async (event) => {
   const testWrite = event.queryStringParameters?.testwrite === '1'
 
   // Attempt a direct read (let errors surface so we can see them)
-  let store: ReturnType<typeof getStore> | null = null
-  const diag: Record<string, unknown> = {}
+  let store: ReturnType<typeof getAnalyticsStore> | null = null
+  const diag: Record<string, unknown> = {
+    hasToken: !!(process.env.NETLIFY_BLOBS_TOKEN || process.env.NETLIFY_API_TOKEN),
+    hasSiteEnv: !!(process.env.SITE_ID || process.env.NETLIFY_SITE_ID),
+  }
 
   try {
-    store = getStore({ name: 'analytics' })
+    store = getAnalyticsStore()
     diag.storeCreated = true
   } catch (err) {
     return {

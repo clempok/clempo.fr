@@ -1,5 +1,5 @@
 import type { Handler } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
+import { getAnalyticsStore } from './_analytics'
 
 const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -12,7 +12,7 @@ const handler: Handler = async (event) => {
       ? date
       : new Date().toISOString().slice(0, 10)
 
-    const store = getStore({ name: 'analytics' })
+    const store = getAnalyticsStore()
     const existing = (await store.get('data', { type: 'json' })) as
       | { events: unknown[]; visits: Record<string, number> }
       | null

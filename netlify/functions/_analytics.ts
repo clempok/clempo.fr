@@ -24,8 +24,19 @@ export type AnalyticsData = {
 
 const EMPTY: AnalyticsData = { events: [], visits: {} }
 
+const SITE_ID = '266ec893-0de7-4f86-9559-e80fa4a1e3d7'
+
+export function getAnalyticsStore() {
+  const token = process.env.NETLIFY_BLOBS_TOKEN || process.env.NETLIFY_API_TOKEN
+  const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID || SITE_ID
+  if (token) {
+    return getStore({ name: 'analytics', siteID, token })
+  }
+  return getStore({ name: 'analytics' })
+}
+
 function store() {
-  return getStore({ name: 'analytics', consistency: 'strong' })
+  return getAnalyticsStore()
 }
 
 export async function readData(): Promise<AnalyticsData> {
