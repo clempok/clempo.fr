@@ -107,7 +107,7 @@ export default function Admin() {
   const [password, setPassword] = useState(() => sessionStorage.getItem(AUTH_KEY) || '')
   const [authInput, setAuthInput] = useState('')
   const [authError, setAuthError] = useState('')
-  const [view, setView] = useState<'analytics' | 'crm' | 'cms'>('analytics')
+  const [view, setView] = useState<'analytics' | 'crm' | 'cms' | 'seo'>('analytics')
 
   // Restore native cursor on /admin (body has `cursor: none` globally)
   useEffect(() => {
@@ -230,6 +230,12 @@ export default function Admin() {
           >
             ✏️ CMS contenu
           </button>
+          <button
+            onClick={() => setView('seo')}
+            style={tabStyle(view === 'seo')}
+          >
+            🔍 SEO positions
+          </button>
         </div>
 
         <button
@@ -250,6 +256,8 @@ export default function Admin() {
           <AnalyticsView password={password} />
         ) : view === 'crm' ? (
           <CrmView password={password} />
+        ) : view === 'seo' ? (
+          <SeoView password={password} />
         ) : (
           <CMSView />
         )}
@@ -510,6 +518,344 @@ const tdStyle: React.CSSProperties = {
   padding: '0.75rem 1rem',
   color: '#333',
   verticalAlign: 'middle',
+}
+
+/* ---------- SEO Positions ---------- */
+
+type RankingEntry = {
+  date: string
+  position: number | null
+  url?: string
+}
+
+type KeywordRanking = {
+  keyword: string
+  targetPage: string
+  volume: number
+  history: RankingEntry[]
+}
+
+type SeoDataState = {
+  keywords: KeywordRanking[]
+  lastChecked: string | null
+}
+
+function positionBadge(pos: number | null): React.CSSProperties {
+  if (pos === null) return { background: '#f4f4f5', color: '#a1a1aa' }
+  if (pos <= 3) return { background: '#d1fae5', color: '#065f46' }
+  if (pos <= 10) return { background: '#dbeafe', color: '#1e40af' }
+  if (pos <= 20) return { background: '#fef3c7', color: '#92400e' }
+  if (pos <= 50) return { background: '#fed7aa', color: '#9a3412' }
+  return { background: '#fee2e2', color: '#991b1b' }
+}
+
+function trendArrow(history: RankingEntry[]): { symbol: string; color: string; delta: number } {
+  if (history.length < 2) return { symbol: '—', color: '#a1a1aa', delta: 0 }
+  const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date))
+  const current = sorted[0].position
+  const previous = sorted[1].position
+  if (current === null && previous === null) return { symbol: '—', color: '#a1a1aa', delta: 0 }
+  if (current === null) return { symbol: '↓', color: '#dc2626', delta: 0 }
+  if (previous === null) return { symbol: '↑', color: '#16a34a', delta: 0 }
+  const delta = previous - current // positive = improved
+  if (delta > 0) return { symbol: `↑${delta}`, color: '#16a34a', delta }
+  if (delta < 0) return { symbol: `↓${Math.abs(delta)}`, color: '#dc2626', delta }
+  return { symbol: '=', color: '#a1a1aa', delta: 0 }
+}
+
+function SeoView({ password }: { password: string }) {
+  const [data, setData] = useState<SeoDataState | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [showAdd, setShowAdd] = useState(false)
+  const [newKw, setNewKw] = useState('')
+  const [newTarget, setNewTarget] = useState('/')
+  const [newVolume, setNewVolume] = useState('')
+
+  const refresh = useCallback(() => {
+    setLoading(true)
+    fetch('/.netlify/functions/admin-seo', {
+      headers: { Authorization: `Bearer ${password}` },
+    })
+      .then(async r => {
+        const body = await r.text()
+        if (!r.ok) throw new Error(`${r.status}: ${body}`)
+        return JSON.parse(body)
+      })
+      .then(d => { setData(d); setLoading(false) })
+      .catch(err => { setError(String(err)); setLoading(false) })
+  }, [password])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  const addKeyword = async () => {
+    if (!newKw.trim()) return
+    try {
+      const res = await fetch('/.netlify/functions/admin-seo', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add-keyword',
+          keyword: newKw.trim(),
+          targetPage: newTarget.trim() || '/',
+          volume: parseInt(newVolume) || 0,
+        }),
+      })
+      if (!res.ok) {
+        const b = await res.json()
+        alert(b.error || 'Erreur')
+        return
+      }
+      setNewKw('')
+      setNewTarget('/')
+      setNewVolume('')
+      setShowAdd(false)
+      refresh()
+    } catch (err) {
+      alert(String(err))
+    }
+  }
+
+  const removeKeyword = async (keyword: string) => {
+    if (!confirm(`Supprimer le suivi de "${keyword}" ?`)) return
+    try {
+      await fetch('/.netlify/functions/admin-seo', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'remove-keyword', keyword }),
+      })
+      refresh()
+    } catch (err) {
+      alert(String(err))
+    }
+  }
+
+  if (loading) return <div style={{ padding: '2rem' }}>Chargement...</div>
+  if (error) return <div style={{ padding: '2rem', color: '#dc2626' }}>{error}</div>
+  if (!data) return null
+
+  const keywords = data.keywords || []
+
+  // Sort: best position first, then alphabetical
+  const sorted = [...keywords].sort((a, b) => {
+    const aPos = a.history.length ? (a.history[a.history.length - 1].position ?? 999) : 999
+    const bPos = b.history.length ? (b.history[b.history.length - 1].position ?? 999) : 999
+    if (aPos !== bPos) return aPos - bPos
+    return a.keyword.localeCompare(b.keyword)
+  })
+
+  // Stats
+  const tracked = keywords.length
+  const inTop10 = keywords.filter(k => {
+    const last = k.history[k.history.length - 1]
+    return last && last.position !== null && last.position <= 10
+  }).length
+  const inTop3 = keywords.filter(k => {
+    const last = k.history[k.history.length - 1]
+    return last && last.position !== null && last.position <= 3
+  }).length
+
+  return (
+    <div style={{ padding: '2rem', maxWidth: '1100px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: ACCENT, margin: 0 }}>
+            Suivi des positions SEO
+          </h2>
+          {data.lastChecked && (
+            <p style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.25rem' }}>
+              Dernier check : {new Date(data.lastChecked).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            style={{
+              padding: '0.5rem 1rem', border: 'none', borderRadius: '8px',
+              background: ACCENT, color: '#fff', fontSize: '0.8rem', fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            + Mot-clé
+          </button>
+          <button
+            onClick={refresh}
+            style={{
+              padding: '0.5rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+              background: '#fff', color: '#555', fontSize: '0.8rem', cursor: 'pointer',
+            }}
+          >
+            ⟳ Rafraîchir
+          </button>
+        </div>
+      </div>
+
+      {/* Stats cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <StatCard label="Mots-clés suivis" value={String(tracked)} />
+        <StatCard label="Top 10 Google" value={String(inTop10)} sub={tracked ? `${Math.round((inTop10 / tracked) * 100)}%` : '—'} />
+        <StatCard label="Top 3 Google" value={String(inTop3)} sub={tracked ? `${Math.round((inTop3 / tracked) * 100)}%` : '—'} />
+      </div>
+
+      {/* Add keyword form */}
+      {showAdd && (
+        <div style={{
+          background: '#fafafa', border: '1px solid #eee', borderRadius: '12px',
+          padding: '1.25rem', marginBottom: '1.5rem',
+        }}>
+          <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#333', marginBottom: '0.75rem' }}>
+            Ajouter un mot-clé
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 0.8fr auto', gap: '0.75rem', alignItems: 'end' }}>
+            <div>
+              <label style={labelStyle}>Mot-clé</label>
+              <input
+                value={newKw} onChange={e => setNewKw(e.target.value)}
+                placeholder="marketing santé"
+                style={inputFieldStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Page cible</label>
+              <input
+                value={newTarget} onChange={e => setNewTarget(e.target.value)}
+                placeholder="/"
+                style={inputFieldStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Volume</label>
+              <input
+                value={newVolume} onChange={e => setNewVolume(e.target.value)}
+                placeholder="720"
+                type="number"
+                style={inputFieldStyle}
+              />
+            </div>
+            <button
+              onClick={addKeyword}
+              style={{
+                padding: '0.7rem 1.2rem', border: 'none', borderRadius: '10px',
+                background: ACCENT, color: '#fff', fontSize: '0.8rem', fontWeight: 600,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              Ajouter
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Rankings table */}
+      {sorted.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '3rem', color: '#999' }}>
+          <p style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Aucun mot-clé suivi</p>
+          <p style={{ fontSize: '0.8rem' }}>Ajoutez vos premiers mots-clés pour commencer le suivi</p>
+        </div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #eee' }}>
+                <th style={thStyle}>Mot-clé</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Position</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Tendance</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Volume</th>
+                <th style={thStyle}>Page cible</th>
+                <th style={{ ...thStyle, textAlign: 'center' }}>Historique (8 sem.)</th>
+                <th style={{ ...thStyle, width: '40px' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(kw => {
+                const lastEntry = kw.history.length ? kw.history[kw.history.length - 1] : null
+                const pos = lastEntry?.position ?? null
+                const trend = trendArrow(kw.history)
+                const last8 = kw.history.slice(-8)
+
+                return (
+                  <tr key={kw.keyword} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ ...tdStyle, fontWeight: 600 }}>{kw.keyword}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                      <span style={{
+                        display: 'inline-block', padding: '0.2rem 0.6rem',
+                        borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700,
+                        ...positionBadge(pos),
+                      }}>
+                        {pos !== null ? `#${pos}` : '—'}
+                      </span>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600, color: trend.color }}>
+                      {trend.symbol}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'center', color: '#666' }}>
+                      {kw.volume > 0 ? `${kw.volume}/mois` : '—'}
+                    </td>
+                    <td style={{ ...tdStyle, color: '#888', fontSize: '0.8rem' }}>
+                      {kw.targetPage}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '3px', justifyContent: 'center', alignItems: 'end', height: '28px' }}>
+                        {last8.length === 0 ? (
+                          <span style={{ color: '#ccc', fontSize: '0.7rem' }}>—</span>
+                        ) : (
+                          last8.map((h, i) => {
+                            const barH = h.position === null ? 2 : Math.max(2, 28 - (h.position / 100) * 28)
+                            const barColor = h.position === null ? '#e0e0e0'
+                              : h.position <= 3 ? '#16a34a'
+                              : h.position <= 10 ? '#3b82f6'
+                              : h.position <= 20 ? '#f59e0b'
+                              : h.position <= 50 ? '#f97316'
+                              : '#ef4444'
+                            return (
+                              <div
+                                key={i}
+                                title={`${h.date}: ${h.position !== null ? `#${h.position}` : 'Non classé'}`}
+                                style={{
+                                  width: '6px', height: `${barH}px`,
+                                  borderRadius: '2px', background: barColor,
+                                }}
+                              />
+                            )
+                          })
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                      <button
+                        onClick={() => removeKeyword(kw.keyword)}
+                        style={{
+                          background: 'none', border: 'none', color: '#ccc',
+                          cursor: 'pointer', fontSize: '1rem', padding: '0.2rem',
+                        }}
+                        title="Supprimer"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#fafafa', borderRadius: '10px', fontSize: '0.7rem', color: '#888' }}>
+        <strong>Légende positions :</strong>{' '}
+        <span style={{ color: '#065f46' }}>Top 3</span> · {' '}
+        <span style={{ color: '#1e40af' }}>Top 10</span> · {' '}
+        <span style={{ color: '#92400e' }}>Top 20</span> · {' '}
+        <span style={{ color: '#9a3412' }}>Top 50</span> · {' '}
+        <span style={{ color: '#991b1b' }}>50+</span> · {' '}
+        <span style={{ color: '#a1a1aa' }}>Non classé</span>
+        <br />
+        Les positions sont mises à jour automatiquement chaque semaine.
+      </div>
+    </div>
+  )
 }
 
 function tabStyle(active: boolean): React.CSSProperties {
