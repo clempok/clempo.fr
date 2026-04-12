@@ -259,3 +259,94 @@ export const SEED_CONTACTS: SeedContact[] = parseCsv(RAW_CSV)
     company: (fields[3] || '').trim(),
     source: (fields[4] || '').trim(),
   }))
+
+// --- Lemcal contacts (extracted 2026-04-12) ---
+// These are imported with default status "Opportunité" (they booked a meeting).
+
+export type LemcalContact = {
+  email: string
+  firstName: string
+  lastName: string
+  company: string
+  source: string
+  notes: string
+  linkedIn: string
+  rdvDate: string
+  rdvType: string
+}
+
+const RAW_LEMCAL = `Email,Prénom,Nom,Entreprise,LinkedIn,Date RDV,Type de RDV,Notes
+jb@monbilandesante.fr,Jean-Baptiste,Chouane,Mon Bilan de Santé,,,01/04/2026,Service Discovery,
+affif.zaccaria@peektoria.com,Affif,Zaccaria,Peektoria,https://www.linkedin.com/in/affif-zaccaria-93114b65,27/02/2026,Audit Marketing Healthcare,
+alexis.patissier@shadow.eco,Alexis,Patissier,Shadow,,,25/02/2026,Service Discovery,
+kevin.ouazzani@lucidia.fr,Kevin,Ouazzani,Lucidia Health Intelligency,https://www.linkedin.com/in/kevin-ouazzani-55a471120,11/02/2026,Service Discovery,
+romain.rousselet@libramentor.com,Romain,Rousselet,Libramentor,,,26/11/2025,Service Discovery,
+hugo@nowa.care,Hugo,Manoukian,Nowa Care,https://www.linkedin.com/in/hugo-manoukian-02a78927,21/11/2025,Service Discovery,
+julien@peachmed.app,Julien,Le Thoai,Peachmed,,,21/11/2025,Audit Marketing Healthcare,
+assistant@dentalpilote.com,Raphael,Haddad,Dentalpilote,,,12/11/2025,Audit Marketing Healthcare,
+gasparddedreuzy@gmail.com,Gaspard,Mille,Celsius Santé,https://www.linkedin.com/in/gaspard-mille-804945b0,24/09/2025,Audit Marketing Healthcare,
+marc.nasser@hotmail.com,Marc,Nasser,,,,17/09/2025,Audit Marketing Healthcare,
+s.fakallah@audensiel.com,Sara,Fakallah,Audensiel,,,12/09/2025,Service Discovery,
+kevin.ouazzani@gmail.com,Kevin,Ouazzani,,,,03/09/2025,Service Discovery,
+f.thomas@nex-meded.com,Florian,Thomas,Nex-MedEd,,,29/08/2025,Audit Marketing Healthcare,
+eliott@vocca.ai,Eliott,Hoffenberg,Vocca,https://www.linkedin.com/in/eliott-hoffenberg,29/08/2025,Service Discovery,
+nicolasraulin22@gmail.com,Nicolas,Raulin,,,,30/07/2025,Service Discovery,
+boris.leveque@axomove.com,Boris,Leveque,Axomove,https://www.linkedin.com/in/boris-leveque-50791756,25/07/2025,Service Discovery,
+mottesylvain16@gmail.com,Christophe,,,,,22/07/2025,Service Discovery,
+lavinia@sorcovahealth.com,Lavinia,Ionita,Sorcova Health,,,21/07/2025,Service Discovery,
+sophia@spaictra.com,Sophia,Mejjati Alami,Spaictra,https://www.linkedin.com/in/sophia-mejjati-alami-4371b7217,09/07/2025,Service Discovery,
+roberto.jongejan@alveolus.nl,Roberto,Jongejan,Alveolus Biomedical,https://www.linkedin.com/in/roberto-jongejan-md-phd-152945a,09/07/2025,Service Discovery,
+caroline.chesnel@mbadmb.com,Caroline,Chesnel,MBA DMB,,,04/07/2025,Service Discovery,
+roland.lemeur@med-ia.biz,Roland,Le Meur,Med-IA,,,04/07/2025,Service Discovery,
+contact@mori-nutrition.com,Anne-Sophie,Darrigade,MORI Nutrition,https://www.linkedin.com/in/dr-anne-sophie-darrigade-b2936693,04/07/2025,Service Discovery,
+laila.quere@akenmedical.com,Laila,Quere,aKen Medical,https://www.linkedin.com/in/laila-quere,02/07/2025,Service Discovery,
+yamina.hakem@globalreachbi.com,Yamina,Hakem,Liik,https://www.linkedin.com/in/yamina-hakem-a21492a,30/06/2025,Service Discovery,
+shiva.shukla@beezbiotech.com,Shiva,Shukla,Beez Biotech,https://www.linkedin.com/in/shiva-k-shukla-8621b419,13/06/2025,Service Discovery,
+louis@centreviasana.com,Louis,Fosse,Via Sana,https://www.linkedin.com/in/louis-fosse-377655109,13/06/2025,Service Discovery,
+na@one.fr,Nathaniel,Amsellem,,,,23/05/2025,Service Discovery,
+benoit.bourre@hocoia.com,Benoît,Bourre,Hocoia,https://www.linkedin.com/in/benoît-bourre-a9a807234,22/05/2025,Business meeting santexpo,Leads a l international+grands comptes
+charlotte.bouquerel@u-paris.fr,Charlotte,Bouquerel,Université Paris,,,21/05/2025,Service Discovery,
+benoit@metaconnect.fr,Tommasino,,Metaconnect,,,21/05/2025,Business meeting santexpo,En avance sur notre temps.
+mathieudellenbach@gmail.com,Mathieu,Dellenbach,,,,19/05/2025,Service Discovery,
+thierry.weber@vivactis.ch,Thierry,Weber,Vivactis Switzerland,https://www.linkedin.com/in/thierrywebermd,13/05/2025,Service Discovery,
+matthieu.gasc@drugoptimal.com,Matthieu,Gasc,DrugOptimal,,,05/05/2025,Service Discovery,
+davidderrien@hotmail.com,David,Derrien,,,,24/04/2025,Business meeting santexpo,
+jourdrencyrielle@gmail.com,Cyrielle,Jourdren,,,,18/04/2025,Business meeting santexpo,
+vducrohet@softwaymedical.com,Vincent,Ducrohet,Softway Medical,,,17/04/2025,Business meeting santexpo,
+charlotte.calvet@gmail.com,Charlotte,Calvet Granet,,,,14/04/2025,Business meeting santexpo,
+romain.laurent.sf@gmail.com,Romain,Laurent,,,,07/04/2025,Business meeting santexpo,
+anthony@lisconnect.fr,Anthony,Placet,Lisconnect,,,03/04/2025,Service Discovery,
+fslaoui@theryq.com,Fatine,Slaoui,THERYQ,https://www.linkedin.com/in/fatineslaoui,31/03/2025,Service Discovery,
+jpursulet@yahoo.fr,Jean-Philippe,Ursulet,,,,28/03/2025,Service Discovery,
+pierrick.arnal@predict4health.com,Pierrick,Arnal,Predict4Health,https://www.linkedin.com/in/pierrick-arnal-ph-d-067b65148,28/03/2025,Service Discovery,
+charlesd@nexus-pro.com,Charles,Delannoy,Nexus Pro Santé,https://www.linkedin.com/in/charles-delannoy-aa280b182,27/03/2025,Service Discovery,
+aziz.kezzou@sipublic.fr,Aziz,Kezzou,Sopra Steria,https://www.linkedin.com/in/akezzou,20/03/2025,Service Discovery,
+marie.noirot-nerin@3h18.fr,Marie,Noirot-Nerin,3H18,,,03/03/2025,Business meeting santexpo,
+sami.rifai@novetude.com,Sami,Rifai,Novetude,,,26/02/2025,Business meeting santexpo,
+leila@le-palpitant.fr,Ilona,Huynh,Le Palpitant,https://www.linkedin.com/in/ilona-huynh,25/02/2025,Service Discovery,
+nicolas.martelin@prostperia.com,Nicolas,Martelin,Prostperia,https://www.linkedin.com/in/nicolas-martelin-325a855,21/02/2025,Service Discovery,
+arthur.seres@neok.fr,Arthur,Sérès,Neok,https://www.linkedin.com/in/arthur-sérès-bb1a6599,20/02/2025,Service Discovery,
+fherry@libheros.fr,Florence,Herry,France Biotech,https://www.linkedin.com/in/florence-herry,20/02/2025,Service Discovery,
+romain.dorange@biostarks.com,Romain,Dorange,Biostarks,,,09/12/2024,Business meeting santexpo,
+flora@med-easy.fr,Flora,Boishardy,Med-Easy,,,04/12/2024,Business meeting santexpo,
+laury.pantel@pmd-medical.com,Laury,Pantel,PMD Medical,,,22/08/2024,Business meeting santexpo,
+abbou.yonathan@gmail.com,Yonathan,Abbou,,,,24/07/2024,Business meeting santexpo,
+marcantoine.vanni@gmail.com,Marc-Antoine,Vanni,,,,17/06/2024,Business meeting santexpo,
+jeremy.cramer@cherrybiotech.com,Jeremy,Cramer,Cherry Biotech,,,26/03/2024,Echange PSCC,"CEO | Cherry Biotech develops instruments for drug discovery and precision medicine."
+yaniv@growthfactor.fr,Yaniv,Mimoun,Growth Factor,,,25/03/2024,Business meeting santexpo,
+louis@andrewapp.fr,Louis,Rapp,Andrewapp,,,13/03/2024,Business meeting santexpo,
+ac@msinsight.tech,Arnaud,Cutivet,MSInsight,,,23/01/2024,Echange PSCC,"CEO | MSInsight développe des solutions logicielles pour le repérage de cancers MSI."`
+
+export const LEMCAL_CONTACTS: LemcalContact[] = parseCsv(RAW_LEMCAL)
+  .filter(fields => fields[0] && fields[0].includes('@'))
+  .map(fields => ({
+    email: (fields[0] || '').trim().toLowerCase(),
+    firstName: (fields[1] || '').trim(),
+    lastName: (fields[2] || '').trim(),
+    company: (fields[3] || '').trim(),
+    source: 'Lemcal',
+    linkedIn: (fields[4] || '').trim(),
+    rdvDate: (fields[5] || '').trim(),
+    rdvType: (fields[6] || '').trim(),
+    notes: (fields[7] || '').trim(),
+  }))

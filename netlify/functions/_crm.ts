@@ -1,5 +1,5 @@
 import { getStore } from '@netlify/blobs'
-import { SEED_CONTACTS } from './_crm-seed'
+import { SEED_CONTACTS, LEMCAL_CONTACTS } from './_crm-seed'
 
 export const CRM_STATUSES = [
   'Non qualifié',
@@ -29,6 +29,7 @@ export type CrmContact = {
   lastName: string
   source: string
   notes: string
+  linkedIn?: string
   createdAt: string
   updatedAt: string
 }
@@ -46,6 +47,7 @@ export type CrmCompany = {
 export type CrmData = {
   companies: CrmCompany[]
   seeded?: boolean
+  lemcalSeeded?: boolean
   version?: number // 2 = company-based
 }
 
@@ -88,8 +90,6 @@ function makeCompanyId(name: string): string {
 
 /**
  * Migrate v1 (flat contacts) → v2 (company-based).
- * Groups contacts by company. If any contact had a status ≠ "Non qualifié",
- * the company inherits the most advanced status.
  */
 function migrateV1toV2(v1: CrmDataV1): CrmData {
   const groups = new Map<string, CrmDataV1['contacts']>()
@@ -110,7 +110,6 @@ function migrateV1toV2(v1: CrmDataV1): CrmData {
       ? contacts.map(c => [c.firstName, c.lastName].filter(Boolean).join(' ')).join(', ') || contacts[0].email
       : key
 
-    // Determine company status: pick the most advanced non-"Non qualifié" status
     let bestStatus: CrmStatus = 'Non qualifié'
     let bestPriority = -2
     for (const c of contacts) {
@@ -186,7 +185,110 @@ function seedFromCsv(): CrmData {
     })
   }
 
-  return { companies, seeded: true, version: 2 }
+  // Also merge Lemcal contacts into initial seed
+  mergeLemcalInto({ companies, seeded: true, version: 2 })
+
+  return { companies, seeded: true, lemcalSeeded: true, version: 2 }
+}
+
+/**
+ * Merge Lemcal contacts into existing CRM data.
+ * - If a contact email already exists and company status ≠ "Non qualifié" → keep status
+ * - If contact exists but company status == "Non qualifié" → set to "Opportunité"
+ * - If contact is new → create with "Opportunité"
+ * Skips owner email.
+ */
+function mergeLemcalInto(data: CrmData): void {
+  const now = new Date().toISOString()
+  const SKIP_EMAILS = ['c.pougetosmont@gmail.com', 'clement.pougetosmont@gmail.com']
+
+  for (const lc of LEMCAL_CONTACTS) {
+    const email = lc.email.toLowerCase()
+    if (SKIP_EMAILS.includes(email)) continue
+
+    // Build notes from Lemcal data
+    const noteParts: string[] = []
+    if (lc.rdvDate) noteParts.push(`RDV ${lc.rdvDate} — ${lc.rdvType || 'Meeting'}`)
+    if (lc.notes) noteParts.push(lc.notes)
+    const noteText = noteParts.join('\n')
+
+    // Find existing contact across all companies
+    let found = false
+    for (const co of data.companies) {
+      const existing = co.contacts.find(c => c.email.toLowerCase() === email)
+      if (existing) {
+        // Enrich existing contact
+        existing.firstName = existing.firstName || lc.firstName
+        existing.lastName = existing.lastName || lc.lastName
+        if (!existing.source.includes('Lemcal')) {
+          existing.source = existing.source ? `${existing.source}, Lemcal` : 'Lemcal'
+        }
+        if (lc.linkedIn) existing.linkedIn = lc.linkedIn
+        if (noteText && !existing.notes.includes(noteText)) {
+          existing.notes = existing.notes ? `${existing.notes}\n${noteText}` : noteText
+        }
+        existing.updatedAt = now
+
+        // Status rule: keep if != "Non qualifié", else set to "Opportunité"
+        if (co.status === 'Non qualifié') {
+          co.status = 'Opportunité'
+          co.updatedAt = now
+        }
+        found = true
+        break
+      }
+    }
+
+    if (!found) {
+      const companyName = lc.company || [lc.firstName, lc.lastName].filter(Boolean).join(' ') || email
+
+      // Try to find existing company by name (case-insensitive)
+      let company = data.companies.find(
+        co => co.name.toLowerCase() === companyName.toLowerCase(),
+      )
+
+      if (company) {
+        // Add contact to existing company
+        company.contacts.push({
+          id: makeId(email),
+          email,
+          firstName: lc.firstName,
+          lastName: lc.lastName,
+          source: 'Lemcal',
+          notes: noteText,
+          linkedIn: lc.linkedIn || undefined,
+          createdAt: now,
+          updatedAt: now,
+        })
+        // Status rule
+        if (company.status === 'Non qualifié') {
+          company.status = 'Opportunité'
+          company.updatedAt = now
+        }
+      } else {
+        // Create new company + contact
+        data.companies.push({
+          id: makeCompanyId(companyName),
+          name: companyName,
+          status: 'Opportunité',
+          notes: '',
+          createdAt: now,
+          updatedAt: now,
+          contacts: [{
+            id: makeId(email),
+            email,
+            firstName: lc.firstName,
+            lastName: lc.lastName,
+            source: 'Lemcal',
+            notes: noteText,
+            linkedIn: lc.linkedIn || undefined,
+            createdAt: now,
+            updatedAt: now,
+          }],
+        })
+      }
+    }
+  }
 }
 
 export async function readCrm(): Promise<CrmData> {
@@ -195,7 +297,7 @@ export async function readCrm(): Promise<CrmData> {
   const raw = (await store.get('data', { type: 'json' })) as any | null
 
   if (!raw || !raw.seeded) {
-    // First access → seed
+    // First access → seed (includes Lemcal)
     const data = seedFromCsv()
     await store.setJSON('data', data)
     return data
@@ -204,8 +306,20 @@ export async function readCrm(): Promise<CrmData> {
   // Check if it's v1 (has "contacts" array at root) → migrate
   if (raw.version !== 2 && Array.isArray(raw.contacts)) {
     const migrated = migrateV1toV2(raw as CrmDataV1)
+    // Then also merge Lemcal
+    mergeLemcalInto(migrated)
+    migrated.lemcalSeeded = true
     await store.setJSON('data', migrated)
     return migrated
+  }
+
+  // v2 but Lemcal not yet merged → merge now
+  if (!raw.lemcalSeeded) {
+    const data = raw as CrmData
+    mergeLemcalInto(data)
+    data.lemcalSeeded = true
+    await writeCrm(data)
+    return data
   }
 
   return raw as CrmData
@@ -213,14 +327,11 @@ export async function readCrm(): Promise<CrmData> {
 
 export async function writeCrm(data: CrmData): Promise<void> {
   const store = getCrmStore()
-  await store.setJSON('data', { ...data, seeded: true, version: 2 })
+  await store.setJSON('data', { ...data, seeded: true, lemcalSeeded: true, version: 2 })
 }
 
 /**
  * Upsert a contact by email, grouped under a company.
- * - If the email exists → updates fields, optionally upgrades company status.
- * - If not → creates contact in matching company (or creates company).
- * `forceStatus` sets the company status (used by booking → "Lead").
  */
 export async function upsertContact(
   input: {
@@ -268,7 +379,6 @@ export async function upsertContact(
       const companyName = (input.company || '').trim()
       const status = forceStatus || input.status || 'Non qualifié'
 
-      // Find or create company
       let company = companyName
         ? data.companies.find(co => co.name.toLowerCase() === companyName.toLowerCase())
         : undefined
