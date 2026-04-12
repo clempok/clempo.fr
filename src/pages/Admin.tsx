@@ -571,6 +571,8 @@ function SeoView({ password }: { password: string }) {
   const [newKw, setNewKw] = useState('')
   const [newTarget, setNewTarget] = useState('/')
   const [newVolume, setNewVolume] = useState('')
+  const [checking, setChecking] = useState(false)
+  const [checkResult, setCheckResult] = useState('')
 
   const refresh = useCallback(() => {
     setLoading(true)
@@ -668,7 +670,7 @@ function SeoView({ password }: { password: string }) {
             </p>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button
             onClick={() => setShowAdd(!showAdd)}
             style={{
@@ -680,16 +682,55 @@ function SeoView({ password }: { password: string }) {
             + Mot-clé
           </button>
           <button
+            onClick={async () => {
+              setChecking(true)
+              setCheckResult('')
+              try {
+                const res = await fetch('/.netlify/functions/check-seo-rankings', {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${password}` },
+                })
+                const body = await res.json() as { ok?: boolean; error?: string; summary?: { inTop3: number; inTop10: number; total: number }; checked?: number }
+                if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`)
+                const s = body.summary
+                setCheckResult(s ? `✓ ${body.checked} mots-clés vérifiés — Top 3: ${s.inTop3} · Top 10: ${s.inTop10}` : '✓ Check terminé')
+                refresh()
+              } catch (err) {
+                setCheckResult(`Erreur: ${String(err)}`)
+              }
+              setChecking(false)
+            }}
+            disabled={checking}
+            style={{
+              padding: '0.5rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+              background: checking ? '#f4f4f5' : '#fff', color: checking ? '#999' : '#555',
+              fontSize: '0.8rem', cursor: checking ? 'default' : 'pointer',
+            }}
+          >
+            {checking ? '⏳ Vérification…' : '🔄 Vérifier positions'}
+          </button>
+          <button
             onClick={refresh}
             style={{
               padding: '0.5rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
               background: '#fff', color: '#555', fontSize: '0.8rem', cursor: 'pointer',
             }}
           >
-            ⟳ Rafraîchir
+            ⟳
           </button>
         </div>
       </div>
+
+      {checkResult && (
+        <div style={{
+          padding: '0.75rem 1rem', marginBottom: '1rem', borderRadius: '10px',
+          background: checkResult.startsWith('Erreur') ? '#fee2e2' : '#d1fae5',
+          color: checkResult.startsWith('Erreur') ? '#991b1b' : '#065f46',
+          fontSize: '0.8rem', fontWeight: 500,
+        }}>
+          {checkResult}
+        </div>
+      )}
 
       {/* Stats cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
