@@ -78,9 +78,17 @@ type CrmContact = {
   email: string
   firstName: string
   lastName: string
-  company: string
-  status: CrmStatus
   source: string
+  notes: string
+  createdAt: string
+  updatedAt: string
+}
+
+type CrmCompany = {
+  id: string
+  name: string
+  status: CrmStatus
+  contacts: CrmContact[]
   notes: string
   createdAt: string
   updatedAt: string
@@ -515,16 +523,18 @@ function tabStyle(active: boolean): React.CSSProperties {
   }
 }
 
-/* ---------- CRM ---------- */
+/* ---------- CRM (company-based) ---------- */
 
 function CrmView({ password }: { password: string }) {
-  const [contacts, setContacts] = useState<CrmContact[] | null>(null)
+  const [companies, setCompanies] = useState<CrmCompany[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CrmStatus | 'all'>('all')
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [showAdd, setShowAdd] = useState(false)
+  const [expandedCoId, setExpandedCoId] = useState<string | null>(null)
+  const [expandedContactId, setExpandedContactId] = useState<string | null>(null)
+  const [showAddCompany, setShowAddCompany] = useState(false)
+  const [addContactForCo, setAddContactForCo] = useState<string | null>(null)
 
   const authHeaders = useMemo(
     () => ({ Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' }),
@@ -538,7 +548,7 @@ function CrmView({ password }: { password: string }) {
       const body = await res.text()
       if (!res.ok) throw new Error(`${res.status}: ${body}`)
       const json = JSON.parse(body)
-      setContacts(json.contacts)
+      setCompanies(json.companies)
     } catch (err) {
       setError(String(err))
     } finally {
@@ -548,97 +558,142 @@ function CrmView({ password }: { password: string }) {
 
   useEffect(() => { refresh() }, [refresh])
 
-  const updateContact = async (id: string, fields: Partial<CrmContact>) => {
-    // Optimistic update
-    setContacts(prev => prev?.map(c => c.id === id ? { ...c, ...fields } : c) || null)
+  /* ---- Company actions ---- */
+  const updateCompany = async (id: string, fields: Partial<CrmCompany>) => {
+    setCompanies(prev => prev?.map(co => co.id === id ? { ...co, ...fields, updatedAt: new Date().toISOString() } : co) || null)
     try {
       const res = await fetch('/.netlify/functions/admin-crm', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ action: 'update', id, fields }),
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'update-company', id, fields }),
       })
       if (!res.ok) throw new Error(await res.text())
-    } catch (err) {
-      alert(`Erreur : ${String(err)}`)
-      refresh()
-    }
+    } catch (err) { alert(`Erreur : ${String(err)}`); refresh() }
   }
 
-  const deleteContact = async (id: string) => {
+  const deleteCompany = async (id: string) => {
+    if (!confirm('Supprimer cette entreprise et tous ses contacts ?')) return
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'delete-company', id }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      setCompanies(prev => prev?.filter(co => co.id !== id) || null)
+      if (expandedCoId === id) { setExpandedCoId(null); setExpandedContactId(null) }
+    } catch (err) { alert(`Erreur : ${String(err)}`) }
+  }
+
+  const createCompany = async (name: string, status: CrmStatus) => {
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'create-company', fields: { name, status } }),
+      })
+      const body = await res.text()
+      if (!res.ok) throw new Error(body)
+      const { company } = JSON.parse(body)
+      setCompanies(prev => [company, ...(prev || [])])
+      setShowAddCompany(false)
+    } catch (err) { alert(`Erreur : ${String(err)}`) }
+  }
+
+  /* ---- Contact actions ---- */
+  const updateContact = async (companyId: string, contactId: string, fields: Partial<CrmContact>) => {
+    setCompanies(prev => prev?.map(co => co.id === companyId
+      ? { ...co, contacts: co.contacts.map(c => c.id === contactId ? { ...c, ...fields } : c) }
+      : co,
+    ) || null)
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'update-contact', companyId, contactId, fields }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+    } catch (err) { alert(`Erreur : ${String(err)}`); refresh() }
+  }
+
+  const deleteContact = async (companyId: string, contactId: string) => {
     if (!confirm('Supprimer ce contact ?')) return
     try {
       const res = await fetch('/.netlify/functions/admin-crm', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ action: 'delete', id }),
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'delete-contact', companyId, contactId }),
       })
       if (!res.ok) throw new Error(await res.text())
-      setContacts(prev => prev?.filter(c => c.id !== id) || null)
-      if (expandedId === id) setExpandedId(null)
-    } catch (err) {
-      alert(`Erreur : ${String(err)}`)
-    }
+      setCompanies(prev => prev?.map(co => co.id === companyId
+        ? { ...co, contacts: co.contacts.filter(c => c.id !== contactId) }
+        : co,
+      ) || null)
+      if (expandedContactId === contactId) setExpandedContactId(null)
+    } catch (err) { alert(`Erreur : ${String(err)}`) }
   }
 
-  const createContact = async (fields: Partial<CrmContact>) => {
+  const createContact = async (companyId: string, fields: Partial<CrmContact>) => {
     try {
       const res = await fetch('/.netlify/functions/admin-crm', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ action: 'create', fields }),
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'create-contact', companyId, fields }),
       })
       const body = await res.text()
       if (!res.ok) throw new Error(body)
       const { contact } = JSON.parse(body)
-      setContacts(prev => [contact, ...(prev || [])])
-      setShowAdd(false)
-    } catch (err) {
-      alert(`Erreur : ${String(err)}`)
-    }
+      setCompanies(prev => prev?.map(co => co.id === companyId
+        ? { ...co, contacts: [...co.contacts, contact] }
+        : co,
+      ) || null)
+      setAddContactForCo(null)
+    } catch (err) { alert(`Erreur : ${String(err)}`) }
   }
 
+  /* ---- Filtering ---- */
   const filtered = useMemo(() => {
-    if (!contacts) return []
+    if (!companies) return []
     const q = search.trim().toLowerCase()
-    return contacts
-      .filter(c => statusFilter === 'all' || c.status === statusFilter)
-      .filter(c => !q ||
-        c.email.toLowerCase().includes(q) ||
-        c.firstName.toLowerCase().includes(q) ||
-        c.lastName.toLowerCase().includes(q) ||
-        c.company.toLowerCase().includes(q),
-      )
-      .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
-  }, [contacts, search, statusFilter])
+    return companies
+      .filter(co => statusFilter === 'all' || co.status === statusFilter)
+      .filter(co => {
+        if (!q) return true
+        if (co.name.toLowerCase().includes(q)) return true
+        return co.contacts.some(c =>
+          c.email.toLowerCase().includes(q) ||
+          c.firstName.toLowerCase().includes(q) ||
+          c.lastName.toLowerCase().includes(q),
+        )
+      })
+      .sort((a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1))
+  }, [companies, search, statusFilter])
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: contacts?.length || 0 }
+    const c: Record<string, number> = { all: companies?.length || 0 }
     CRM_STATUSES.forEach(s => { c[s] = 0 })
-    contacts?.forEach(ct => { c[ct.status] = (c[ct.status] || 0) + 1 })
+    companies?.forEach(co => { c[co.status] = (c[co.status] || 0) + 1 })
     return c
-  }, [contacts])
+  }, [companies])
 
-  if (loading && !contacts) return <div style={{ padding: '3rem' }}>Chargement...</div>
-  if (error && !contacts) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error}</div>
+  const totalContacts = useMemo(() => companies?.reduce((sum, co) => sum + co.contacts.length, 0) || 0, [companies])
+
+  if (loading && !companies) return <div style={{ padding: '3rem' }}>Chargement...</div>
+  if (error && !companies) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error}</div>
 
   return (
     <div style={{ padding: '2rem 3rem', maxWidth: '1200px' }}>
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', margin: 0 }}>CRM</h2>
           <p style={{ fontSize: '0.75rem', color: '#999', margin: '0.25rem 0 0' }}>
-            {contacts?.length || 0} contacts
+            {companies?.length || 0} entreprises · {totalContacts} contacts
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
-            onClick={() => setShowAdd(true)}
+            onClick={() => setShowAddCompany(true)}
             style={{
               padding: '0.5rem 0.9rem', border: 'none', borderRadius: '8px',
               background: ACCENT, color: '#fff', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
             }}
           >
-            + Nouveau contact
+            + Nouvelle entreprise
           </button>
           <button
             onClick={refresh}
@@ -654,28 +709,16 @@ function CrmView({ password }: { password: string }) {
 
       {/* Status filter pills */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <FilterPill
-          label={`Tous (${counts.all})`}
-          active={statusFilter === 'all'}
-          onClick={() => setStatusFilter('all')}
-        />
+        <FilterPill label={`Tous (${counts.all})`} active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         {CRM_STATUSES.map(s => (
-          <FilterPill
-            key={s}
-            label={`${s} (${counts[s] || 0})`}
-            active={statusFilter === s}
-            onClick={() => setStatusFilter(s)}
-            color={STATUS_COLORS[s]}
-          />
+          <FilterPill key={s} label={`${s} (${counts[s] || 0})`} active={statusFilter === s} onClick={() => setStatusFilter(s)} color={STATUS_COLORS[s]} />
         ))}
       </div>
 
       {/* Search */}
       <input
-        type="text"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Rechercher par nom, email, entreprise..."
+        type="text" value={search} onChange={e => setSearch(e.target.value)}
+        placeholder="Rechercher par entreprise, nom, email..."
         style={{
           width: '100%', padding: '0.7rem 0.9rem', marginBottom: '1rem',
           border: '1px solid #e0e0e0', borderRadius: '10px', fontSize: '0.85rem',
@@ -683,116 +726,181 @@ function CrmView({ password }: { password: string }) {
         }}
       />
 
-      {showAdd && (
-        <NewContactForm
-          onSave={createContact}
-          onCancel={() => setShowAdd(false)}
-        />
-      )}
+      {showAddCompany && <NewCompanyForm onSave={createCompany} onCancel={() => setShowAddCompany(false)} />}
 
-      {/* Contacts list */}
+      {/* Companies list */}
       <div style={{ border: '1px solid #eee', borderRadius: '14px', overflow: 'hidden', background: '#fff' }}>
         {filtered.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#999', fontSize: '0.85rem' }}>
-            Aucun contact.
-          </div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#999', fontSize: '0.85rem' }}>Aucune entreprise.</div>
         ) : (
-          filtered.map(c => (
-            <div key={c.id} style={{ borderBottom: '1px solid #f4f4f5' }}>
-              <div
-                onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '2fr 2fr 2fr 1.5fr auto',
-                  gap: '1rem',
-                  alignItems: 'center',
-                  padding: '0.9rem 1rem',
-                  cursor: 'pointer',
-                  fontSize: '0.8rem',
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600, color: '#111' }}>
-                    {[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}
-                  </div>
-                  <div style={{ color: '#999', fontSize: '0.7rem' }}>{c.source}</div>
-                </div>
-                <div style={{ color: '#555', wordBreak: 'break-all' }}>{c.email}</div>
-                <div style={{ color: '#555' }}>{c.company || '—'}</div>
-                <select
-                  value={c.status}
-                  onClick={e => e.stopPropagation()}
-                  onChange={e => updateContact(c.id, { status: e.target.value as CrmStatus })}
+          filtered.map(co => {
+            const isExpanded = expandedCoId === co.id
+            return (
+              <div key={co.id} style={{ borderBottom: '1px solid #f4f4f5' }}>
+                {/* Company row */}
+                <div
+                  onClick={() => { setExpandedCoId(isExpanded ? null : co.id); setExpandedContactId(null); setAddContactForCo(null) }}
                   style={{
-                    padding: '4px 8px', borderRadius: '6px', border: 'none',
-                    background: STATUS_COLORS[c.status].bg,
-                    color: STATUS_COLORS[c.status].fg,
-                    fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer',
+                    display: 'grid', gridTemplateColumns: '2.5fr 1fr 1.5fr auto',
+                    gap: '1rem', alignItems: 'center', padding: '0.9rem 1rem',
+                    cursor: 'pointer', fontSize: '0.8rem',
+                    background: isExpanded ? '#fafafa' : 'transparent',
                   }}
                 >
-                  {CRM_STATUSES.map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <div style={{ fontSize: '0.7rem', color: '#bbb' }}>
-                  {expandedId === c.id ? '▲' : '▼'}
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#111', fontSize: '0.85rem' }}>{co.name}</div>
+                    <div style={{ color: '#999', fontSize: '0.7rem', marginTop: '2px' }}>
+                      {co.contacts.length} contact{co.contacts.length > 1 ? 's' : ''}
+                    </div>
+                  </div>
+                  <div style={{ color: '#999', fontSize: '0.7rem' }}>
+                    {new Date(co.updatedAt).toLocaleDateString('fr-FR')}
+                  </div>
+                  <select
+                    value={co.status}
+                    onClick={e => e.stopPropagation()}
+                    onChange={e => updateCompany(co.id, { status: e.target.value as CrmStatus })}
+                    style={{
+                      padding: '4px 8px', borderRadius: '6px', border: 'none',
+                      background: STATUS_COLORS[co.status].bg, color: STATUS_COLORS[co.status].fg,
+                      fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    {CRM_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <div style={{ fontSize: '0.7rem', color: '#bbb' }}>{isExpanded ? '▲' : '▼'}</div>
                 </div>
-              </div>
 
-              {expandedId === c.id && (
-                <div style={{ padding: '0 1rem 1rem 1rem', background: '#fafafa' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', paddingTop: '0.5rem' }}>
-                    <EditField label="Prénom" value={c.firstName} onSave={v => updateContact(c.id, { firstName: v })} />
-                    <EditField label="Nom" value={c.lastName} onSave={v => updateContact(c.id, { lastName: v })} />
-                    <EditField label="Entreprise" value={c.company} onSave={v => updateContact(c.id, { company: v })} />
-                    <EditField label="Source" value={c.source} onSave={v => updateContact(c.id, { source: v })} />
+                {/* Expanded company detail */}
+                {isExpanded && (
+                  <div style={{ padding: '0 1rem 1rem 1rem', background: '#fafafa' }}>
+                    {/* Company notes */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', paddingTop: '0.5rem', marginBottom: '0.75rem' }}>
+                      <EditField label="Nom entreprise" value={co.name} onSave={v => updateCompany(co.id, { name: v })} />
+                      <div>
+                        <label style={crmLabelStyle}>Notes entreprise</label>
+                        <textarea
+                          value={co.notes}
+                          onChange={e => setCompanies(prev => prev?.map(x => x.id === co.id ? { ...x, notes: e.target.value } : x) || null)}
+                          onBlur={e => updateCompany(co.id, { notes: e.target.value })}
+                          rows={2}
+                          style={{ width: '100%', padding: '0.5rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.8rem', outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif", resize: 'vertical' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Contacts header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <p style={{ fontSize: '0.7rem', fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+                        Contacts ({co.contacts.length})
+                      </p>
+                      <button
+                        onClick={() => setAddContactForCo(addContactForCo === co.id ? null : co.id)}
+                        style={{ padding: '3px 10px', border: '1px solid #e0e0e0', borderRadius: '6px', background: '#fff', color: ACCENT, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        + Contact
+                      </button>
+                    </div>
+
+                    {addContactForCo === co.id && (
+                      <NewContactForm
+                        onSave={(fields) => createContact(co.id, fields)}
+                        onCancel={() => setAddContactForCo(null)}
+                      />
+                    )}
+
+                    {/* Contacts list within company */}
+                    <div style={{ border: '1px solid #e5e5e5', borderRadius: '10px', overflow: 'hidden', background: '#fff' }}>
+                      {co.contacts.length === 0 ? (
+                        <div style={{ padding: '1rem', textAlign: 'center', color: '#bbb', fontSize: '0.75rem' }}>Aucun contact</div>
+                      ) : co.contacts.map(c => (
+                        <div key={c.id} style={{ borderBottom: '1px solid #f4f4f5' }}>
+                          <div
+                            onClick={() => setExpandedContactId(expandedContactId === c.id ? null : c.id)}
+                            style={{
+                              display: 'grid', gridTemplateColumns: '2fr 2.5fr 1fr auto',
+                              gap: '0.75rem', alignItems: 'center', padding: '0.6rem 0.8rem',
+                              cursor: 'pointer', fontSize: '0.78rem',
+                            }}
+                          >
+                            <div>
+                              <span style={{ fontWeight: 600, color: '#111' }}>
+                                {[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'}
+                              </span>
+                            </div>
+                            <div style={{ color: '#555', wordBreak: 'break-all', fontSize: '0.75rem' }}>{c.email}</div>
+                            <div style={{ color: '#999', fontSize: '0.68rem' }}>{c.source}</div>
+                            <div style={{ fontSize: '0.65rem', color: '#bbb' }}>{expandedContactId === c.id ? '▲' : '▼'}</div>
+                          </div>
+
+                          {expandedContactId === c.id && (
+                            <div style={{ padding: '0 0.8rem 0.8rem 0.8rem', background: '#f8f8f8' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', paddingTop: '0.5rem' }}>
+                                <EditField label="Prénom" value={c.firstName} onSave={v => updateContact(co.id, c.id, { firstName: v })} />
+                                <EditField label="Nom" value={c.lastName} onSave={v => updateContact(co.id, c.id, { lastName: v })} />
+                                <EditField label="Email" value={c.email} onSave={v => updateContact(co.id, c.id, { email: v })} />
+                                <EditField label="Source" value={c.source} onSave={v => updateContact(co.id, c.id, { source: v })} />
+                              </div>
+                              <div style={{ marginTop: '0.5rem' }}>
+                                <label style={crmLabelStyle}>Notes</label>
+                                <textarea
+                                  value={c.notes}
+                                  onChange={e => setCompanies(prev => prev?.map(co2 => co2.id === co.id
+                                    ? { ...co2, contacts: co2.contacts.map(x => x.id === c.id ? { ...x, notes: e.target.value } : x) }
+                                    : co2,
+                                  ) || null)}
+                                  onBlur={e => updateContact(co.id, c.id, { notes: e.target.value })}
+                                  rows={2}
+                                  style={{ width: '100%', padding: '0.5rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif", resize: 'vertical' }}
+                                />
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                                <p style={{ fontSize: '0.6rem', color: '#bbb', margin: 0 }}>
+                                  Créé : {new Date(c.createdAt).toLocaleDateString('fr-FR')} · Maj : {new Date(c.updatedAt).toLocaleString('fr-FR')}
+                                </p>
+                                <button
+                                  onClick={() => deleteContact(co.id, c.id)}
+                                  style={{ padding: '0.3rem 0.6rem', border: '1px solid #fecaca', borderRadius: '6px', background: '#fff', color: '#dc2626', fontSize: '0.65rem', cursor: 'pointer' }}
+                                >
+                                  Supprimer
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Company actions */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
+                      <p style={{ fontSize: '0.6rem', color: '#bbb', margin: 0 }}>
+                        Créé : {new Date(co.createdAt).toLocaleDateString('fr-FR')} · Maj : {new Date(co.updatedAt).toLocaleString('fr-FR')}
+                      </p>
+                      <button
+                        onClick={() => deleteCompany(co.id)}
+                        style={{ padding: '0.4rem 0.7rem', border: '1px solid #fecaca', borderRadius: '6px', background: '#fff', color: '#dc2626', fontSize: '0.7rem', cursor: 'pointer' }}
+                      >
+                        Supprimer l'entreprise
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 600, color: '#666', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Notes
-                    </label>
-                    <textarea
-                      value={c.notes}
-                      onChange={e => setContacts(prev => prev?.map(x => x.id === c.id ? { ...x, notes: e.target.value } : x) || null)}
-                      onBlur={e => updateContact(c.id, { notes: e.target.value })}
-                      rows={3}
-                      style={{
-                        width: '100%', padding: '0.5rem 0.7rem', border: '1px solid #e0e0e0',
-                        borderRadius: '8px', fontSize: '0.8rem', outline: 'none',
-                        background: '#fff', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif",
-                        resize: 'vertical',
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>
-                    <p style={{ fontSize: '0.65rem', color: '#bbb', margin: 0 }}>
-                      Créé : {new Date(c.createdAt).toLocaleDateString('fr-FR')} · Maj : {new Date(c.updatedAt).toLocaleString('fr-FR')}
-                    </p>
-                    <button
-                      onClick={() => deleteContact(c.id)}
-                      style={{
-                        padding: '0.4rem 0.7rem', border: '1px solid #fecaca', borderRadius: '6px',
-                        background: '#fff', color: '#dc2626', fontSize: '0.7rem', cursor: 'pointer',
-                      }}
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))
+                )}
+              </div>
+            )
+          })
         )}
       </div>
     </div>
   )
 }
 
+const crmLabelStyle: React.CSSProperties = {
+  display: 'block', fontSize: '0.65rem', fontWeight: 600, color: '#666',
+  marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.04em',
+}
+
 function FilterPill({ label, active, onClick, color }: {
-  label: string
-  active: boolean
-  onClick: () => void
-  color?: { bg: string; fg: string }
+  label: string; active: boolean; onClick: () => void; color?: { bg: string; fg: string }
 }) {
   return (
     <button
@@ -815,13 +923,9 @@ function EditField({ label, value, onSave }: { label: string; value: string; onS
   useEffect(() => { setLocal(value) }, [value])
   return (
     <div>
-      <label style={{ display: 'block', fontSize: '0.65rem', fontWeight: 600, color: '#666', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-        {label}
-      </label>
+      <label style={crmLabelStyle}>{label}</label>
       <input
-        type="text"
-        value={local}
-        onChange={e => setLocal(e.target.value)}
+        type="text" value={local} onChange={e => setLocal(e.target.value)}
         onBlur={() => { if (local !== value) onSave(local) }}
         style={{
           width: '100%', padding: '0.5rem 0.7rem', border: '1px solid #e0e0e0',
@@ -833,62 +937,44 @@ function EditField({ label, value, onSave }: { label: string; value: string; onS
   )
 }
 
-function NewContactForm({ onSave, onCancel }: {
-  onSave: (fields: Partial<CrmContact>) => void
-  onCancel: () => void
-}) {
-  const [fields, setFields] = useState<Partial<CrmContact>>({
-    email: '', firstName: '', lastName: '', company: '',
-    status: 'Non qualifié', source: 'Manual', notes: '',
-  })
-  const upd = (k: keyof CrmContact, v: string) => setFields(p => ({ ...p, [k]: v }))
-
+function NewCompanyForm({ onSave, onCancel }: { onSave: (name: string, status: CrmStatus) => void; onCancel: () => void }) {
+  const [name, setName] = useState('')
+  const [status, setStatus] = useState<CrmStatus>('Non qualifié')
   return (
-    <div style={{
-      border: '1px solid #e0e0e0', borderRadius: '12px', padding: '1rem',
-      marginBottom: '1rem', background: '#fafafa',
-    }}>
-      <p style={{ fontSize: '0.8rem', fontWeight: 600, color: ACCENT, margin: '0 0 0.75rem' }}>
-        Nouveau contact
-      </p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-        <input placeholder="Email *" value={fields.email} onChange={e => upd('email', e.target.value)} style={newFieldStyle} />
-        <select value={fields.status} onChange={e => upd('status', e.target.value)} style={newFieldStyle}>
+    <div style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '1rem', marginBottom: '1rem', background: '#fafafa' }}>
+      <p style={{ fontSize: '0.8rem', fontWeight: 600, color: ACCENT, margin: '0 0 0.75rem' }}>Nouvelle entreprise</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem' }}>
+        <input placeholder="Nom de l'entreprise *" value={name} onChange={e => setName(e.target.value)} style={newFieldStyle} />
+        <select value={status} onChange={e => setStatus(e.target.value as CrmStatus)} style={newFieldStyle}>
           {CRM_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+      </div>
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', justifyContent: 'flex-end' }}>
+        <button onClick={onCancel} style={{ padding: '0.45rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px', background: '#fff', color: '#555', fontSize: '0.75rem', cursor: 'pointer' }}>Annuler</button>
+        <button onClick={() => name.trim() && onSave(name.trim(), status)} disabled={!name.trim()}
+          style={{ padding: '0.45rem 0.9rem', border: 'none', borderRadius: '8px', background: ACCENT, color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: name.trim() ? 'pointer' : 'not-allowed', opacity: name.trim() ? 1 : 0.5 }}>
+          Créer
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function NewContactForm({ onSave, onCancel }: { onSave: (fields: Partial<CrmContact>) => void; onCancel: () => void }) {
+  const [fields, setFields] = useState<Partial<CrmContact>>({ email: '', firstName: '', lastName: '', source: 'Manual', notes: '' })
+  const upd = (k: keyof CrmContact, v: string) => setFields(p => ({ ...p, [k]: v }))
+  return (
+    <div style={{ border: '1px solid #e0e0e0', borderRadius: '10px', padding: '0.75rem', marginBottom: '0.75rem', background: '#fff' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+        <input placeholder="Email *" value={fields.email} onChange={e => upd('email', e.target.value)} style={newFieldStyle} />
         <input placeholder="Prénom" value={fields.firstName} onChange={e => upd('firstName', e.target.value)} style={newFieldStyle} />
         <input placeholder="Nom" value={fields.lastName} onChange={e => upd('lastName', e.target.value)} style={newFieldStyle} />
-        <input placeholder="Entreprise" value={fields.company} onChange={e => upd('company', e.target.value)} style={newFieldStyle} />
-        <input placeholder="Source" value={fields.source} onChange={e => upd('source', e.target.value)} style={newFieldStyle} />
       </div>
-      <textarea
-        placeholder="Notes"
-        value={fields.notes}
-        onChange={e => upd('notes', e.target.value)}
-        rows={2}
-        style={{ ...newFieldStyle, width: '100%', marginTop: '0.5rem', fontFamily: "'Inter', sans-serif", resize: 'vertical' }}
-      />
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', justifyContent: 'flex-end' }}>
-        <button
-          onClick={onCancel}
-          style={{
-            padding: '0.45rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
-            background: '#fff', color: '#555', fontSize: '0.75rem', cursor: 'pointer',
-          }}
-        >
-          Annuler
-        </button>
-        <button
-          onClick={() => fields.email && onSave(fields)}
-          disabled={!fields.email}
-          style={{
-            padding: '0.45rem 0.9rem', border: 'none', borderRadius: '8px',
-            background: ACCENT, color: '#fff', fontSize: '0.75rem', fontWeight: 600,
-            cursor: fields.email ? 'pointer' : 'not-allowed',
-            opacity: fields.email ? 1 : 0.5,
-          }}
-        >
-          Créer
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', justifyContent: 'flex-end' }}>
+        <button onClick={onCancel} style={{ padding: '0.35rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '6px', background: '#fff', color: '#555', fontSize: '0.7rem', cursor: 'pointer' }}>Annuler</button>
+        <button onClick={() => fields.email && onSave(fields)} disabled={!fields.email}
+          style={{ padding: '0.35rem 0.7rem', border: 'none', borderRadius: '6px', background: ACCENT, color: '#fff', fontSize: '0.7rem', fontWeight: 600, cursor: fields.email ? 'pointer' : 'not-allowed', opacity: fields.email ? 1 : 0.5 }}>
+          Ajouter
         </button>
       </div>
     </div>

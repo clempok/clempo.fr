@@ -1,6 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { checkAuth } from './_analytics'
-import { readCrm, writeCrm, CRM_STATUSES, type CrmStatus, type CrmContact } from './_crm'
+import { readCrm, writeCrm, CRM_STATUSES, type CrmStatus, type CrmContact, type CrmCompany } from './_crm'
 
 const handler: Handler = async (event) => {
   if (!checkAuth(event.headers as Record<string, string | undefined>)) {
@@ -13,7 +13,7 @@ const handler: Handler = async (event) => {
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contacts: data.contacts, statuses: CRM_STATUSES }),
+        body: JSON.stringify({ companies: data.companies, statuses: CRM_STATUSES }),
       }
     }
 
@@ -22,57 +22,128 @@ const handler: Handler = async (event) => {
       const { action } = body
       const data = await readCrm()
 
-      if (action === 'update') {
-        const { id, fields } = body as { id: string; fields: Partial<CrmContact> }
-        const contact = data.contacts.find(c => c.id === id)
-        if (!contact) {
-          return { statusCode: 404, body: JSON.stringify({ error: 'Not found' }) }
+      // --- Company-level actions ---
+
+      if (action === 'update-company') {
+        const { id, fields } = body as { id: string; fields: Partial<CrmCompany> }
+        const company = data.companies.find(c => c.id === id)
+        if (!company) {
+          return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
         }
         if (fields.status && !CRM_STATUSES.includes(fields.status as CrmStatus)) {
           return { statusCode: 400, body: JSON.stringify({ error: 'Invalid status' }) }
         }
-        Object.assign(contact, fields, { updatedAt: new Date().toISOString() })
+        if (fields.name !== undefined) company.name = fields.name
+        if (fields.status !== undefined) company.status = fields.status as CrmStatus
+        if (fields.notes !== undefined) company.notes = fields.notes
+        company.updatedAt = new Date().toISOString()
+        await writeCrm(data)
+        return { statusCode: 200, body: JSON.stringify({ ok: true, company }) }
+      }
+
+      if (action === 'delete-company') {
+        const { id } = body as { id: string }
+        const before = data.companies.length
+        data.companies = data.companies.filter(c => c.id !== id)
+        if (data.companies.length === before) {
+          return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
+        }
+        await writeCrm(data)
+        return { statusCode: 200, body: JSON.stringify({ ok: true }) }
+      }
+
+      if (action === 'create-company') {
+        const { fields } = body as { fields: { name: string; status?: CrmStatus; notes?: string } }
+        if (!fields.name?.trim()) {
+          return { statusCode: 400, body: JSON.stringify({ error: 'Company name required' }) }
+        }
+        const name = fields.name.trim()
+        if (data.companies.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+          return { statusCode: 409, body: JSON.stringify({ error: 'Company already exists' }) }
+        }
+        const now = new Date().toISOString()
+        const company: CrmCompany = {
+          id: 'co-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+          name,
+          status: (fields.status as CrmStatus) || 'Non qualifié',
+          contacts: [],
+          notes: fields.notes || '',
+          createdAt: now,
+          updatedAt: now,
+        }
+        data.companies.push(company)
+        await writeCrm(data)
+        return { statusCode: 200, body: JSON.stringify({ ok: true, company }) }
+      }
+
+      // --- Contact-level actions ---
+
+      if (action === 'update-contact') {
+        const { companyId, contactId, fields } = body as {
+          companyId: string; contactId: string; fields: Partial<CrmContact>
+        }
+        const company = data.companies.find(c => c.id === companyId)
+        if (!company) return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
+        const contact = company.contacts.find(c => c.id === contactId)
+        if (!contact) return { statusCode: 404, body: JSON.stringify({ error: 'Contact not found' }) }
+        if (fields.email !== undefined) contact.email = fields.email
+        if (fields.firstName !== undefined) contact.firstName = fields.firstName
+        if (fields.lastName !== undefined) contact.lastName = fields.lastName
+        if (fields.source !== undefined) contact.source = fields.source
+        if (fields.notes !== undefined) contact.notes = fields.notes
+        contact.updatedAt = new Date().toISOString()
         await writeCrm(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true, contact }) }
       }
 
-      if (action === 'create') {
-        const { fields } = body as { fields: Partial<CrmContact> }
-        if (!fields.email) {
-          return { statusCode: 400, body: JSON.stringify({ error: 'email required' }) }
+      if (action === 'create-contact') {
+        const { companyId, fields } = body as { companyId: string; fields: Partial<CrmContact> }
+        const company = data.companies.find(c => c.id === companyId)
+        if (!company) return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
+        if (!fields.email?.trim()) {
+          return { statusCode: 400, body: JSON.stringify({ error: 'Email required' }) }
         }
         const email = fields.email.trim().toLowerCase()
-        if (data.contacts.some(c => c.email.toLowerCase() === email)) {
-          return { statusCode: 409, body: JSON.stringify({ error: 'Email already exists' }) }
+        // Check email uniqueness across all companies
+        for (const co of data.companies) {
+          if (co.contacts.some(c => c.email.toLowerCase() === email)) {
+            return { statusCode: 409, body: JSON.stringify({ error: 'Email already exists' }) }
+          }
         }
         const now = new Date().toISOString()
-        const id = email.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `c-${Date.now()}`
         const contact: CrmContact = {
-          id,
+          id: email.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `c-${Date.now()}`,
           email,
           firstName: fields.firstName || '',
           lastName: fields.lastName || '',
-          company: fields.company || '',
-          status: (fields.status as CrmStatus) || 'Non qualifié',
           source: fields.source || 'Manual',
           notes: fields.notes || '',
           createdAt: now,
           updatedAt: now,
         }
-        data.contacts.push(contact)
+        company.contacts.push(contact)
+        company.updatedAt = now
         await writeCrm(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true, contact }) }
       }
 
-      if (action === 'delete') {
-        const { id } = body as { id: string }
-        const before = data.contacts.length
-        data.contacts = data.contacts.filter(c => c.id !== id)
-        if (data.contacts.length === before) {
-          return { statusCode: 404, body: JSON.stringify({ error: 'Not found' }) }
+      if (action === 'delete-contact') {
+        const { companyId, contactId } = body as { companyId: string; contactId: string }
+        const company = data.companies.find(c => c.id === companyId)
+        if (!company) return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
+        const before = company.contacts.length
+        company.contacts = company.contacts.filter(c => c.id !== contactId)
+        if (company.contacts.length === before) {
+          return { statusCode: 404, body: JSON.stringify({ error: 'Contact not found' }) }
         }
+        company.updatedAt = new Date().toISOString()
         await writeCrm(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true }) }
+      }
+
+      // Legacy compat
+      if (action === 'update' || action === 'create' || action === 'delete') {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Legacy action. Use update-company, update-contact, etc.' }) }
       }
 
       return { statusCode: 400, body: JSON.stringify({ error: 'Unknown action' }) }
