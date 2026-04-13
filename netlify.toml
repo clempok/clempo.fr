@@ -3,6 +3,12 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# Fichiers statiques tools — servir directement, pas de SPA fallback
+[[redirects]]
+  from = "/tools/*"
+  to = "/tools/:splat"
+  status = 200
+
 # SPA fallback — toutes les routes React sont gérées par index.html
 # Note: /.netlify/* paths are automatically excluded by Netlify
 [[redirects]]
