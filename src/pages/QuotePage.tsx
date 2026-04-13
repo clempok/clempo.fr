@@ -696,7 +696,7 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
       setError('Veuillez accepter les conditions générales de vente.')
       return
     }
-    if (mode === 'draw' && isCanvasEmpty()) {
+    if (mode === 'drawn' && isCanvasEmpty()) {
       setError('Veuillez dessiner votre signature.')
       return
     }
