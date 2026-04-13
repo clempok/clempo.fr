@@ -12,6 +12,7 @@ import ArticlePage from './pages/ArticlePage'
 import Confirmation from './pages/Confirmation'
 import Admin from './pages/Admin'
 import Booking from './pages/Booking'
+import QuotePage from './pages/QuotePage'
 
 function VisitTracker() {
   const location = useLocation()
@@ -42,13 +43,14 @@ function VisitTracker() {
 function Shell() {
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
+  const isQuote = location.pathname.startsWith('/devis/')
 
   return (
     <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', position: 'relative' }}>
       <VisitTracker />
-      {!isAdmin && <LiquidCursor />}
-      {!isAdmin && <Background />}
-      {!isAdmin && <Navbar />}
+      {!isAdmin && !isQuote && <LiquidCursor />}
+      {!isAdmin && !isQuote && <Background />}
+      {!isAdmin && !isQuote && <Navbar />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/articles" element={<Articles />} />
@@ -56,8 +58,9 @@ function Shell() {
         <Route path="/confirmation" element={<Confirmation />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/booking" element={<Booking />} />
+        <Route path="/devis/:company/:id" element={<QuotePage />} />
       </Routes>
-      {!isAdmin && <Footer />}
+      {!isAdmin && !isQuote && <Footer />}
     </div>
   )
 }

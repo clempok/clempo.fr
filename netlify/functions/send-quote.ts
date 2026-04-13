@@ -1,4 +1,6 @@
 import type { Handler } from '@netlify/functions'
+import { loadQuotes, saveQuotes, slugify, formatAmount } from './_quotes'
+import type { Quote, QuoteLine } from './_quotes'
 
 function escapeHtml(str: string): string {
   return str
@@ -8,25 +10,7 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function formatAmount(amount: number): string {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(amount)
-}
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-interface QuoteLine {
-  description: string
-  quantity: number
-  unitPrice: number
-}
-
-interface QuoteData {
+interface QuoteInput {
   clientName: string
   clientEmail: string
   clientCompany: string
@@ -35,39 +19,21 @@ interface QuoteData {
   dueDate: string
   lines: QuoteLine[]
   notes: string
+  emailContent: string
   senderName: string
   senderCompany: string
   senderEmail: string
   accentColor: string
-  ctaLabel: string
-  ctaUrl: string
   subject: string
 }
 
-function buildQuoteEmail(data: QuoteData): string {
+function buildEmail(data: QuoteInput, quoteUrl: string): string {
   const totalHT = data.lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0)
   const tva = totalHT * 0.2
   const totalTTC = totalHT + tva
 
-  const linesHtml = data.lines
-    .map(
-      (l) => `
-      <tr>
-        <td style="padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; color: #333;">
-          ${escapeHtml(l.description)}
-        </td>
-        <td style="padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; text-align: center;">
-          ${l.quantity}
-        </td>
-        <td style="padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; text-align: right;">
-          ${formatAmount(l.unitPrice)}
-        </td>
-        <td style="padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; text-align: right; font-weight: 600;">
-          ${formatAmount(l.quantity * l.unitPrice)}
-        </td>
-      </tr>`
-    )
-    .join('')
+  // Convert newlines in emailContent to <br>
+  const bodyHtml = escapeHtml(data.emailContent).replace(/\n/g, '<br>')
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -78,14 +44,14 @@ function buildQuoteEmail(data: QuoteData): string {
       <td align="center" style="padding: 24px 16px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
 
-          <!-- Header avec bouton CTA (style Odoo) -->
+          <!-- Header with CTA -->
           <tr>
             <td style="padding: 28px 32px; background-color: #fafafa; border-bottom: 1px solid #eee;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <a href="${escapeHtml(data.ctaUrl)}" style="display: inline-block; background-color: ${data.accentColor}; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: 14px; letter-spacing: 0.3px;">
-                      ${escapeHtml(data.ctaLabel)}
+                    <a href="${escapeHtml(quoteUrl)}" style="display: inline-block; background-color: ${data.accentColor}; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: 14px; letter-spacing: 0.3px;">
+                      Voir le Devis
                     </a>
                   </td>
                 </tr>
@@ -93,7 +59,7 @@ function buildQuoteEmail(data: QuoteData): string {
                   <td style="padding-top: 16px;">
                     <span style="font-size: 16px; font-weight: 700; color: #111;">${escapeHtml(data.reference)} — ${escapeHtml(data.clientCompany || data.clientName)}</span><br>
                     <span style="font-size: 15px; color: #555; line-height: 1.8;">
-                      ${formatAmount(totalTTC)} TTC &nbsp;·&nbsp; dû le ${formatDate(data.dueDate)}
+                      ${formatAmount(totalTTC)} TTC
                     </span>
                   </td>
                 </tr>
@@ -101,50 +67,19 @@ function buildQuoteEmail(data: QuoteData): string {
             </td>
           </tr>
 
-          <!-- Corps du message -->
+          <!-- Email body (custom text) -->
           <tr>
             <td style="padding: 28px 32px;">
-              <p style="margin: 0 0 16px; font-size: 15px; color: #333; line-height: 1.6;">
-                Bonjour ${escapeHtml(data.clientName)},
-              </p>
-              <p style="margin: 0 0 16px; font-size: 15px; color: #333; line-height: 1.6;">
-                Veuillez trouver ci-dessous votre devis <strong>${escapeHtml(data.reference)}</strong>, d'un montant de <strong>${formatAmount(totalTTC)} TTC</strong>, émis par ${escapeHtml(data.senderCompany)}.
-              </p>
+              <div style="font-size: 15px; color: #333; line-height: 1.7;">
+                ${bodyHtml}
+              </div>
 
-              <!-- Tableau des lignes -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
-                <tr style="background-color: ${data.accentColor};">
-                  <td style="padding: 10px 12px; font-size: 13px; font-weight: 600; color: #fff;">Description</td>
-                  <td style="padding: 10px 12px; font-size: 13px; font-weight: 600; color: #fff; text-align: center;">Qté</td>
-                  <td style="padding: 10px 12px; font-size: 13px; font-weight: 600; color: #fff; text-align: right;">Prix unit.</td>
-                  <td style="padding: 10px 12px; font-size: 13px; font-weight: 600; color: #fff; text-align: right;">Total</td>
-                </tr>
-                ${linesHtml}
-                <tr>
-                  <td colspan="3" style="padding: 8px 12px; font-size: 14px; color: #666; text-align: right;">Total HT</td>
-                  <td style="padding: 8px 12px; font-size: 14px; color: #333; text-align: right; font-weight: 600;">${formatAmount(totalHT)}</td>
-                </tr>
-                <tr>
-                  <td colspan="3" style="padding: 8px 12px; font-size: 14px; color: #666; text-align: right;">TVA (20%)</td>
-                  <td style="padding: 8px 12px; font-size: 14px; color: #333; text-align: right;">${formatAmount(tva)}</td>
-                </tr>
-                <tr style="background-color: #fafafa;">
-                  <td colspan="3" style="padding: 12px; font-size: 15px; font-weight: 700; color: #111; text-align: right;">Total TTC</td>
-                  <td style="padding: 12px; font-size: 15px; font-weight: 700; color: ${data.accentColor}; text-align: right;">${formatAmount(totalTTC)}</td>
-                </tr>
-              </table>
-
-              ${data.notes ? `<p style="margin: 16px 0; font-size: 14px; color: #555; line-height: 1.6; padding: 16px; background: #f9f9f9; border-radius: 8px; border-left: 3px solid ${data.accentColor};">${escapeHtml(data.notes)}</p>` : ''}
-
-              <p style="margin: 16px 0; font-size: 15px; color: #333; line-height: 1.6;">
-                Merci d'indiquer la référence <strong>${escapeHtml(data.reference)}</strong> lors de votre paiement.
-              </p>
-              <p style="margin: 16px 0 0; font-size: 15px; color: #333; line-height: 1.6;">
-                Nous restons à votre disposition si besoin.
-              </p>
-              <p style="margin: 16px 0 0; font-size: 15px; color: #333;">
-                Bien à vous,
-              </p>
+              <!-- CTA button repeated -->
+              <div style="text-align: center; margin: 28px 0 12px;">
+                <a href="${escapeHtml(quoteUrl)}" style="display: inline-block; background-color: ${data.accentColor}; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px;">
+                  Consulter le devis en ligne
+                </a>
+              </div>
             </td>
           </tr>
 
@@ -169,13 +104,10 @@ function buildQuoteEmail(data: QuoteData): string {
 }
 
 const handler: Handler = async (event) => {
-  // CORS
+  const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' }
+
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' },
-      body: '',
-    }
+    return { statusCode: 200, headers, body: '' }
   }
 
   if (event.httpMethod !== 'POST') {
@@ -184,29 +116,57 @@ const handler: Handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}')
-    const { token, data, previewOnly } = body as { token: string; data: QuoteData; previewOnly?: boolean }
+    const { token, data, previewOnly } = body as { token: string; data: QuoteInput; previewOnly?: boolean }
 
-    // Simple auth token (set as env var QUOTE_SECRET)
+    // Auth
     const secret = process.env.QUOTE_SECRET
     if (!secret || token !== secret) {
-      return { statusCode: 401, body: 'Unauthorized' }
+      return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) }
     }
 
-    const html = buildQuoteEmail(data)
+    // Build the quote ID & URL
+    const quoteId = crypto.randomUUID()
+    const companySlug = slugify(data.clientCompany || data.clientName)
+    const quoteUrl = `https://www.clempo.fr/devis/${companySlug}/${quoteId}`
 
-    // Preview mode: return HTML without sending
+    const html = buildEmail(data, quoteUrl)
+
+    // Preview mode
     if (previewOnly) {
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ html }),
-      }
+      return { statusCode: 200, headers, body: JSON.stringify({ html, quoteUrl }) }
     }
+
+    // Save quote to store
+    const now = new Date().toISOString()
+    const quote: Quote = {
+      id: quoteId,
+      reference: data.reference,
+      companySlug,
+      companyName: data.clientCompany || data.clientName,
+      clientName: data.clientName,
+      clientEmail: data.clientEmail,
+      date: data.date,
+      dueDate: data.dueDate,
+      lines: data.lines,
+      notes: data.notes,
+      emailContent: data.emailContent,
+      status: 'sent',
+      accentColor: data.accentColor,
+      senderName: data.senderName,
+      senderCompany: data.senderCompany,
+      senderEmail: data.senderEmail,
+      createdAt: now,
+      sentAt: now,
+    }
+
+    const quotesData = await loadQuotes()
+    quotesData.quotes.push(quote)
+    await saveQuotes(quotesData)
 
     // Send via Resend
     const apiKey = process.env.RESEND_API_KEY
     if (!apiKey) {
-      return { statusCode: 500, body: 'RESEND_API_KEY not set' }
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'RESEND_API_KEY not set' }) }
     }
 
     const res = await fetch('https://api.resend.com/emails', {
@@ -227,18 +187,18 @@ const handler: Handler = async (event) => {
     if (!res.ok) {
       const err = await res.text()
       console.error('Resend error:', err)
-      return { statusCode: 500, headers: { 'Access-Control-Allow-Origin': '*' }, body: err }
+      return { statusCode: 500, headers, body: JSON.stringify({ error: err }) }
     }
 
     const result = await res.json()
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ success: true, emailId: result.id }),
+      headers,
+      body: JSON.stringify({ success: true, emailId: result.id, quoteId, quoteUrl }),
     }
   } catch (err) {
     console.error('Function error:', err)
-    return { statusCode: 500, headers: { 'Access-Control-Allow-Origin': '*' }, body: String(err) }
+    return { statusCode: 500, headers, body: JSON.stringify({ error: String(err) }) }
   }
 }
 

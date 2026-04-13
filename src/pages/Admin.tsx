@@ -118,7 +118,7 @@ export default function Admin() {
   const [password, setPassword] = useState(() => sessionStorage.getItem(AUTH_KEY) || '')
   const [authInput, setAuthInput] = useState('')
   const [authError, setAuthError] = useState('')
-  const [view, setView] = useState<'analytics' | 'crm' | 'cms' | 'seo'>('analytics')
+  const [view, setView] = useState<'analytics' | 'crm' | 'quotes' | 'cms' | 'seo'>('analytics')
 
   // Restore native cursor on /admin (body has `cursor: none` globally)
   useEffect(() => {
@@ -236,6 +236,12 @@ export default function Admin() {
             👥 CRM
           </button>
           <button
+            onClick={() => setView('quotes')}
+            style={tabStyle(view === 'quotes')}
+          >
+            📄 Devis
+          </button>
+          <button
             onClick={() => setView('cms')}
             style={tabStyle(view === 'cms')}
           >
@@ -267,6 +273,8 @@ export default function Admin() {
           <AnalyticsView password={password} />
         ) : view === 'crm' ? (
           <CrmView password={password} />
+        ) : view === 'quotes' ? (
+          <QuotesView password={password} />
         ) : view === 'seo' ? (
           <SeoView password={password} />
         ) : (
@@ -1912,4 +1920,210 @@ const textareaStyle: React.CSSProperties = {
   resize: 'vertical' as const,
   fontFamily: "'Inter', sans-serif",
   lineHeight: 1.6,
+}
+
+/* ---------- Quotes ---------- */
+
+type AdminQuote = {
+  id: string
+  reference: string
+  companySlug: string
+  companyName: string
+  clientName: string
+  clientEmail: string
+  date: string
+  dueDate: string
+  lines: { description: string; quantity: number; unitPrice: number }[]
+  notes: string
+  emailContent: string
+  status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected'
+  accentColor: string
+  senderName: string
+  senderCompany: string
+  senderEmail: string
+  createdAt: string
+  sentAt?: string
+  viewedAt?: string
+}
+
+const QUOTE_STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
+  draft:    { bg: '#f4f4f5', fg: '#52525b' },
+  sent:     { bg: '#dbeafe', fg: '#1e40af' },
+  viewed:   { bg: '#fef3c7', fg: '#92400e' },
+  accepted: { bg: '#d1fae5', fg: '#065f46' },
+  rejected: { bg: '#fee2e2', fg: '#991b1b' },
+}
+
+const QUOTE_STATUS_LABELS: Record<string, string> = {
+  draft: 'Brouillon',
+  sent: 'Envoyé',
+  viewed: 'Consulté',
+  accepted: 'Accepté',
+  rejected: 'Refusé',
+}
+
+function QuotesView({ password }: { password: string }) {
+  const [quotes, setQuotes] = useState<AdminQuote[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const refresh = useCallback(() => {
+    setLoading(true)
+    fetch('/.netlify/functions/admin-quotes', {
+      headers: { Authorization: `Bearer ${password}` },
+    })
+      .then(r => r.ok ? r.json() : r.text().then(t => Promise.reject(t)))
+      .then(d => { setQuotes(d.quotes || []); setError('') })
+      .catch(e => setError(String(e)))
+      .finally(() => setLoading(false))
+  }, [password])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  const updateStatus = async (id: string, status: string) => {
+    await fetch('/.netlify/functions/admin-quotes', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update-status', id, status }),
+    })
+    refresh()
+  }
+
+  const deleteQuote = async (id: string) => {
+    if (!confirm('Supprimer ce devis ?')) return
+    await fetch('/.netlify/functions/admin-quotes', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', id }),
+    })
+    refresh()
+  }
+
+  const fmtAmount = (q: AdminQuote) => {
+    const ht = q.lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0)
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(ht * 1.2)
+  }
+
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+
+  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: '#999' }}>Chargement...</div>
+  if (error) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error}</div>
+
+  return (
+    <div style={{ padding: '2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111' }}>
+          Devis ({quotes.length})
+        </h2>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <a
+            href="/tools/devis.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              padding: '0.5rem 1rem', borderRadius: 8, background: ACCENT, color: '#fff',
+              fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none',
+            }}
+          >
+            + Nouveau devis
+          </a>
+          <button
+            onClick={refresh}
+            style={{
+              padding: '0.5rem 1rem', borderRadius: 8, background: '#f4f4f5', border: '1px solid #e0e0e0',
+              fontSize: '0.8rem', cursor: 'pointer',
+            }}
+          >
+            Actualiser
+          </button>
+        </div>
+      </div>
+
+      {quotes.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '3rem', color: '#999' }}>
+          <p style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Aucun devis pour le moment</p>
+          <p style={{ fontSize: '0.85rem' }}>Créez votre premier devis avec l'outil</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {quotes.map(q => {
+            const sc = QUOTE_STATUS_COLORS[q.status] || QUOTE_STATUS_COLORS.draft
+            return (
+              <div key={q.id} style={{
+                display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem',
+                background: '#fff', border: '1px solid #e5e5e5', borderRadius: 12,
+                flexWrap: 'wrap',
+              }}>
+                {/* Status badge */}
+                <span style={{
+                  background: sc.bg, color: sc.fg, fontSize: '0.7rem', fontWeight: 600,
+                  padding: '0.25rem 0.65rem', borderRadius: 6, minWidth: 70, textAlign: 'center',
+                }}>
+                  {QUOTE_STATUS_LABELS[q.status] || q.status}
+                </span>
+
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#111' }}>{q.reference}</span>
+                  <span style={{ fontSize: '0.82rem', color: '#666', marginLeft: '0.75rem' }}>{q.companyName}</span>
+                  <span style={{ display: 'block', fontSize: '0.75rem', color: '#999', marginTop: '0.15rem' }}>
+                    {q.clientName} &middot; {q.clientEmail}
+                  </span>
+                </div>
+
+                {/* Amount */}
+                <span style={{ fontWeight: 700, fontSize: '0.95rem', color: ACCENT, minWidth: 100, textAlign: 'right' }}>
+                  {fmtAmount(q)}
+                </span>
+
+                {/* Date */}
+                <span style={{ fontSize: '0.78rem', color: '#999', minWidth: 80 }}>
+                  {fmtDate(q.createdAt)}
+                </span>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  <a
+                    href={`/devis/${q.companySlug}/${q.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Voir le devis"
+                    style={{
+                      padding: '0.3rem 0.6rem', borderRadius: 6, background: '#f4f4f5',
+                      border: '1px solid #e0e0e0', fontSize: '0.75rem', cursor: 'pointer',
+                      textDecoration: 'none', color: '#333',
+                    }}
+                  >
+                    Voir
+                  </a>
+                  <select
+                    value={q.status}
+                    onChange={e => updateStatus(q.id, e.target.value)}
+                    style={{
+                      padding: '0.3rem 0.5rem', borderRadius: 6, border: '1px solid #e0e0e0',
+                      fontSize: '0.75rem', background: '#fff', cursor: 'pointer',
+                    }}
+                  >
+                    {Object.entries(QUOTE_STATUS_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>{v}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => deleteQuote(q.id)}
+                    title="Supprimer"
+                    style={{
+                      padding: '0.3rem 0.6rem', borderRadius: 6, background: '#fee2e2',
+                      border: '1px solid #fca5a5', fontSize: '0.75rem', cursor: 'pointer', color: '#991b1b',
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }

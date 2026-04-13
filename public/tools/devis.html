@@ -15,8 +15,8 @@
     }
     .app { display: flex; min-height: 100vh; }
     .sidebar {
-      width: 420px;
-      min-width: 420px;
+      width: 440px;
+      min-width: 440px;
       background: #fff;
       border-right: 1px solid #e0e0e0;
       overflow-y: auto;
@@ -28,6 +28,12 @@
       overflow-y: auto;
       background: #e8e8e8;
     }
+    .preview-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .preview-tabs button {
+      padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px;
+      background: #fff; cursor: pointer; font-size: 13px; font-weight: 500;
+    }
+    .preview-tabs button.active { background: #1A1A6B; color: #fff; border-color: #1A1A6B; }
     .preview iframe {
       width: 100%;
       max-width: 700px;
@@ -58,39 +64,20 @@
     .row { display: flex; gap: 10px; }
     .row .field { flex: 1; }
 
-    /* Lines */
     .line {
-      background: #f9f9f9;
-      border: 1px solid #eee;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 8px;
-      position: relative;
+      background: #f9f9f9; border: 1px solid #eee; border-radius: 8px;
+      padding: 12px; margin-bottom: 8px; position: relative;
     }
     .line .remove {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: none;
-      border: none;
-      color: #ccc;
-      cursor: pointer;
-      font-size: 18px;
-      line-height: 1;
+      position: absolute; top: 8px; right: 8px; background: none;
+      border: none; color: #ccc; cursor: pointer; font-size: 18px; line-height: 1;
     }
     .line .remove:hover { color: #e53e3e; }
 
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 18px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s;
     }
     .btn-primary { background: #1A1A6B; color: #fff; }
     .btn-primary:hover { background: #12124a; }
@@ -106,54 +93,39 @@
     .color-row input[type="text"] { flex: 1; }
 
     .toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #1A1A6B;
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      transform: translateY(100px);
-      opacity: 0;
-      transition: all 0.3s;
-      z-index: 100;
+      position: fixed; bottom: 24px; right: 24px; background: #1A1A6B; color: #fff;
+      padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2); transform: translateY(100px); opacity: 0;
+      transition: all 0.3s; z-index: 100; max-width: 400px;
     }
     .toast.show { transform: translateY(0); opacity: 1; }
+    .toast a { color: #fff; text-decoration: underline; }
 
     .auth-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center; z-index: 200;
     }
     .auth-box {
-      background: #fff;
-      border-radius: 12px;
-      padding: 32px;
-      width: 360px;
+      background: #fff; border-radius: 12px; padding: 32px; width: 360px;
       box-shadow: 0 8px 30px rgba(0,0,0,0.2);
     }
     .auth-box h2 { border: none; margin: 0 0 16px; padding: 0; }
+
+    .hint { font-size: 11px; color: #999; margin-top: 4px; }
   </style>
 </head>
 <body>
   <div id="auth-overlay" class="auth-overlay">
     <div class="auth-box">
-      <h2 style="color: #1A1A6B; text-transform: none; letter-spacing: 0;">🔐 Accès Devis</h2>
+      <h2 style="color: #1A1A6B; text-transform: none; letter-spacing: 0;">Acces Devis</h2>
       <div class="field">
-        <label>Token d'accès</label>
+        <label>Token d'acces</label>
         <input type="password" id="auth-token" placeholder="Entrez votre token..." onkeydown="if(event.key==='Enter')authenticate()">
       </div>
       <div class="field">
         <label>URL de l'API (optionnel)</label>
         <input type="text" id="auth-url" placeholder="https://www.clempo.fr" value="">
-        <div style="font-size: 11px; color: #999; margin-top: 4px;">Laisser vide pour utiliser le site en production</div>
+        <div class="hint">Laisser vide pour utiliser le site en production</div>
       </div>
       <button class="btn btn-primary" onclick="authenticate()" style="margin-top: 12px; width: 100%; justify-content: center;">Connexion</button>
     </div>
@@ -161,14 +133,14 @@
 
   <div class="app" style="display: none;" id="main-app">
     <div class="sidebar">
-      <h1>📄 Générateur de Devis</h1>
-      <p class="subtitle">Créez des devis avec aperçu email style Odoo</p>
+      <h1>Generateur de Devis</h1>
+      <p class="subtitle">Email + page hebergee style Odoo</p>
 
-      <h2>Émetteur</h2>
+      <h2>Emetteur</h2>
       <div class="row">
         <div class="field">
           <label>Nom</label>
-          <input type="text" id="senderName" value="Clément Pouget-Osmont">
+          <input type="text" id="senderName" value="Clement Pouget-Osmont">
         </div>
         <div class="field">
           <label>Entreprise</label>
@@ -199,7 +171,7 @@
       <h2>Devis</h2>
       <div class="row">
         <div class="field">
-          <label>Référence</label>
+          <label>Reference</label>
           <input type="text" id="reference" value="">
         </div>
         <div class="field">
@@ -213,9 +185,15 @@
           <input type="date" id="date">
         </div>
         <div class="field">
-          <label>Date d'échéance</label>
+          <label>Date d'echeance</label>
           <input type="date" id="dueDate">
         </div>
+      </div>
+
+      <h2>Contenu de l'email</h2>
+      <div class="field">
+        <textarea id="emailContent" rows="6" placeholder="Bonjour Jean,&#10;&#10;Suite a notre echange, je vous fais parvenir le devis pour la prestation convenue.&#10;&#10;N'hesitez pas a me contacter si vous avez des questions.&#10;&#10;Bien cordialement,&#10;Clement"></textarea>
+        <div class="hint">Ce texte apparaitra dans le corps de l'email. Le devis complet sera accessible via le bouton "Voir le Devis".</div>
       </div>
 
       <h2>Lignes du devis</h2>
@@ -231,37 +209,30 @@
       <div class="field">
         <label>Couleur d'accent</label>
         <div class="color-row">
-          <input type="color" id="accentColorPicker" value="#875A7B" oninput="document.getElementById('accentColor').value=this.value;updatePreview()">
-          <input type="text" id="accentColor" value="#875A7B" oninput="document.getElementById('accentColorPicker').value=this.value;updatePreview()">
+          <input type="color" id="accentColorPicker" value="#1A1A6B" oninput="document.getElementById('accentColor').value=this.value;updatePreview()">
+          <input type="text" id="accentColor" value="#1A1A6B" oninput="document.getElementById('accentColorPicker').value=this.value;updatePreview()">
         </div>
         <div style="display: flex; gap: 6px; margin-top: 6px;">
-          <button class="btn btn-sm" style="background:#875A7B;color:#fff;font-size:11px;padding:4px 8px;" onclick="setColor('#875A7B')">Odoo</button>
           <button class="btn btn-sm" style="background:#1A1A6B;color:#fff;font-size:11px;padding:4px 8px;" onclick="setColor('#1A1A6B')">Clempo</button>
+          <button class="btn btn-sm" style="background:#875A7B;color:#fff;font-size:11px;padding:4px 8px;" onclick="setColor('#875A7B')">Odoo</button>
           <button class="btn btn-sm" style="background:#16a34a;color:#fff;font-size:11px;padding:4px 8px;" onclick="setColor('#16a34a')">Vert</button>
           <button class="btn btn-sm" style="background:#2563eb;color:#fff;font-size:11px;padding:4px 8px;" onclick="setColor('#2563eb')">Bleu</button>
           <button class="btn btn-sm" style="background:#dc2626;color:#fff;font-size:11px;padding:4px 8px;" onclick="setColor('#dc2626')">Rouge</button>
         </div>
       </div>
-      <div class="row">
-        <div class="field">
-          <label>Texte du bouton CTA</label>
-          <input type="text" id="ctaLabel" value="Voir le Devis">
-        </div>
-        <div class="field">
-          <label>Lien du bouton</label>
-          <input type="url" id="ctaUrl" placeholder="https://...">
-        </div>
-      </div>
 
       <div class="actions">
-        <button class="btn btn-primary" onclick="updatePreview()">🔄 Aperçu</button>
-        <button class="btn btn-success" onclick="sendQuote()">📧 Envoyer</button>
-        <button class="btn btn-secondary" onclick="copyHtml()">📋 Copier HTML</button>
-        <button class="btn btn-secondary" onclick="downloadHtml()">💾 Télécharger</button>
+        <button class="btn btn-primary" onclick="updatePreview()">Apercu</button>
+        <button class="btn btn-success" onclick="sendQuote()">Envoyer</button>
+        <button class="btn btn-secondary" onclick="switchTab('quote')">Voir page devis</button>
       </div>
     </div>
 
     <div class="preview">
+      <div class="preview-tabs">
+        <button id="tab-email" class="active" onclick="switchTab('email')">Apercu email</button>
+        <button id="tab-quote" onclick="switchTab('quote')">Page du devis</button>
+      </div>
       <iframe id="preview-frame"></iframe>
     </div>
   </div>
@@ -271,6 +242,7 @@
   <script>
     let API_URL = ''
     let AUTH_TOKEN = ''
+    let currentTab = 'email'
 
     function authenticate() {
       const token = document.getElementById('auth-token').value.trim()
@@ -285,7 +257,6 @@
       initForm()
     }
 
-    // Auto-login if saved
     window.addEventListener('DOMContentLoaded', () => {
       const saved = localStorage.getItem('quote_token')
       const savedUrl = localStorage.getItem('quote_api_url')
@@ -299,14 +270,12 @@
     })
 
     function initForm() {
-      // Set defaults
       const today = new Date()
       document.getElementById('date').value = today.toISOString().split('T')[0]
       const due = new Date(today)
       due.setDate(due.getDate() + 30)
       document.getElementById('dueDate').value = due.toISOString().split('T')[0]
 
-      // Auto-generate reference
       const year = today.getFullYear()
       const num = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0')
       document.getElementById('reference').value = `DEV/${year}/${num}`
@@ -314,9 +283,8 @@
       addLine()
       updatePreview()
 
-      // Auto-update preview on any input change
       document.querySelectorAll('.sidebar input, .sidebar textarea, .sidebar select').forEach(el => {
-        el.addEventListener('input', debounce(updatePreview, 300))
+        el.addEventListener('input', debounce(updatePreview, 400))
       })
     }
 
@@ -333,18 +301,18 @@
       div.className = 'line'
       div.id = `line-${id}`
       div.innerHTML = `
-        <button class="remove" onclick="removeLine(${id})">×</button>
+        <button class="remove" onclick="removeLine(${id})">x</button>
         <div class="field">
           <label>Description</label>
           <input type="text" class="line-desc" value="${desc}" placeholder="Prestation de conseil..." oninput="updatePreview()">
         </div>
         <div class="row">
           <div class="field">
-            <label>Quantité</label>
+            <label>Quantite</label>
             <input type="number" class="line-qty" value="${qty}" min="1" oninput="updatePreview()">
           </div>
           <div class="field">
-            <label>Prix unitaire HT (€)</label>
+            <label>Prix unitaire HT</label>
             <input type="number" class="line-price" value="${price}" min="0" step="0.01" oninput="updatePreview()">
           </div>
         </div>
@@ -380,17 +348,31 @@
         dueDate: document.getElementById('dueDate').value,
         lines: getLines(),
         notes: document.getElementById('notes').value,
+        emailContent: document.getElementById('emailContent').value,
         senderName: document.getElementById('senderName').value,
         senderCompany: document.getElementById('senderCompany').value,
         senderEmail: document.getElementById('senderEmail').value,
         accentColor: document.getElementById('accentColor').value,
-        ctaLabel: document.getElementById('ctaLabel').value,
-        ctaUrl: document.getElementById('ctaUrl').value,
         subject: document.getElementById('subject').value,
       }
     }
 
+    function switchTab(tab) {
+      currentTab = tab
+      document.getElementById('tab-email').classList.toggle('active', tab === 'email')
+      document.getElementById('tab-quote').classList.toggle('active', tab === 'quote')
+      updatePreview()
+    }
+
     async function updatePreview() {
+      if (currentTab === 'email') {
+        updateEmailPreview()
+      } else {
+        updateQuotePreview()
+      }
+    }
+
+    async function updateEmailPreview() {
       try {
         const res = await fetch(`${API_URL}/.netlify/functions/send-quote`, {
           method: 'POST',
@@ -399,77 +381,142 @@
         })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const { html } = await res.json()
-        const frame = document.getElementById('preview-frame')
-        frame.srcdoc = html
+        document.getElementById('preview-frame').srcdoc = html
       } catch (e) {
         console.error('Preview error:', e)
-        // Fallback: generate locally for preview
-        generateLocalPreview()
+        generateLocalEmailPreview()
       }
     }
 
-    function generateLocalPreview() {
+    function updateQuotePreview() {
       const d = getData()
       const totalHT = d.lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0)
       const tva = totalHT * 0.2
       const totalTTC = totalHT + tva
       const fmt = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
-      const fmtDate = s => { const dt = new Date(s); return dt.toLocaleDateString('fr-FR') }
-      const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      const fmtDate = s => { try { return new Date(s).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) } catch { return s } }
+      const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      const accent = d.accentColor || '#1A1A6B'
+
+      const clients = ['Doctolib','Kiro','Sante Academie','Cherry Biotech','Neok','Medere','Sorcova','DocCity','Semble','Andrew']
+      const expertises = ['Go-to-market sante','Growth marketing B2B','Part-Time CMO','Strategie digitale healthtech','Lead generation medical','Marketing pharma & medtech']
 
       const linesHtml = d.lines.map(l => `
-        <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;color:#333">${esc(l.description)}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;color:#333;text-align:center">${l.quantity}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;color:#333;text-align:right">${fmt(l.unitPrice)}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;color:#333;text-align:right;font-weight:600">${fmt(l.quantity*l.unitPrice)}</td>
+        <tr style="border-bottom:1px solid #f0f0f0">
+          <td style="padding:12px 16px;font-size:14px;color:#333">${esc(l.description)}</td>
+          <td style="padding:12px 16px;font-size:14px;color:#333;text-align:right">${l.quantity}</td>
+          <td style="padding:12px 16px;font-size:14px;color:#333;text-align:right">${fmt(l.unitPrice)}</td>
+          <td style="padding:12px 16px;font-size:14px;color:#333;text-align:right;font-weight:600">${fmt(l.quantity*l.unitPrice)}</td>
         </tr>`).join('')
 
+      const clientBadges = clients.map(c => `<span style="background:#F8F8F6;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;color:#555;border:1px solid rgba(0,0,0,0.06)">${c}</span>`).join(' ')
+      const expertBadges = expertises.map(e => `<span style="background:${accent}0a;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;color:${accent};border:1px solid ${accent}20">${e}</span>`).join(' ')
+
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8f9fa;color:#1a1a1a}</style></head>
+<body>
+<div style="background:#fff;border-bottom:1px solid #e5e5e5;padding:16px 24px;display:flex;align-items:center;justify-content:space-between">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="width:36px;height:36px;border-radius:50%;background:${accent};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px">${esc(d.senderCompany).charAt(0)}</div>
+    <div><span style="font-weight:700;font-size:15px;color:#111">${esc(d.senderCompany)}</span><br><span style="font-size:12px;color:#999">${esc(d.senderName)}</span></div>
+  </div>
+  <span style="font-size:13px;color:${accent};font-weight:600">www.clempo.fr</span>
+</div>
+<div style="max-width:860px;margin:0 auto;padding:24px">
+  <div style="background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.06);box-shadow:0 4px 24px rgba(0,0,0,0.04);overflow:hidden">
+    <div style="padding:24px 32px;border-bottom:1px solid rgba(0,0,0,0.06)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
+        <div>
+          <h1 style="font-size:24px;font-weight:700;color:#0A0A0A;margin:0 0 4px">Devis ${esc(d.reference)}</h1>
+          <p style="font-size:14px;color:#71717A;margin:0">Pour ${esc(d.clientCompany||d.clientName)}</p>
+        </div>
+        <div style="background:${accent}12;border:1px solid ${accent}30;border-radius:10px;padding:12px 16px;text-align:right">
+          <span style="font-size:22px;font-weight:700;color:${accent}">${fmt(totalTTC)}</span>
+          <span style="display:block;font-size:12px;color:#71717A">TTC</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:24px;margin-top:16px;flex-wrap:wrap">
+        <div><span style="font-size:11px;font-weight:600;color:#71717A;text-transform:uppercase;letter-spacing:0.05em">Date</span><br><span style="font-size:14px;font-weight:600;color:#333">${fmtDate(d.date)}</span></div>
+        <div><span style="font-size:11px;font-weight:600;color:#71717A;text-transform:uppercase;letter-spacing:0.05em">Echeance</span><br><span style="font-size:14px;font-weight:600;color:#333">${fmtDate(d.dueDate)}</span></div>
+        <div><span style="font-size:11px;font-weight:600;color:#71717A;text-transform:uppercase;letter-spacing:0.05em">Client</span><br><span style="font-size:14px;font-weight:600;color:#333">${esc(d.clientName)}</span></div>
+      </div>
+    </div>
+    <div style="padding:0 32px">
+      <table style="width:100%;border-collapse:collapse;margin:20px 0">
+        <thead><tr style="background:${accent}">
+          <th style="padding:10px 16px;color:#fff;font-size:12px;font-weight:600;text-align:left">Description</th>
+          <th style="padding:10px 16px;color:#fff;font-size:12px;font-weight:600;text-align:right">Qte</th>
+          <th style="padding:10px 16px;color:#fff;font-size:12px;font-weight:600;text-align:right">Prix unit.</th>
+          <th style="padding:10px 16px;color:#fff;font-size:12px;font-weight:600;text-align:right">Total</th>
+        </tr></thead>
+        <tbody>${linesHtml}</tbody>
+        <tfoot>
+          <tr><td colspan="3" style="padding:8px 16px;text-align:right;font-size:14px;color:#666">Total HT</td><td style="padding:8px 16px;text-align:right;font-size:14px;font-weight:600;color:#333">${fmt(totalHT)}</td></tr>
+          <tr><td colspan="3" style="padding:8px 16px;text-align:right;font-size:14px;color:#666">TVA (20%)</td><td style="padding:8px 16px;text-align:right;font-size:14px;color:#333">${fmt(tva)}</td></tr>
+          <tr style="background:#F8F8F6"><td colspan="3" style="padding:14px 16px;text-align:right;font-size:16px;font-weight:700;color:#111">Total TTC</td><td style="padding:14px 16px;text-align:right;font-size:17px;font-weight:700;color:${accent}">${fmt(totalTTC)}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+    ${d.notes ? `<div style="padding:0 32px 24px"><div style="background:#F8F8F6;border-radius:10px;padding:12px 16px;border-left:3px solid ${accent};font-size:14px;color:#555;line-height:1.7">${esc(d.notes)}</div></div>` : ''}
+    <div style="padding:20px 32px;border-top:1px solid rgba(0,0,0,0.06);background:#fafafa;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+      <span style="font-size:14px;color:#666">Des questions ? <a href="mailto:${esc(d.senderEmail)}" style="color:${accent};font-weight:600;text-decoration:none">${esc(d.senderEmail)}</a></span>
+      <a href="#" style="display:inline-block;background:${accent};color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">Repondre</a>
+    </div>
+  </div>
+  <!-- Trust section -->
+  <div style="margin-top:24px;background:#fff;border-radius:16px;border:1px solid rgba(0,0,0,0.06);padding:24px 32px;text-align:center">
+    <h2 style="font-size:16px;font-weight:700;color:#0A0A0A;margin:0 0 4px;border:none;padding:0;text-transform:none;letter-spacing:0">${esc(d.senderCompany)} — Expert Marketing Sante</h2>
+    <p style="font-size:14px;color:#71717A;margin:0 0 20px">12 ans d'experience dont 5 chez Doctolib. Part-time CMO & coaching pour startups sante.</p>
+    <p style="font-size:11px;font-weight:600;color:#71717A;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Ils nous ont fait confiance</p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:20px">${clientBadges}</div>
+    <p style="font-size:11px;font-weight:600;color:#71717A;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Expertises</p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px">${expertBadges}</div>
+  </div>
+</div>
+</body></html>`
+      document.getElementById('preview-frame').srcdoc = html
+    }
+
+    function generateLocalEmailPreview() {
+      const d = getData()
+      const totalHT = d.lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0)
+      const totalTTC = totalHT * 1.2
+      const fmt = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
+      const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      const accent = d.accentColor || '#1A1A6B'
+      const bodyHtml = esc(d.emailContent).replace(/\n/g, '<br>')
+
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4"><tr><td align="center" style="padding:24px 16px">
 <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
 <tr><td style="padding:28px 32px;background:#fafafa;border-bottom:1px solid #eee">
   <table width="100%" cellpadding="0" cellspacing="0">
-    <tr><td><a href="${esc(d.ctaUrl||'#')}" style="display:inline-block;background:${d.accentColor};color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px">${esc(d.ctaLabel)}</a></td></tr>
-    <tr><td style="padding-top:16px"><span style="font-size:16px;font-weight:700;color:#111">${esc(d.reference)} — ${esc(d.clientCompany||d.clientName)}</span><br><span style="font-size:15px;color:#555;line-height:1.8">${fmt(totalTTC)} TTC · dû le ${fmtDate(d.dueDate)}</span></td></tr>
+    <tr><td><a href="#" style="display:inline-block;background:${accent};color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px">Voir le Devis</a></td></tr>
+    <tr><td style="padding-top:16px"><span style="font-size:16px;font-weight:700;color:#111">${esc(d.reference)} — ${esc(d.clientCompany||d.clientName)}</span><br><span style="font-size:15px;color:#555;line-height:1.8">${fmt(totalTTC)} TTC</span></td></tr>
   </table>
 </td></tr>
 <tr><td style="padding:28px 32px">
-  <p style="margin:0 0 16px;font-size:15px;color:#333;line-height:1.6">Bonjour ${esc(d.clientName)},</p>
-  <p style="margin:0 0 16px;font-size:15px;color:#333;line-height:1.6">Veuillez trouver ci-dessous votre devis <strong>${esc(d.reference)}</strong>, d'un montant de <strong>${fmt(totalTTC)} TTC</strong>, émis par ${esc(d.senderCompany)}.</p>
-  <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border:1px solid #eee;border-radius:8px;overflow:hidden">
-    <tr style="background:${d.accentColor}">
-      <td style="padding:10px 12px;font-size:13px;font-weight:600;color:#fff">Description</td>
-      <td style="padding:10px 12px;font-size:13px;font-weight:600;color:#fff;text-align:center">Qté</td>
-      <td style="padding:10px 12px;font-size:13px;font-weight:600;color:#fff;text-align:right">Prix unit.</td>
-      <td style="padding:10px 12px;font-size:13px;font-weight:600;color:#fff;text-align:right">Total</td>
-    </tr>
-    ${linesHtml}
-    <tr><td colspan="3" style="padding:8px 12px;font-size:14px;color:#666;text-align:right">Total HT</td><td style="padding:8px 12px;font-size:14px;color:#333;text-align:right;font-weight:600">${fmt(totalHT)}</td></tr>
-    <tr><td colspan="3" style="padding:8px 12px;font-size:14px;color:#666;text-align:right">TVA (20%)</td><td style="padding:8px 12px;font-size:14px;color:#333;text-align:right">${fmt(tva)}</td></tr>
-    <tr style="background:#fafafa"><td colspan="3" style="padding:12px;font-size:15px;font-weight:700;color:#111;text-align:right">Total TTC</td><td style="padding:12px;font-size:15px;font-weight:700;color:${d.accentColor};text-align:right">${fmt(totalTTC)}</td></tr>
-  </table>
-  ${d.notes ? `<p style="margin:16px 0;font-size:14px;color:#555;line-height:1.6;padding:16px;background:#f9f9f9;border-radius:8px;border-left:3px solid ${d.accentColor}">${esc(d.notes)}</p>` : ''}
-  <p style="margin:16px 0;font-size:15px;color:#333;line-height:1.6">Merci d'indiquer la référence <strong>${esc(d.reference)}</strong> lors de votre paiement.</p>
-  <p style="margin:16px 0 0;font-size:15px;color:#333;line-height:1.6">Nous restons à votre disposition si besoin.</p>
-  <p style="margin:16px 0 0;font-size:15px;color:#333">Bien à vous,</p>
+  <div style="font-size:15px;color:#333;line-height:1.7">${bodyHtml || '<em style="color:#999">Ajoutez un contenu d\'email...</em>'}</div>
+  <div style="text-align:center;margin:28px 0 12px">
+    <a href="#" style="display:inline-block;background:${accent};color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Consulter le devis en ligne</a>
+  </div>
 </td></tr>
 <tr><td style="padding:20px 32px;border-top:1px solid #eee;background:#fafafa">
-  <p style="margin:0;font-size:13px;color:#888">--<br>${esc(d.senderName)}<br>${esc(d.senderCompany)}<br><a href="mailto:${esc(d.senderEmail)}" style="color:${d.accentColor}">${esc(d.senderEmail)}</a></p>
+  <p style="margin:0;font-size:13px;color:#888">--<br>${esc(d.senderName)}<br>${esc(d.senderCompany)}<br><a href="mailto:${esc(d.senderEmail)}" style="color:${accent}">${esc(d.senderEmail)}</a></p>
 </td></tr>
 </table></td></tr></table></body></html>`
-
       document.getElementById('preview-frame').srcdoc = html
     }
 
     async function sendQuote() {
       const data = getData()
-      if (!data.clientEmail) return showToast('⚠️ Email du client requis', '#e53e3e')
-      if (!data.clientName) return showToast('⚠️ Nom du client requis', '#e53e3e')
-      if (data.lines.length === 0 || data.lines.every(l => !l.description)) return showToast('⚠️ Au moins une ligne requise', '#e53e3e')
+      if (!data.clientEmail) return showToast('Email du client requis', '#e53e3e')
+      if (!data.clientName) return showToast('Nom du client requis', '#e53e3e')
+      if (!data.emailContent.trim()) return showToast('Contenu de l\'email requis', '#e53e3e')
+      if (data.lines.length === 0 || data.lines.every(l => !l.description)) return showToast('Au moins une ligne requise', '#e53e3e')
 
-      if (!confirm(`Envoyer le devis ${data.reference} à ${data.clientEmail} ?`)) return
+      if (!confirm(`Envoyer le devis ${data.reference} a ${data.clientEmail} ?`)) return
 
       try {
         const res = await fetch(`${API_URL}/.netlify/functions/send-quote`, {
@@ -481,27 +528,11 @@
           const err = await res.text()
           throw new Error(err)
         }
-        showToast('✅ Devis envoyé !', '#16a34a')
+        const result = await res.json()
+        showToast(`Devis envoye ! <a href="${result.quoteUrl}" target="_blank">Voir la page</a>`, '#16a34a', 8000)
       } catch (e) {
-        showToast(`❌ Erreur: ${e.message}`, '#e53e3e')
+        showToast(`Erreur: ${e.message}`, '#e53e3e')
       }
-    }
-
-    function copyHtml() {
-      const frame = document.getElementById('preview-frame')
-      const html = frame.srcdoc || ''
-      navigator.clipboard.writeText(html).then(() => showToast('📋 HTML copié !'))
-    }
-
-    function downloadHtml() {
-      const data = getData()
-      const frame = document.getElementById('preview-frame')
-      const html = frame.srcdoc || ''
-      const blob = new Blob([html], { type: 'text/html' })
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `${data.reference.replace(/\//g, '-')}.html`
-      a.click()
     }
 
     function setColor(c) {
@@ -510,12 +541,12 @@
       updatePreview()
     }
 
-    function showToast(msg, bg) {
+    function showToast(msg, bg, duration) {
       const t = document.getElementById('toast')
-      t.textContent = msg
+      t.innerHTML = msg
       t.style.background = bg || '#1A1A6B'
       t.classList.add('show')
-      setTimeout(() => t.classList.remove('show'), 3000)
+      setTimeout(() => t.classList.remove('show'), duration || 3000)
     }
   </script>
 </body>
