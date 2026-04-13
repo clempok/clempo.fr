@@ -354,36 +354,9 @@ export default function QuotePage() {
           </div>
         )}
 
-        {/* ── Arguments "Pourquoi collaborer" ── */}
+        {/* ── Arguments "Pourquoi collaborer" — Qwoty-style tabs ── */}
         {quote.arguments && quote.arguments.length > 0 && (
-          <div className="q-fade q-fade-3" style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${Math.min(quote.arguments.length, 3)}, 1fr)`,
-            gap: '1rem', marginBottom: '2rem',
-          }}>
-            {quote.arguments.map((arg, i) => (
-              <div key={i} style={{
-                background: CARD, borderRadius: 20, padding: '2rem',
-                border: `1px solid ${BORDER}`, boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
-                transition: 'transform 0.25s, box-shadow 0.25s',
-              }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 14, marginBottom: '1rem',
-                  background: `linear-gradient(135deg, ${accent}18, ${accent}08)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: FT, fontWeight: 800, fontSize: '1.1rem', color: accent,
-                }}>
-                  {i + 1}
-                </div>
-                <h4 style={{ fontFamily: FT, fontSize: '1rem', fontWeight: 700, color: TEXT, margin: '0 0 0.5rem' }}>
-                  {arg.title}
-                </h4>
-                <p style={{ fontSize: '0.88rem', color: '#555', lineHeight: 1.65, margin: 0 }}>
-                  {arg.description}
-                </p>
-              </div>
-            ))}
-          </div>
+          <ArgumentsTabs arguments={quote.arguments} accent={accent} />
         )}
 
         {/* ── Presentation / bio ── */}
@@ -592,6 +565,69 @@ export default function QuotePage() {
    SIGNATURE SECTION — Billing form, CGV, Draw/Type signature
    ═══════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════
+   ARGUMENTS TABS — Qwoty-style click-to-reveal
+   ═══════════════════════════════════════════════════════════════ */
+
+function ArgumentsTabs({ arguments: args, accent }: {
+  arguments: { title: string; description: string }[]; accent: string
+}) {
+  const [active, setActive] = useState(0)
+  return (
+    <div className="q-fade q-fade-3" style={{
+      background: CARD, borderRadius: 20, overflow: 'hidden',
+      border: `1px solid ${BORDER}`, boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+      marginBottom: '2rem',
+    }}>
+      {/* Section title */}
+      <div style={{ padding: '2rem 2.5rem 0' }}>
+        <h3 style={{
+          fontFamily: FT, fontSize: 'clamp(1.2rem, 3vw, 1.6rem)', fontWeight: 700,
+          color: TEXT, margin: '0 0 1.5rem', textAlign: 'center',
+        }}>
+          3 raisons de collaborer ensemble
+        </h3>
+      </div>
+
+      {/* Tab buttons */}
+      <div style={{
+        display: 'flex', gap: '0.5rem', padding: '0 2.5rem', marginBottom: '1.5rem',
+        flexWrap: 'wrap', justifyContent: 'center',
+      }}>
+        {args.map((arg, i) => (
+          <button key={i} onClick={() => setActive(i)} style={{
+            padding: '0.6rem 1.25rem', borderRadius: 10, border: 'none',
+            background: active === i ? accent : '#f4f4f2',
+            color: active === i ? '#fff' : MUTED,
+            fontFamily: FT, fontWeight: 600, fontSize: '0.85rem',
+            cursor: 'pointer', transition: 'all 0.25s',
+            boxShadow: active === i ? `0 4px 12px ${accent}30` : 'none',
+          }}>
+            {arg.title}
+          </button>
+        ))}
+      </div>
+
+      {/* Active content */}
+      <div style={{ padding: '0 2.5rem 2.5rem' }}>
+        <div key={active} style={{
+          animation: 'fadeUp 0.35s ease-out both',
+        }}>
+          <p style={{
+            fontSize: '0.95rem', color: '#444', lineHeight: 1.8, margin: 0,
+          }}>
+            {args[active].description}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SIGNATURE SECTION — Billing form, CGV, Draw/Type signature
+   ═══════════════════════════════════════════════════════════════ */
+
 function SignatureSection({ quote, accent, company, id, onSigned }: {
   quote: QuoteData; accent: string; company: string; id: string
   onSigned: (sig: QuoteSignature) => void
@@ -616,10 +652,12 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
     const canvas = canvasRef.current
     if (!canvas) return { x: 0, y: 0 }
     const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
     if ('touches' in e) {
-      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top }
+      return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY }
     }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY }
   }, [])
 
   const startDraw = useCallback((e: React.MouseEvent | React.TouchEvent) => {

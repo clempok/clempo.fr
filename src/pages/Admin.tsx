@@ -1987,7 +1987,7 @@ const QUOTE_STATUS_LABELS: Record<string, string> = {
 const QUOTE_SECTIONS = [
   { key: 'emetteur', label: 'Emetteur' },
   { key: 'client', label: 'Client / Prospect' },
-  { key: 'offre', label: 'Offre & Contexte' },
+  { key: 'offre', label: 'Prestataire & Arguments' },
   { key: 'produits', label: 'Produits' },
   { key: 'conditions', label: 'Conditions' },
   { key: 'email', label: 'Email' },
@@ -2007,6 +2007,11 @@ const QUOTE_ACCENT_PRESETS = [
 const UNIT_OPTIONS = ['jours', 'heures', 'mois', 'forfait']
 
 const emptyLine = (): QuoteLine => ({ description: '', detail: '', quantity: 1, unit: 'jours', unitPrice: 0, tva: 20, discount: 0 })
+const DEFAULT_ARGS: QuoteArgument[] = [
+  { title: "L'experience Directeur Marketing", description: "J'ai dirige les equipes marketing de plusieurs entreprises innovantes comme Cherry Biotech (biotech), DocCity (immobilier sante), HeyTeam (HR tech), Sofia Developpement (Healthtech). J'aime autant construire une strategie de marque et definir un positionnement que passer a l'operationnel : concevoir des campagnes, produire du contenu, piloter la croissance." },
+  { title: 'Expertise Sante', description: "Plus de 12 ans d'experience dans le marketing sante dont 5 ans chez Doctolib. Je connais les contraintes reglementaires, les cycles de vente longs et les specificites du marche de la sante en France et en Europe." },
+  { title: 'Une collaboration facile', description: "Je m'integre rapidement dans vos equipes, je suis autonome et pragmatique. Mon objectif : des resultats concrets et mesurables, pas des presentations PowerPoint." },
+]
 const emptyArg = (): QuoteArgument => ({ title: '', description: '' })
 
 function makeInitialForm() {
@@ -2050,7 +2055,7 @@ function QuotesView({ password }: { password: string }) {
 
   const [form, setForm] = useState(makeInitialForm)
   const [lines, setLines] = useState<QuoteLine[]>([emptyLine()])
-  const [args, setArgs] = useState<QuoteArgument[]>([emptyArg(), emptyArg(), emptyArg()])
+  const [args, setArgs] = useState<QuoteArgument[]>(DEFAULT_ARGS.map(a => ({ ...a })))
   const [sending, setSending] = useState(false)
 
   const refresh = useCallback(() => {
@@ -2230,12 +2235,6 @@ function QuotesView({ password }: { password: string }) {
         <label style={qLabel}>URL logo prospect (optionnel)</label>
         <input style={qInput} value={form.prospectLogo} onChange={e => setForm(f => ({ ...f, prospectLogo: e.target.value }))} placeholder="https://example.com/logo.png" />
       </div>
-    </>
-  )
-
-  const renderOffre = () => (
-    <>
-      <h3 style={qSectionHead}>Offre & Contexte</h3>
       <div style={{ marginBottom: '0.5rem' }}>
         <label style={qLabel}>Titre de l'offre</label>
         <input style={qInput} value={form.offerTitle} onChange={e => setForm(f => ({ ...f, offerTitle: e.target.value }))} placeholder="Part-Time CMO" />
@@ -2248,11 +2247,22 @@ function QuotesView({ password }: { password: string }) {
         <label style={qLabel}>Contexte — description</label>
         <textarea style={{ ...qInput, minHeight: 70, resize: 'vertical' as const, lineHeight: 1.6 }} value={form.contextDescription} onChange={e => setForm(f => ({ ...f, contextDescription: e.target.value }))} placeholder="Decrivez le contexte du prospect..." />
       </div>
+    </>
+  )
+
+  const renderOffre = () => (
+    <>
+      <h3 style={qSectionHead}>Prestataire & Arguments</h3>
       <div style={{ marginBottom: '0.75rem' }}>
         <label style={qLabel}>Presentation du prestataire</label>
         <textarea style={{ ...qInput, minHeight: 70, resize: 'vertical' as const, lineHeight: 1.6 }} value={form.presentation} onChange={e => setForm(f => ({ ...f, presentation: e.target.value }))} placeholder="Decrivez votre expertise..." />
       </div>
-      <h4 style={{ ...qSectionHead, fontSize: '0.7rem', marginBottom: '0.5rem' }}>Arguments (3 blocs)</h4>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <h4 style={{ ...qSectionHead, fontSize: '0.7rem', marginBottom: 0 }}>Arguments (3 blocs)</h4>
+        <button onClick={() => setArgs(DEFAULT_ARGS.map(a => ({ ...a })))} style={{ background: 'none', border: '1px solid #ddd', borderRadius: 6, padding: '0.25rem 0.6rem', fontSize: '0.65rem', color: '#888', cursor: 'pointer' }}>
+          Reinitialiser
+        </button>
+      </div>
       {args.map((arg, i) => (
         <div key={i} style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8, padding: '0.6rem', marginBottom: '0.5rem' }}>
           <div style={{ marginBottom: '0.35rem' }}>
