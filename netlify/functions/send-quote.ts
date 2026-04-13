@@ -118,9 +118,11 @@ const handler: Handler = async (event) => {
     const body = JSON.parse(event.body || '{}')
     const { token, data, previewOnly } = body as { token: string; data: QuoteInput; previewOnly?: boolean }
 
-    // Auth
+    // Auth — accept QUOTE_SECRET or ADMIN_PASSWORD
     const secret = process.env.QUOTE_SECRET
-    if (!secret || token !== secret) {
+    const adminPw = process.env.ADMIN_PASSWORD
+    const validToken = (secret && token === secret) || (adminPw && token === adminPw)
+    if (!validToken) {
       return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) }
     }
 
