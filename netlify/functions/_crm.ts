@@ -34,11 +34,21 @@ export type CrmContact = {
   updatedAt: string
 }
 
+export type CrmTask = {
+  id: string
+  title: string
+  dueDate: string // YYYY-MM-DD
+  done: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export type CrmCompany = {
   id: string
   name: string
   status: CrmStatus
   contacts: CrmContact[]
+  tasks: CrmTask[]
   notes: string
   createdAt: string
   updatedAt: string
@@ -125,6 +135,7 @@ function migrateV1toV2(v1: CrmDataV1): CrmData {
       name: companyName,
       status: bestStatus,
       notes: '',
+      tasks: [],
       createdAt: contacts[0]?.createdAt || now,
       updatedAt: contacts[0]?.updatedAt || now,
       contacts: contacts.map(c => ({
@@ -170,6 +181,7 @@ function seedFromCsv(): CrmData {
       name: companyName,
       status: 'Non qualifié',
       notes: '',
+      tasks: [],
       createdAt: now,
       updatedAt: now,
       contacts: seeds.map(s => ({
@@ -272,6 +284,7 @@ function mergeLemcalInto(data: CrmData): void {
           name: companyName,
           status: 'Opportunité',
           notes: '',
+          tasks: [],
           createdAt: now,
           updatedAt: now,
           contacts: [{
@@ -322,7 +335,17 @@ export async function readCrm(): Promise<CrmData> {
     return data
   }
 
-  return raw as CrmData
+  const data = raw as CrmData
+  // Backfill tasks array for companies that predate this feature
+  let needsWrite = false
+  for (const co of data.companies) {
+    if (!co.tasks) {
+      co.tasks = []
+      needsWrite = true
+    }
+  }
+  if (needsWrite) await writeCrm(data)
+  return data
 }
 
 export async function writeCrm(data: CrmData): Promise<void> {
@@ -390,6 +413,7 @@ export async function upsertContact(
           name,
           status,
           notes: '',
+          tasks: [],
           contacts: [],
           createdAt: now,
           updatedAt: now,

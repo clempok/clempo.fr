@@ -84,11 +84,21 @@ type CrmContact = {
   updatedAt: string
 }
 
+type CrmTask = {
+  id: string
+  title: string
+  dueDate: string // YYYY-MM-DD
+  done: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 type CrmCompany = {
   id: string
   name: string
   status: CrmStatus
   contacts: CrmContact[]
+  tasks: CrmTask[]
   notes: string
   createdAt: string
   updatedAt: string
@@ -520,6 +530,56 @@ const tdStyle: React.CSSProperties = {
   verticalAlign: 'middle',
 }
 
+/* ---------- TaskRow ---------- */
+
+function TaskRow({ task, isOverdue, onToggle, onDelete }: {
+  task: CrmTask
+  isOverdue: boolean
+  onToggle: (done: boolean) => void
+  onDelete: () => void
+}) {
+  const today = new Date().toISOString().slice(0, 10)
+  const isToday = task.dueDate === today
+  const dateLabel = isToday ? "Aujourd'hui"
+    : isOverdue ? `En retard · ${new Date(task.dueDate + 'T12:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
+    : new Date(task.dueDate + 'T12:00:00Z').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '0.5rem',
+      padding: '0.35rem 0.5rem', borderRadius: '7px', marginBottom: '2px',
+      background: isOverdue && !task.done ? '#fff5f5' : '#fff',
+      border: `1px solid ${isOverdue && !task.done ? '#fecaca' : '#f0f0f0'}`,
+    }}>
+      <input
+        type="checkbox"
+        checked={task.done}
+        onChange={e => onToggle(e.target.checked)}
+        style={{ cursor: 'pointer', accentColor: ACCENT, flexShrink: 0 }}
+      />
+      <span style={{
+        flex: 1, fontSize: '0.78rem', color: task.done ? '#aaa' : '#222',
+        textDecoration: task.done ? 'line-through' : 'none',
+      }}>
+        {task.title}
+      </span>
+      <span style={{
+        fontSize: '0.65rem', fontWeight: 600, whiteSpace: 'nowrap',
+        color: task.done ? '#bbb' : isOverdue ? '#dc2626' : isToday ? '#1A1A6B' : '#888',
+      }}>
+        {dateLabel}
+      </span>
+      <button
+        onClick={onDelete}
+        style={{ background: 'none', border: 'none', color: '#ddd', cursor: 'pointer', fontSize: '0.85rem', padding: '0 2px', lineHeight: 1, flexShrink: 0 }}
+        title="Supprimer"
+      >
+        ×
+      </button>
+    </div>
+  )
+}
+
 /* ---------- SEO Positions ---------- */
 
 type RankingEntry = {
@@ -922,6 +982,9 @@ function CrmView({ password }: { password: string }) {
   const [expandedContactId, setExpandedContactId] = useState<string | null>(null)
   const [showAddCompany, setShowAddCompany] = useState(false)
   const [addContactForCo, setAddContactForCo] = useState<string | null>(null)
+  const [addTaskForCo, setAddTaskForCo] = useState<string | null>(null)
+  const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [newTaskDate, setNewTaskDate] = useState('')
 
   const authHeaders = useMemo(
     () => ({ Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' }),
@@ -1029,6 +1092,55 @@ function CrmView({ password }: { password: string }) {
         : co,
       ) || null)
       setAddContactForCo(null)
+    } catch (err) { alert(`Erreur : ${String(err)}`) }
+  }
+
+  /* ---- Task actions ---- */
+  const createTask = async (companyId: string) => {
+    if (!newTaskTitle.trim() || !newTaskDate) return
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'create-task', companyId, fields: { title: newTaskTitle.trim(), dueDate: newTaskDate } }),
+      })
+      const body = await res.text()
+      if (!res.ok) throw new Error(body)
+      const { task } = JSON.parse(body) as { task: CrmTask }
+      setCompanies(prev => prev?.map(co => co.id === companyId
+        ? { ...co, tasks: [...(co.tasks || []), task] }
+        : co,
+      ) || null)
+      setNewTaskTitle('')
+      setNewTaskDate('')
+      setAddTaskForCo(null)
+    } catch (err) { alert(`Erreur : ${String(err)}`) }
+  }
+
+  const toggleTask = async (companyId: string, taskId: string, done: boolean) => {
+    setCompanies(prev => prev?.map(co => co.id === companyId
+      ? { ...co, tasks: (co.tasks || []).map(t => t.id === taskId ? { ...t, done } : t) }
+      : co,
+    ) || null)
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'update-task', companyId, taskId, fields: { done } }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+    } catch (err) { alert(`Erreur : ${String(err)}`); refresh() }
+  }
+
+  const deleteTask = async (companyId: string, taskId: string) => {
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'delete-task', companyId, taskId }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      setCompanies(prev => prev?.map(co => co.id === companyId
+        ? { ...co, tasks: (co.tasks || []).filter(t => t.id !== taskId) }
+        : co,
+      ) || null)
     } catch (err) { alert(`Erreur : ${String(err)}`) }
   }
 
@@ -1257,6 +1369,90 @@ function CrmView({ password }: { password: string }) {
                         </div>
                       ))}
                     </div>
+
+                    {/* Tasks section */}
+                    {(() => {
+                      const tasks = co.tasks || []
+                      const today = new Date().toISOString().slice(0, 10)
+                      const upcoming = tasks.filter(t => !t.done && t.dueDate >= today).sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+                      const overdue = tasks.filter(t => !t.done && t.dueDate < today).sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+                      const done = tasks.filter(t => t.done).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5)
+                      return (
+                        <div style={{ marginTop: '0.75rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <p style={{ fontSize: '0.7rem', fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0 }}>
+                              Tâches ({tasks.filter(t => !t.done).length} actives)
+                            </p>
+                            <button
+                              onClick={() => { setAddTaskForCo(addTaskForCo === co.id ? null : co.id); setNewTaskTitle(''); setNewTaskDate('') }}
+                              style={{ padding: '3px 10px', border: '1px solid #e0e0e0', borderRadius: '6px', background: '#fff', color: ACCENT, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                              + Tâche
+                            </button>
+                          </div>
+
+                          {addTaskForCo === co.id && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                              <input
+                                value={newTaskTitle}
+                                onChange={e => setNewTaskTitle(e.target.value)}
+                                placeholder="Titre de la tâche..."
+                                style={{ padding: '0.45rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
+                                onKeyDown={e => e.key === 'Enter' && createTask(co.id)}
+                                autoFocus
+                              />
+                              <input
+                                type="date"
+                                value={newTaskDate}
+                                onChange={e => setNewTaskDate(e.target.value)}
+                                min={today}
+                                style={{ padding: '0.45rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
+                              />
+                              <button
+                                onClick={() => createTask(co.id)}
+                                disabled={!newTaskTitle.trim() || !newTaskDate}
+                                style={{ padding: '0.45rem 0.9rem', border: 'none', borderRadius: '8px', background: ACCENT, color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', opacity: (!newTaskTitle.trim() || !newTaskDate) ? 0.5 : 1 }}
+                              >
+                                Ajouter
+                              </button>
+                            </div>
+                          )}
+
+                          {overdue.length > 0 && (
+                            <div style={{ marginBottom: '0.4rem' }}>
+                              {overdue.map(t => (
+                                <TaskRow key={t.id} task={t} isOverdue onToggle={done => toggleTask(co.id, t.id, done)} onDelete={() => deleteTask(co.id, t.id)} />
+                              ))}
+                            </div>
+                          )}
+
+                          {upcoming.length > 0 && (
+                            <div style={{ marginBottom: '0.4rem' }}>
+                              {upcoming.map(t => (
+                                <TaskRow key={t.id} task={t} isOverdue={false} onToggle={done => toggleTask(co.id, t.id, done)} onDelete={() => deleteTask(co.id, t.id)} />
+                              ))}
+                            </div>
+                          )}
+
+                          {upcoming.length === 0 && overdue.length === 0 && tasks.length === 0 && (
+                            <p style={{ fontSize: '0.72rem', color: '#bbb', margin: '0 0 0.4rem', fontStyle: 'italic' }}>Aucune tâche planifiée</p>
+                          )}
+
+                          {done.length > 0 && (
+                            <details style={{ marginTop: '0.25rem' }}>
+                              <summary style={{ fontSize: '0.68rem', color: '#bbb', cursor: 'pointer', userSelect: 'none' }}>
+                                {tasks.filter(t => t.done).length} tâche{tasks.filter(t => t.done).length > 1 ? 's' : ''} terminée{tasks.filter(t => t.done).length > 1 ? 's' : ''}
+                              </summary>
+                              <div style={{ marginTop: '0.25rem', opacity: 0.6 }}>
+                                {done.map(t => (
+                                  <TaskRow key={t.id} task={t} isOverdue={false} onToggle={d => toggleTask(co.id, t.id, d)} onDelete={() => deleteTask(co.id, t.id)} />
+                                ))}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      )
+                    })()}
 
                     {/* Company actions */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem' }}>

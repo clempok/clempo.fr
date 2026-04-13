@@ -1,6 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { checkAuth } from './_analytics'
-import { readCrm, writeCrm, CRM_STATUSES, type CrmStatus, type CrmContact, type CrmCompany } from './_crm'
+import { readCrm, writeCrm, CRM_STATUSES, type CrmStatus, type CrmContact, type CrmCompany, type CrmTask } from './_crm'
 
 const handler: Handler = async (event) => {
   if (!checkAuth(event.headers as Record<string, string | undefined>)) {
@@ -136,6 +136,60 @@ const handler: Handler = async (event) => {
         if (company.contacts.length === before) {
           return { statusCode: 404, body: JSON.stringify({ error: 'Contact not found' }) }
         }
+        company.updatedAt = new Date().toISOString()
+        await writeCrm(data)
+        return { statusCode: 200, body: JSON.stringify({ ok: true }) }
+      }
+
+      // --- Task-level actions ---
+
+      if (action === 'create-task') {
+        const { companyId, fields } = body as { companyId: string; fields: { title: string; dueDate: string } }
+        const company = data.companies.find(c => c.id === companyId)
+        if (!company) return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
+        if (!fields.title?.trim()) return { statusCode: 400, body: JSON.stringify({ error: 'Title required' }) }
+        if (!fields.dueDate?.match(/^\d{4}-\d{2}-\d{2}$/)) return { statusCode: 400, body: JSON.stringify({ error: 'dueDate must be YYYY-MM-DD' }) }
+        if (!company.tasks) company.tasks = []
+        const now = new Date().toISOString()
+        const task: CrmTask = {
+          id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          title: fields.title.trim(),
+          dueDate: fields.dueDate,
+          done: false,
+          createdAt: now,
+          updatedAt: now,
+        }
+        company.tasks.push(task)
+        company.updatedAt = now
+        await writeCrm(data)
+        return { statusCode: 200, body: JSON.stringify({ ok: true, task }) }
+      }
+
+      if (action === 'update-task') {
+        const { companyId, taskId, fields } = body as {
+          companyId: string; taskId: string; fields: Partial<CrmTask>
+        }
+        const company = data.companies.find(c => c.id === companyId)
+        if (!company) return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
+        if (!company.tasks) company.tasks = []
+        const task = company.tasks.find(t => t.id === taskId)
+        if (!task) return { statusCode: 404, body: JSON.stringify({ error: 'Task not found' }) }
+        if (fields.title !== undefined) task.title = fields.title
+        if (fields.dueDate !== undefined) task.dueDate = fields.dueDate
+        if (fields.done !== undefined) task.done = fields.done
+        task.updatedAt = new Date().toISOString()
+        await writeCrm(data)
+        return { statusCode: 200, body: JSON.stringify({ ok: true, task }) }
+      }
+
+      if (action === 'delete-task') {
+        const { companyId, taskId } = body as { companyId: string; taskId: string }
+        const company = data.companies.find(c => c.id === companyId)
+        if (!company) return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
+        if (!company.tasks) company.tasks = []
+        const before = company.tasks.length
+        company.tasks = company.tasks.filter(t => t.id !== taskId)
+        if (company.tasks.length === before) return { statusCode: 404, body: JSON.stringify({ error: 'Task not found' }) }
         company.updatedAt = new Date().toISOString()
         await writeCrm(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true }) }
