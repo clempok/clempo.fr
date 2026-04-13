@@ -2232,8 +2232,36 @@ function QuotesView({ password }: { password: string }) {
         <input style={qInput} type="email" value={form.clientEmail} onChange={e => setForm(f => ({ ...f, clientEmail: e.target.value }))} placeholder="jean@acme.fr" />
       </div>
       <div style={{ marginBottom: '0.5rem' }}>
-        <label style={qLabel}>URL logo prospect (optionnel)</label>
-        <input style={qInput} value={form.prospectLogo} onChange={e => setForm(f => ({ ...f, prospectLogo: e.target.value }))} placeholder="https://example.com/logo.png" />
+        <label style={qLabel}>Logo prospect (optionnel)</label>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <input style={{ ...qInput, flex: 1 }} value={form.prospectLogo} onChange={e => setForm(f => ({ ...f, prospectLogo: e.target.value }))} placeholder="URL ou uploader un fichier" />
+          <label style={{
+            padding: '0.5rem 0.75rem', borderRadius: 8, border: `1px solid ${ACCENT}`,
+            color: ACCENT, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+            whiteSpace: 'nowrap', flexShrink: 0,
+          }}>
+            Uploader
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              if (file.size > 500_000) { alert('Image trop lourde (max 500 Ko)'); return }
+              const reader = new FileReader()
+              reader.onload = () => setForm(f => ({ ...f, prospectLogo: reader.result as string }))
+              reader.readAsDataURL(file)
+              e.target.value = ''
+            }} />
+          </label>
+          {form.prospectLogo && (
+            <button onClick={() => setForm(f => ({ ...f, prospectLogo: '' }))} style={{
+              background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 18, padding: 0, lineHeight: 1,
+            }} title="Supprimer le logo">×</button>
+          )}
+        </div>
+        {form.prospectLogo && (
+          <div style={{ marginTop: '0.4rem', padding: '0.5rem', background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee', display: 'inline-block' }}>
+            <img src={form.prospectLogo} alt="Logo preview" style={{ maxHeight: 40, maxWidth: 120, objectFit: 'contain', display: 'block' }} />
+          </div>
+        )}
       </div>
       <div style={{ marginBottom: '0.5rem' }}>
         <label style={qLabel}>Titre de l'offre</label>
