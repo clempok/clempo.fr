@@ -596,7 +596,7 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
   quote: QuoteData; accent: string; company: string; id: string
   onSigned: (sig: QuoteSignature) => void
 }) {
-  const [mode, setMode] = useState<'draw' | 'type'>('draw')
+  const [mode, setMode] = useState<'drawn' | 'typed'>('drawn')
   const [typedName, setTypedName] = useState('')
   const [form, setForm] = useState({
     signerName: '', signerEmail: '', signerCompany: quote.companyName || '',
@@ -658,7 +658,7 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
   }
 
   const getSignatureImage = (): string => {
-    if (mode === 'draw') {
+    if (mode === 'drawn') {
       return canvasRef.current?.toDataURL('image/png') || ''
     }
     // Render typed name to canvas
@@ -700,7 +700,7 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
       setError('Veuillez dessiner votre signature.')
       return
     }
-    if (mode === 'type' && !typedName.trim()) {
+    if (mode === 'typed' && !typedName.trim()) {
       setError('Veuillez saisir votre nom pour la signature.')
       return
     }
@@ -921,7 +921,7 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
               Votre signature
             </div>
             <div style={{ display: 'flex', gap: '0.25rem', background: '#f4f4f2', borderRadius: 8, padding: 3 }}>
-              {(['draw', 'type'] as const).map(m => (
+              {(['drawn', 'typed'] as const).map(m => (
                 <button key={m} onClick={() => setMode(m)} style={{
                   padding: '0.4rem 1rem', borderRadius: 6, border: 'none',
                   fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
@@ -930,13 +930,13 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
                   color: mode === m ? TEXT : MUTED,
                   boxShadow: mode === m ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
                 }}>
-                  {m === 'draw' ? 'Dessiner' : 'Saisir'}
+                  {m === 'drawn' ? 'Dessiner' : 'Saisir'}
                 </button>
               ))}
             </div>
           </div>
 
-          {mode === 'draw' ? (
+          {mode === 'drawn' ? (
             <div style={{ position: 'relative' }}>
               <canvas
                 ref={canvasRef}
