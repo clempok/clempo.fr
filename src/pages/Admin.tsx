@@ -1931,20 +1931,42 @@ type AdminQuote = {
   companyName: string
   clientName: string
   clientEmail: string
+  prospectLogo?: string
   date: string
   dueDate: string
-  lines: { description: string; quantity: number; unitPrice: number }[]
+  validUntil?: string
+  offerTitle?: string
+  context?: { title: string; description: string }
+  presentation?: string
+  arguments?: { title: string; description: string }[]
+  lines: { description: string; detail?: string; quantity: number; unit?: string; unitPrice: number; tva?: number; discount?: number }[]
+  globalDiscount?: number
   notes: string
+  paymentTerms?: string
   emailContent: string
   status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected'
   accentColor: string
   senderName: string
   senderCompany: string
   senderEmail: string
+  senderPhone?: string
+  senderPhoto?: string
   createdAt: string
   sentAt?: string
   viewedAt?: string
 }
+
+type QuoteLine = {
+  description: string
+  detail: string
+  quantity: number
+  unit: string
+  unitPrice: number
+  tva: number
+  discount: number
+}
+
+type QuoteArgument = { title: string; description: string }
 
 const QUOTE_STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
   draft:    { bg: '#f4f4f5', fg: '#52525b' },
@@ -1962,35 +1984,73 @@ const QUOTE_STATUS_LABELS: Record<string, string> = {
   rejected: 'Refusé',
 }
 
+const QUOTE_SECTIONS = [
+  { key: 'emetteur', label: 'Emetteur' },
+  { key: 'client', label: 'Client / Prospect' },
+  { key: 'offre', label: 'Offre & Contexte' },
+  { key: 'produits', label: 'Produits' },
+  { key: 'conditions', label: 'Conditions' },
+  { key: 'email', label: 'Email' },
+  { key: 'apparence', label: 'Apparence' },
+] as const
+
+type QuoteSectionKey = typeof QUOTE_SECTIONS[number]['key']
+
+const QUOTE_ACCENT_PRESETS = [
+  { label: 'Clempo', value: '#1A1A6B' },
+  { label: 'Odoo', value: '#875A7B' },
+  { label: 'Vert', value: '#16a34a' },
+  { label: 'Bleu', value: '#2563eb' },
+  { label: 'Rouge', value: '#dc2626' },
+]
+
+const UNIT_OPTIONS = ['jours', 'heures', 'mois', 'forfait']
+
+const emptyLine = (): QuoteLine => ({ description: '', detail: '', quantity: 1, unit: 'jours', unitPrice: 0, tva: 20, discount: 0 })
+const emptyArg = (): QuoteArgument => ({ title: '', description: '' })
+
+function makeInitialForm() {
+  const today = new Date()
+  const due = new Date(today); due.setDate(due.getDate() + 30)
+  const valid = new Date(today); valid.setDate(valid.getDate() + 30)
+  const num = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0')
+  return {
+    senderName: 'Clement Pouget-Osmont',
+    senderCompany: 'Clempo',
+    senderEmail: 'clement.pougetosmont@gmail.com',
+    senderPhone: '',
+    clientName: '',
+    clientCompany: '',
+    clientEmail: '',
+    prospectLogo: '',
+    reference: `DEV/${today.getFullYear()}/${num}`,
+    subject: '',
+    date: today.toISOString().split('T')[0],
+    dueDate: due.toISOString().split('T')[0],
+    validUntil: valid.toISOString().split('T')[0],
+    offerTitle: '',
+    contextTitle: '',
+    contextDescription: '',
+    presentation: '',
+    emailContent: '',
+    notes: '',
+    paymentTerms: '',
+    accentColor: '#1A1A6B',
+    globalDiscount: 0,
+  }
+}
+
 function QuotesView({ password }: { password: string }) {
   const [subView, setSubView] = useState<'history' | 'new'>('history')
   const [quotes, setQuotes] = useState<AdminQuote[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [toast, setToast] = useState<{ msg: string; color: string } | null>(null)
+  const [activeSection, setActiveSection] = useState<QuoteSectionKey>('emetteur')
 
-  // Form state
-  const [form, setForm] = useState(() => {
-    const today = new Date()
-    const due = new Date(today); due.setDate(due.getDate() + 30)
-    const num = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0')
-    return {
-      senderName: 'Clement Pouget-Osmont',
-      senderCompany: 'Clempo',
-      senderEmail: 'clement.pougetosmont@gmail.com',
-      clientName: '',
-      clientCompany: '',
-      clientEmail: '',
-      reference: `DEV/${today.getFullYear()}/${num}`,
-      subject: '',
-      date: today.toISOString().split('T')[0],
-      dueDate: due.toISOString().split('T')[0],
-      emailContent: '',
-      notes: '',
-      accentColor: '#1A1A6B',
-    }
-  })
-  const [lines, setLines] = useState([{ description: '', quantity: 1, unitPrice: 0 }])
+  const [form, setForm] = useState(makeInitialForm)
+  const [lines, setLines] = useState<QuoteLine[]>([emptyLine()])
+  const [args, setArgs] = useState<QuoteArgument[]>([emptyArg(), emptyArg(), emptyArg()])
   const [sending, setSending] = useState(false)
 
   const refresh = useCallback(() => {
@@ -2030,55 +2090,70 @@ function QuotesView({ password }: { password: string }) {
     refresh()
   }
 
-  const fmtAmount = (q: AdminQuote) => {
-    const ht = q.lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0)
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(ht * 1.2)
-  }
-
   const fmtDate = (d: string) => {
     try { return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) }
     catch { return d }
   }
 
-  const totalHT = lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0)
-  const totalTTC = totalHT * 1.2
   const fmtEur = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
+
+  // --- Financial computations ---
+  const computeLineTotal = (l: QuoteLine) => {
+    const base = l.quantity * l.unitPrice
+    const afterDiscount = base * (1 - (l.discount || 0) / 100)
+    return afterDiscount
+  }
+
+  const subtotalHT = lines.reduce((s, l) => s + computeLineTotal(l), 0)
+  const afterGlobalDiscount = subtotalHT * (1 - (form.globalDiscount || 0) / 100)
+  const totalTVA = lines.reduce((s, l) => {
+    const lt = computeLineTotal(l) * (1 - (form.globalDiscount || 0) / 100)
+    return s + lt * ((l.tva || 0) / 100)
+  }, 0)
+  const totalTTC = afterGlobalDiscount + totalTVA
+
+  const fmtAmount = (q: AdminQuote) => {
+    const ht = q.lines.reduce((s, l) => {
+      const base = l.quantity * l.unitPrice
+      const afterDis = base * (1 - (l.discount || 0) / 100)
+      return s + afterDis
+    }, 0)
+    const afterGD = ht * (1 - (q.globalDiscount || 0) / 100)
+    const tva = q.lines.reduce((s, l) => {
+      const lt = l.quantity * l.unitPrice * (1 - (l.discount || 0) / 100) * (1 - (q.globalDiscount || 0) / 100)
+      return s + lt * ((l.tva || 0) / 100)
+    }, 0)
+    return fmtEur(afterGD + tva)
+  }
 
   const handleSend = async () => {
     if (!form.clientEmail) return showToast('Email du client requis', '#dc2626')
     if (!form.clientName) return showToast('Nom du client requis', '#dc2626')
-    if (!form.emailContent.trim()) return showToast('Contenu de l\'email requis', '#dc2626')
+    if (!form.emailContent.trim()) return showToast("Contenu de l'email requis", '#dc2626')
     if (lines.every(l => !l.description)) return showToast('Au moins une ligne requise', '#dc2626')
 
     if (!confirm(`Envoyer le devis ${form.reference} a ${form.clientEmail} ?`)) return
 
     setSending(true)
     try {
+      const payload = {
+        ...form,
+        lines,
+        arguments: args.filter(a => a.title.trim()),
+        context: form.contextTitle ? { title: form.contextTitle, description: form.contextDescription } : undefined,
+      }
       const res = await fetch('/.netlify/functions/send-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: password,
-          data: { ...form, lines },
-        }),
+        body: JSON.stringify({ token: password, data: payload }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || `HTTP ${res.status}`)
       showToast(`Devis envoye ! URL : ${result.quoteUrl}`, '#16a34a')
       refresh()
-      // Reset form
-      const today = new Date()
-      const due = new Date(today); due.setDate(due.getDate() + 30)
-      const num = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0')
-      setForm(f => ({
-        ...f,
-        clientName: '', clientCompany: '', clientEmail: '',
-        reference: `DEV/${today.getFullYear()}/${num}`,
-        subject: '', emailContent: '', notes: '',
-        date: today.toISOString().split('T')[0],
-        dueDate: due.toISOString().split('T')[0],
-      }))
-      setLines([{ description: '', quantity: 1, unitPrice: 0 }])
+      setForm(makeInitialForm())
+      setLines([emptyLine()])
+      setArgs([emptyArg(), emptyArg(), emptyArg()])
       setSubView('history')
     } catch (e) {
       showToast(`Erreur : ${(e as Error).message}`, '#dc2626')
@@ -2087,14 +2162,7 @@ function QuotesView({ password }: { password: string }) {
     }
   }
 
-  const accentColors = [
-    { label: 'Clempo', value: '#1A1A6B' },
-    { label: 'Odoo', value: '#875A7B' },
-    { label: 'Vert', value: '#16a34a' },
-    { label: 'Bleu', value: '#2563eb' },
-    { label: 'Rouge', value: '#dc2626' },
-  ]
-
+  // --- Styles ---
   const qInput: React.CSSProperties = {
     width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #e0e0e0',
     borderRadius: 8, fontSize: '0.85rem', outline: 'none', background: '#fafafa',
@@ -2103,6 +2171,285 @@ function QuotesView({ password }: { password: string }) {
   const qLabel: React.CSSProperties = {
     display: 'block', fontSize: '0.7rem', fontWeight: 600, color: '#555',
     marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.03em',
+  }
+  const qSectionHead: React.CSSProperties = {
+    fontSize: '0.75rem', fontWeight: 600, color: '#999', textTransform: 'uppercase',
+    letterSpacing: '0.05em', marginBottom: '0.75rem',
+  }
+
+  const updateLine = (i: number, patch: Partial<QuoteLine>) => {
+    setLines(ls => ls.map((l, j) => j === i ? { ...l, ...patch } : l))
+  }
+  const updateArg = (i: number, patch: Partial<QuoteArgument>) => {
+    setArgs(as => as.map((a, j) => j === i ? { ...a, ...patch } : a))
+  }
+
+  // --- Section renderers ---
+  const renderEmetteur = () => (
+    <>
+      <h3 style={qSectionHead}>Emetteur</h3>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <div style={{ flex: 1 }}>
+          <label style={qLabel}>Nom</label>
+          <input style={qInput} value={form.senderName} onChange={e => setForm(f => ({ ...f, senderName: e.target.value }))} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={qLabel}>Entreprise</label>
+          <input style={qInput} value={form.senderCompany} onChange={e => setForm(f => ({ ...f, senderCompany: e.target.value }))} />
+        </div>
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Email</label>
+        <input style={qInput} type="email" value={form.senderEmail} onChange={e => setForm(f => ({ ...f, senderEmail: e.target.value }))} />
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Telephone (optionnel)</label>
+        <input style={qInput} type="tel" value={form.senderPhone} onChange={e => setForm(f => ({ ...f, senderPhone: e.target.value }))} placeholder="+33 6 12 34 56 78" />
+      </div>
+    </>
+  )
+
+  const renderClient = () => (
+    <>
+      <h3 style={qSectionHead}>Client / Prospect</h3>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <div style={{ flex: 1 }}>
+          <label style={qLabel}>Nom du contact</label>
+          <input style={qInput} value={form.clientName} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} placeholder="Jean Dupont" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={qLabel}>Entreprise</label>
+          <input style={qInput} value={form.clientCompany} onChange={e => setForm(f => ({ ...f, clientCompany: e.target.value }))} placeholder="Acme SAS" />
+        </div>
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Email</label>
+        <input style={qInput} type="email" value={form.clientEmail} onChange={e => setForm(f => ({ ...f, clientEmail: e.target.value }))} placeholder="jean@acme.fr" />
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>URL logo prospect (optionnel)</label>
+        <input style={qInput} value={form.prospectLogo} onChange={e => setForm(f => ({ ...f, prospectLogo: e.target.value }))} placeholder="https://example.com/logo.png" />
+      </div>
+    </>
+  )
+
+  const renderOffre = () => (
+    <>
+      <h3 style={qSectionHead}>Offre & Contexte</h3>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Titre de l'offre</label>
+        <input style={qInput} value={form.offerTitle} onChange={e => setForm(f => ({ ...f, offerTitle: e.target.value }))} placeholder="Part-Time CMO" />
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Contexte — titre</label>
+        <input style={qInput} value={form.contextTitle} onChange={e => setForm(f => ({ ...f, contextTitle: e.target.value }))} placeholder="Vos enjeux de croissance" />
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Contexte — description</label>
+        <textarea style={{ ...qInput, minHeight: 70, resize: 'vertical' as const, lineHeight: 1.6 }} value={form.contextDescription} onChange={e => setForm(f => ({ ...f, contextDescription: e.target.value }))} placeholder="Decrivez le contexte du prospect..." />
+      </div>
+      <div style={{ marginBottom: '0.75rem' }}>
+        <label style={qLabel}>Presentation du prestataire</label>
+        <textarea style={{ ...qInput, minHeight: 70, resize: 'vertical' as const, lineHeight: 1.6 }} value={form.presentation} onChange={e => setForm(f => ({ ...f, presentation: e.target.value }))} placeholder="Decrivez votre expertise..." />
+      </div>
+      <h4 style={{ ...qSectionHead, fontSize: '0.7rem', marginBottom: '0.5rem' }}>Arguments (3 blocs)</h4>
+      {args.map((arg, i) => (
+        <div key={i} style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8, padding: '0.6rem', marginBottom: '0.5rem' }}>
+          <div style={{ marginBottom: '0.35rem' }}>
+            <label style={qLabel}>Argument {i + 1} — titre</label>
+            <input style={qInput} value={arg.title} onChange={e => updateArg(i, { title: e.target.value })} placeholder={`Argument ${i + 1}`} />
+          </div>
+          <div>
+            <label style={qLabel}>Description</label>
+            <textarea style={{ ...qInput, minHeight: 44, resize: 'vertical' as const, lineHeight: 1.5 }} value={arg.description} onChange={e => updateArg(i, { description: e.target.value })} />
+          </div>
+        </div>
+      ))}
+    </>
+  )
+
+  const renderProduits = () => (
+    <>
+      <h3 style={qSectionHead}>Produits</h3>
+      {lines.map((line, i) => (
+        <div key={i} style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8, padding: '0.75rem', marginBottom: '0.5rem', position: 'relative' }}>
+          {lines.length > 1 && (
+            <button
+              onClick={() => setLines(ls => ls.filter((_, j) => j !== i))}
+              style={{ position: 'absolute', top: 6, right: 8, background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 16 }}
+            >
+              x
+            </button>
+          )}
+          <div style={{ marginBottom: '0.4rem' }}>
+            <label style={qLabel}>Description</label>
+            <input style={qInput} value={line.description} placeholder="Prestation de conseil..."
+              onChange={e => updateLine(i, { description: e.target.value })} />
+          </div>
+          <div style={{ marginBottom: '0.4rem' }}>
+            <label style={qLabel}>Detail (optionnel)</label>
+            <textarea style={{ ...qInput, minHeight: 40, resize: 'vertical' as const, lineHeight: 1.5 }} value={line.detail}
+              onChange={e => updateLine(i, { detail: e.target.value })} placeholder="Details supplementaires..." />
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
+            <div style={{ flex: 1 }}>
+              <label style={qLabel}>Quantite</label>
+              <input style={qInput} type="number" min={0} step={0.5} value={line.quantity}
+                onChange={e => updateLine(i, { quantity: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={qLabel}>Unite</label>
+              <select style={qInput} value={line.unit} onChange={e => updateLine(i, { unit: e.target.value })}>
+                {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
+            <div style={{ flex: 1 }}>
+              <label style={qLabel}>Prix unit. HT</label>
+              <input style={qInput} type="number" min={0} step={0.01} value={line.unitPrice}
+                onChange={e => updateLine(i, { unitPrice: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={qLabel}>TVA %</label>
+              <input style={qInput} type="number" min={0} max={100} step={0.1} value={line.tva}
+                onChange={e => updateLine(i, { tva: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={qLabel}>Remise %</label>
+              <input style={qInput} type="number" min={0} max={100} step={1} value={line.discount}
+                onChange={e => updateLine(i, { discount: parseFloat(e.target.value) || 0 })} />
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '0.78rem', color: '#666', fontWeight: 600 }}>
+            Total HT : {fmtEur(computeLineTotal(line))}
+          </div>
+        </div>
+      ))}
+      <button
+        onClick={() => setLines(ls => [...ls, emptyLine()])}
+        style={{ padding: '0.4rem 0.8rem', borderRadius: 6, background: '#f0f0f0', border: '1px solid #ddd', fontSize: '0.78rem', cursor: 'pointer', marginBottom: '1rem' }}
+      >
+        + Ajouter un produit
+      </button>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Remise globale %</label>
+        <input style={{ ...qInput, maxWidth: 120 }} type="number" min={0} max={100} step={1} value={form.globalDiscount}
+          onChange={e => setForm(f => ({ ...f, globalDiscount: parseFloat(e.target.value) || 0 }))} />
+      </div>
+      <div style={{ background: '#f8f8f6', borderRadius: 8, padding: '0.75rem', marginTop: '0.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.3rem' }}>
+          <span style={{ color: '#999' }}>Sous-total HT</span>
+          <span style={{ fontWeight: 600 }}>{fmtEur(subtotalHT)}</span>
+        </div>
+        {(form.globalDiscount || 0) > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.3rem' }}>
+            <span style={{ color: '#dc2626' }}>Remise globale ({form.globalDiscount}%)</span>
+            <span style={{ color: '#dc2626', fontWeight: 600 }}>-{fmtEur(subtotalHT - afterGlobalDiscount)}</span>
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.3rem' }}>
+          <span style={{ color: '#999' }}>Total HT</span>
+          <span style={{ fontWeight: 600 }}>{fmtEur(afterGlobalDiscount)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.3rem' }}>
+          <span style={{ color: '#999' }}>TVA</span>
+          <span>{fmtEur(totalTVA)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 700, paddingTop: '0.4rem', borderTop: '1px solid #e0e0e0' }}>
+          <span>Total TTC</span>
+          <span style={{ color: form.accentColor }}>{fmtEur(totalTTC)}</span>
+        </div>
+      </div>
+    </>
+  )
+
+  const renderConditions = () => (
+    <>
+      <h3 style={qSectionHead}>Conditions</h3>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Conditions de paiement</label>
+        <textarea style={{ ...qInput, minHeight: 60, resize: 'vertical' as const, lineHeight: 1.6 }} value={form.paymentTerms} onChange={e => setForm(f => ({ ...f, paymentTerms: e.target.value }))} placeholder="30 jours fin de mois..." />
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Notes</label>
+        <textarea style={{ ...qInput, minHeight: 60, resize: 'vertical' as const, lineHeight: 1.6 }} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notes additionnelles..." />
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Date d'expiration</label>
+        <input style={{ ...qInput, maxWidth: 200 }} type="date" value={form.validUntil} onChange={e => setForm(f => ({ ...f, validUntil: e.target.value }))} />
+      </div>
+    </>
+  )
+
+  const renderEmail = () => (
+    <>
+      <h3 style={qSectionHead}>Email</h3>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <div style={{ flex: 1 }}>
+          <label style={qLabel}>Reference</label>
+          <input style={qInput} value={form.reference} onChange={e => setForm(f => ({ ...f, reference: e.target.value }))} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={qLabel}>Date</label>
+          <input style={qInput} type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <div style={{ flex: 1 }}>
+          <label style={qLabel}>Echeance</label>
+          <input style={qInput} type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
+        </div>
+        <div style={{ flex: 1 }} />
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Objet de l'email</label>
+        <input style={qInput} value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder={`${form.reference} — ${form.senderCompany}`} />
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Contenu de l'email</label>
+        <textarea
+          rows={6}
+          style={{ ...qInput, minHeight: 120, resize: 'vertical' as const, lineHeight: 1.6 }}
+          value={form.emailContent}
+          onChange={e => setForm(f => ({ ...f, emailContent: e.target.value }))}
+          placeholder={`Bonjour ${form.clientName || 'Jean'},\n\nSuite a notre echange, je vous fais parvenir le devis pour la prestation convenue.\n\nN'hesitez pas a me contacter si vous avez des questions.\n\nBien cordialement,\nClement`}
+        />
+        <p style={{ fontSize: '0.7rem', color: '#999', marginTop: '0.25rem' }}>
+          Ce texte apparait dans l'email. Le devis complet est sur la page hebergee.
+        </p>
+      </div>
+    </>
+  )
+
+  const renderApparence = () => (
+    <>
+      <h3 style={qSectionHead}>Apparence</h3>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>Couleur d'accent</label>
+        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+          {QUOTE_ACCENT_PRESETS.map(c => (
+            <button key={c.value} onClick={() => setForm(f => ({ ...f, accentColor: c.value }))}
+              style={{
+                padding: '0.3rem 0.7rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+                background: c.value, color: '#fff', border: form.accentColor === c.value ? '2px solid #000' : '2px solid transparent',
+              }}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+
+  const sectionRenderers: Record<QuoteSectionKey, () => React.ReactNode> = {
+    emetteur: renderEmetteur,
+    client: renderClient,
+    offre: renderOffre,
+    produits: renderProduits,
+    conditions: renderConditions,
+    email: renderEmail,
+    apparence: renderApparence,
   }
 
   return (
@@ -2134,7 +2481,7 @@ function QuotesView({ password }: { password: string }) {
             Historique ({quotes.length})
           </button>
           <button
-            onClick={() => setSubView('new')}
+            onClick={() => { setSubView('new'); setActiveSection('emetteur') }}
             style={{
               padding: '0.5rem 1rem', borderRadius: 8, border: 'none',
               background: subView === 'new' ? ACCENT : '#f4f4f5',
@@ -2157,158 +2504,81 @@ function QuotesView({ password }: { password: string }) {
 
       {/* ===================== NEW QUOTE FORM ===================== */}
       {subView === 'new' && (
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-          {/* Left: form */}
-          <div style={{ flex: '0 0 420px', maxWidth: 420 }}>
-
-            {/* Emetteur */}
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Emetteur</h3>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <div style={{ flex: 1 }}>
-                <label style={qLabel}>Nom</label>
-                <input style={qInput} value={form.senderName} onChange={e => setForm(f => ({ ...f, senderName: e.target.value }))} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={qLabel}>Entreprise</label>
-                <input style={qInput} value={form.senderCompany} onChange={e => setForm(f => ({ ...f, senderCompany: e.target.value }))} />
-              </div>
-            </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={qLabel}>Email</label>
-              <input style={qInput} type="email" value={form.senderEmail} onChange={e => setForm(f => ({ ...f, senderEmail: e.target.value }))} />
-            </div>
-
-            {/* Client */}
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #eee' }}>Client</h3>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <div style={{ flex: 1 }}>
-                <label style={qLabel}>Nom du contact</label>
-                <input style={qInput} value={form.clientName} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} placeholder="Jean Dupont" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={qLabel}>Entreprise</label>
-                <input style={qInput} value={form.clientCompany} onChange={e => setForm(f => ({ ...f, clientCompany: e.target.value }))} placeholder="Acme SAS" />
-              </div>
-            </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={qLabel}>Email</label>
-              <input style={qInput} type="email" value={form.clientEmail} onChange={e => setForm(f => ({ ...f, clientEmail: e.target.value }))} placeholder="jean@acme.fr" />
-            </div>
-
-            {/* Devis info */}
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #eee' }}>Devis</h3>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <div style={{ flex: 1 }}>
-                <label style={qLabel}>Reference</label>
-                <input style={qInput} value={form.reference} onChange={e => setForm(f => ({ ...f, reference: e.target.value }))} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={qLabel}>Objet email</label>
-                <input style={qInput} value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder={`${form.reference} — ${form.senderCompany}`} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-              <div style={{ flex: 1 }}>
-                <label style={qLabel}>Date</label>
-                <input style={qInput} type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={qLabel}>Echeance</label>
-                <input style={qInput} type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
-              </div>
-            </div>
-
-            {/* Email content */}
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #eee' }}>Contenu de l'email</h3>
-            <textarea
-              style={{ ...qInput, minHeight: 120, resize: 'vertical', lineHeight: 1.6 }}
-              value={form.emailContent}
-              onChange={e => setForm(f => ({ ...f, emailContent: e.target.value }))}
-              placeholder={`Bonjour ${form.clientName || 'Jean'},\n\nSuite a notre echange, je vous fais parvenir le devis pour la prestation convenue.\n\nN'hesitez pas a me contacter si vous avez des questions.\n\nBien cordialement,\nClement`}
-            />
-            <p style={{ fontSize: '0.7rem', color: '#999', marginTop: '0.25rem', marginBottom: '1rem' }}>
-              Ce texte apparait dans l'email. Le devis complet est sur la page hebergee.
-            </p>
-
-            {/* Lines */}
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #eee' }}>Lignes du devis</h3>
-            {lines.map((line, i) => (
-              <div key={i} style={{ background: '#f9f9f9', border: '1px solid #eee', borderRadius: 8, padding: '0.75rem', marginBottom: '0.5rem', position: 'relative' }}>
-                {lines.length > 1 && (
-                  <button
-                    onClick={() => setLines(ls => ls.filter((_, j) => j !== i))}
-                    style={{ position: 'absolute', top: 6, right: 8, background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 16 }}
-                  >
-                    x
-                  </button>
-                )}
-                <div style={{ marginBottom: '0.4rem' }}>
-                  <label style={qLabel}>Description</label>
-                  <input style={qInput} value={line.description} placeholder="Prestation de conseil..."
-                    onChange={e => { const v = e.target.value; setLines(ls => ls.map((l, j) => j === i ? { ...l, description: v } : l)) }} />
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={qLabel}>Quantite</label>
-                    <input style={qInput} type="number" min={1} value={line.quantity}
-                      onChange={e => { const v = parseFloat(e.target.value) || 0; setLines(ls => ls.map((l, j) => j === i ? { ...l, quantity: v } : l)) }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={qLabel}>Prix unit. HT</label>
-                    <input style={qInput} type="number" min={0} step={0.01} value={line.unitPrice}
-                      onChange={e => { const v = parseFloat(e.target.value) || 0; setLines(ls => ls.map((l, j) => j === i ? { ...l, unitPrice: v } : l)) }} />
-                  </div>
-                </div>
-              </div>
-            ))}
-            <button
-              onClick={() => setLines(ls => [...ls, { description: '', quantity: 1, unitPrice: 0 }])}
-              style={{ padding: '0.4rem 0.8rem', borderRadius: 6, background: '#f0f0f0', border: '1px solid #ddd', fontSize: '0.78rem', cursor: 'pointer', marginBottom: '1rem' }}
-            >
-              + Ajouter une ligne
-            </button>
-
-            {/* Notes */}
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #eee' }}>Notes</h3>
-            <textarea
-              style={{ ...qInput, minHeight: 60, resize: 'vertical', lineHeight: 1.6, marginBottom: '1rem' }}
-              value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-              placeholder="Conditions de paiement, notes..."
-            />
-
-            {/* Accent color */}
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #eee' }}>Couleur</h3>
-            <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '1.5rem' }}>
-              {accentColors.map(c => (
-                <button key={c.value} onClick={() => setForm(f => ({ ...f, accentColor: c.value }))}
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+          {/* Left sidebar: section navigation */}
+          <div style={{ flex: '0 0 140px', position: 'sticky', top: '1rem', alignSelf: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              {QUOTE_SECTIONS.map((s, idx) => (
+                <button
+                  key={s.key}
+                  onClick={() => setActiveSection(s.key)}
                   style={{
-                    padding: '0.3rem 0.7rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
-                    background: c.value, color: '#fff', border: form.accentColor === c.value ? '2px solid #000' : '2px solid transparent',
-                  }}>
-                  {c.label}
+                    padding: '0.45rem 0.65rem', borderRadius: 6, border: 'none', textAlign: 'left',
+                    background: activeSection === s.key ? form.accentColor + '12' : 'transparent',
+                    color: activeSection === s.key ? form.accentColor : '#888',
+                    fontSize: '0.75rem', fontWeight: activeSection === s.key ? 700 : 500,
+                    cursor: 'pointer', transition: 'all 0.15s',
+                    borderLeft: activeSection === s.key ? `3px solid ${form.accentColor}` : '3px solid transparent',
+                  }}
+                >
+                  <span style={{ color: '#bbb', fontSize: '0.65rem', marginRight: '0.4rem' }}>{idx + 1}</span>
+                  {s.label}
                 </button>
               ))}
             </div>
+          </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                onClick={handleSend}
-                disabled={sending}
-                style={{
-                  flex: 1, padding: '0.75rem', borderRadius: 10, border: 'none',
-                  background: '#16a34a', color: '#fff', fontSize: '0.85rem', fontWeight: 600,
-                  cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.6 : 1,
-                }}
-              >
-                {sending ? 'Envoi en cours...' : 'Envoyer le devis'}
-              </button>
+          {/* Center: form content */}
+          <div style={{ flex: '0 0 420px', maxWidth: 420 }}>
+            {sectionRenderers[activeSection]()}
+
+            {/* Navigation + Actions at bottom */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #eee' }}>
+              {activeSection !== 'emetteur' && (
+                <button
+                  onClick={() => {
+                    const idx = QUOTE_SECTIONS.findIndex(s => s.key === activeSection)
+                    if (idx > 0) setActiveSection(QUOTE_SECTIONS[idx - 1].key)
+                  }}
+                  style={{
+                    padding: '0.55rem 1rem', borderRadius: 8, border: '1px solid #e0e0e0',
+                    background: '#fff', color: '#555', fontSize: '0.8rem', cursor: 'pointer',
+                  }}
+                >
+                  Precedent
+                </button>
+              )}
+              {activeSection !== 'apparence' ? (
+                <button
+                  onClick={() => {
+                    const idx = QUOTE_SECTIONS.findIndex(s => s.key === activeSection)
+                    if (idx < QUOTE_SECTIONS.length - 1) setActiveSection(QUOTE_SECTIONS[idx + 1].key)
+                  }}
+                  style={{
+                    padding: '0.55rem 1rem', borderRadius: 8, border: 'none',
+                    background: form.accentColor, color: '#fff', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  Suivant
+                </button>
+              ) : (
+                <button
+                  onClick={handleSend}
+                  disabled={sending}
+                  style={{
+                    flex: 1, padding: '0.75rem', borderRadius: 10, border: 'none',
+                    background: '#16a34a', color: '#fff', fontSize: '0.85rem', fontWeight: 600,
+                    cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.6 : 1,
+                  }}
+                >
+                  {sending ? 'Envoi en cours...' : 'Envoyer le devis'}
+                </button>
+              )}
               <button
                 onClick={() => setSubView('history')}
                 style={{
-                  padding: '0.75rem 1rem', borderRadius: 10, border: '1px solid #e0e0e0',
-                  background: '#fff', color: '#555', fontSize: '0.85rem', cursor: 'pointer',
+                  padding: '0.55rem 1rem', borderRadius: 8, border: '1px solid #e0e0e0',
+                  background: '#fff', color: '#555', fontSize: '0.8rem', cursor: 'pointer', marginLeft: 'auto',
                 }}
               >
                 Annuler
@@ -2317,7 +2587,7 @@ function QuotesView({ password }: { password: string }) {
           </div>
 
           {/* Right: live preview */}
-          <div style={{ flex: 1, position: 'sticky', top: '1rem', alignSelf: 'flex-start' }}>
+          <div style={{ flex: 1, position: 'sticky', top: '1rem', alignSelf: 'flex-start', minWidth: 280 }}>
             <p style={{ fontSize: '0.7rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
               Apercu du devis
             </p>
@@ -2325,11 +2595,16 @@ function QuotesView({ password }: { password: string }) {
               background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
               padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
             }}>
-              {/* Mini quote preview */}
+              {/* Header */}
               <div style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '1rem', marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <span style={{ fontWeight: 700, fontSize: '1rem', color: '#111' }}>Devis {form.reference}</span>
+                    {form.offerTitle && (
+                      <span style={{ display: 'block', fontSize: '0.82rem', color: form.accentColor, fontWeight: 600, marginTop: '0.15rem' }}>
+                        {form.offerTitle}
+                      </span>
+                    )}
                     <span style={{ display: 'block', fontSize: '0.8rem', color: '#999', marginTop: '0.15rem' }}>
                       Pour {form.clientCompany || form.clientName || '...'}
                     </span>
@@ -2341,12 +2616,13 @@ function QuotesView({ password }: { password: string }) {
                 </div>
               </div>
 
-              {/* Lines preview */}
+              {/* Lines preview table */}
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                 <thead>
                   <tr style={{ background: form.accentColor }}>
                     <th style={{ padding: '0.5rem 0.6rem', color: '#fff', fontWeight: 600, textAlign: 'left', fontSize: '0.7rem' }}>Description</th>
                     <th style={{ padding: '0.5rem 0.6rem', color: '#fff', fontWeight: 600, textAlign: 'right', fontSize: '0.7rem' }}>Qte</th>
+                    <th style={{ padding: '0.5rem 0.6rem', color: '#fff', fontWeight: 600, textAlign: 'right', fontSize: '0.7rem' }}>Unite</th>
                     <th style={{ padding: '0.5rem 0.6rem', color: '#fff', fontWeight: 600, textAlign: 'right', fontSize: '0.7rem' }}>P.U.</th>
                     <th style={{ padding: '0.5rem 0.6rem', color: '#fff', fontWeight: 600, textAlign: 'right', fontSize: '0.7rem' }}>Total</th>
                   </tr>
@@ -2354,23 +2630,34 @@ function QuotesView({ password }: { password: string }) {
                 <tbody>
                   {lines.map((l, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '0.5rem 0.6rem', color: '#333' }}>{l.description || '—'}</td>
+                      <td style={{ padding: '0.5rem 0.6rem', color: '#333' }}>{l.description || '\u2014'}</td>
                       <td style={{ padding: '0.5rem 0.6rem', color: '#333', textAlign: 'right' }}>{l.quantity}</td>
+                      <td style={{ padding: '0.5rem 0.6rem', color: '#999', textAlign: 'right', fontSize: '0.72rem' }}>{l.unit}</td>
                       <td style={{ padding: '0.5rem 0.6rem', color: '#333', textAlign: 'right' }}>{fmtEur(l.unitPrice)}</td>
-                      <td style={{ padding: '0.5rem 0.6rem', color: '#333', textAlign: 'right', fontWeight: 600 }}>{fmtEur(l.quantity * l.unitPrice)}</td>
+                      <td style={{ padding: '0.5rem 0.6rem', color: '#333', textAlign: 'right', fontWeight: 600 }}>{fmtEur(computeLineTotal(l))}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr><td colSpan={3} style={{ padding: '0.4rem 0.6rem', textAlign: 'right', color: '#999', fontSize: '0.78rem' }}>Total HT</td><td style={{ padding: '0.4rem 0.6rem', textAlign: 'right', fontWeight: 600 }}>{fmtEur(totalHT)}</td></tr>
-                  <tr><td colSpan={3} style={{ padding: '0.4rem 0.6rem', textAlign: 'right', color: '#999', fontSize: '0.78rem' }}>TVA (20%)</td><td style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>{fmtEur(totalHT * 0.2)}</td></tr>
-                  <tr style={{ background: '#f8f8f6' }}><td colSpan={3} style={{ padding: '0.6rem', textAlign: 'right', fontWeight: 700, fontSize: '0.9rem' }}>Total TTC</td><td style={{ padding: '0.6rem', textAlign: 'right', fontWeight: 700, color: form.accentColor, fontSize: '0.95rem' }}>{fmtEur(totalTTC)}</td></tr>
+                  <tr>
+                    <td colSpan={4} style={{ padding: '0.4rem 0.6rem', textAlign: 'right', color: '#999', fontSize: '0.78rem' }}>Total HT</td>
+                    <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right', fontWeight: 600 }}>{fmtEur(afterGlobalDiscount)}</td>
+                  </tr>
+                  <tr>
+                    <td colSpan={4} style={{ padding: '0.4rem 0.6rem', textAlign: 'right', color: '#999', fontSize: '0.78rem' }}>TVA</td>
+                    <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>{fmtEur(totalTVA)}</td>
+                  </tr>
+                  <tr style={{ background: '#f8f8f6' }}>
+                    <td colSpan={4} style={{ padding: '0.6rem', textAlign: 'right', fontWeight: 700, fontSize: '0.9rem' }}>Total TTC</td>
+                    <td style={{ padding: '0.6rem', textAlign: 'right', fontWeight: 700, color: form.accentColor, fontSize: '0.95rem' }}>{fmtEur(totalTTC)}</td>
+                  </tr>
                 </tfoot>
               </table>
 
-              {form.notes && (
+              {(form.notes || form.paymentTerms) && (
                 <div style={{ marginTop: '1rem', background: '#f9f9f9', borderRadius: 8, padding: '0.75rem', borderLeft: `3px solid ${form.accentColor}`, fontSize: '0.8rem', color: '#666' }}>
-                  {form.notes}
+                  {form.paymentTerms && <div style={{ marginBottom: form.notes ? '0.4rem' : 0 }}>{form.paymentTerms}</div>}
+                  {form.notes && <div>{form.notes}</div>}
                 </div>
               )}
             </div>
@@ -2391,7 +2678,12 @@ function QuotesView({ password }: { password: string }) {
                   Voir le Devis
                 </span>
                 <div style={{ marginTop: '0.75rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111' }}>{form.reference} — {form.clientCompany || form.clientName || '...'}</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111' }}>
+                    {form.reference} — {form.clientCompany || form.clientName || '...'}
+                  </span>
+                  {form.offerTitle && (
+                    <span style={{ display: 'block', fontSize: '0.78rem', color: form.accentColor, fontWeight: 600 }}>{form.offerTitle}</span>
+                  )}
                   <br />
                   <span style={{ fontSize: '0.82rem', color: '#666' }}>{fmtEur(totalTTC)} TTC</span>
                 </div>
@@ -2445,10 +2737,22 @@ function QuotesView({ password }: { password: string }) {
                       {QUOTE_STATUS_LABELS[q.status] || q.status}
                     </span>
                     <div style={{ flex: 1, minWidth: 200 }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#111' }}>{q.reference}</span>
-                      <span style={{ fontSize: '0.82rem', color: '#666', marginLeft: '0.75rem' }}>{q.companyName}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#111' }}>{q.reference}</span>
+                        {q.offerTitle && (
+                          <span style={{ fontSize: '0.78rem', color: q.accentColor || ACCENT, fontWeight: 600, background: (q.accentColor || ACCENT) + '12', padding: '0.1rem 0.45rem', borderRadius: 4 }}>
+                            {q.offerTitle}
+                          </span>
+                        )}
+                        <span style={{ fontSize: '0.82rem', color: '#666' }}>{q.companyName}</span>
+                      </div>
                       <span style={{ display: 'block', fontSize: '0.75rem', color: '#999', marginTop: '0.15rem' }}>
                         {q.clientName} &middot; {q.clientEmail}
+                        {q.validUntil && (
+                          <span style={{ marginLeft: '0.5rem', color: new Date(q.validUntil) < new Date() ? '#dc2626' : '#999' }}>
+                            &middot; Expire le {fmtDate(q.validUntil)}
+                          </span>
+                        )}
                       </span>
                     </div>
                     <span style={{ fontWeight: 700, fontSize: '0.95rem', color: ACCENT, minWidth: 100, textAlign: 'right' }}>

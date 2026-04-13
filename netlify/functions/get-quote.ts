@@ -31,7 +31,7 @@ const handler: Handler = async (event) => {
     await saveQuotes(data)
   }
 
-  // Return quote data (without sensitive internal fields)
+  // Return all public quote data
   return {
     statusCode: 200,
     headers,
@@ -39,14 +39,24 @@ const handler: Handler = async (event) => {
       reference: quote.reference,
       companyName: quote.companyName,
       clientName: quote.clientName,
+      prospectLogo: quote.prospectLogo,
       date: quote.date,
       dueDate: quote.dueDate,
+      validUntil: quote.validUntil || quote.dueDate,
+      offerTitle: quote.offerTitle,
+      context: quote.context,
+      presentation: quote.presentation,
+      arguments: quote.arguments,
       lines: quote.lines,
+      globalDiscount: quote.globalDiscount || 0,
       notes: quote.notes,
+      paymentTerms: quote.paymentTerms,
       accentColor: quote.accentColor,
       senderName: quote.senderName,
       senderCompany: quote.senderCompany,
       senderEmail: quote.senderEmail,
+      senderPhone: quote.senderPhone,
+      senderPhoto: quote.senderPhoto,
       status: quote.status,
     }),
   }

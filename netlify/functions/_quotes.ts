@@ -2,29 +2,58 @@ import { getStore } from '@netlify/blobs'
 
 export type QuoteLine = {
   description: string
+  detail?: string          // Description longue (HTML ou texte)
   quantity: number
+  unit?: string            // "jours", "heures", "mois", "forfait"
   unitPrice: number
+  tva?: number             // % TVA, défaut 20
+  discount?: number        // % remise par ligne
+}
+
+export type QuoteArgument = {
+  title: string
+  description: string
 }
 
 export type QuoteStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected'
 
 export type Quote = {
   id: string
-  reference: string       // e.g. "DEV/2026/12"
-  companySlug: string     // URL-safe slug
-  companyName: string     // Display name
+  reference: string
+  companySlug: string
+  companyName: string
   clientName: string
   clientEmail: string
-  date: string            // ISO date
-  dueDate: string         // ISO date
+  prospectLogo?: string    // URL du logo prospect
+
+  date: string
+  dueDate: string
+  validUntil?: string      // Date d'expiration du devis
+
+  // Offre
+  offerTitle?: string      // "Part-Time CMO"
+  context?: {              // Encart contexte
+    title: string
+    description: string
+  }
+  presentation?: string    // Texte de présentation du prestataire
+  arguments?: QuoteArgument[]  // 3 raisons de collaborer
+
   lines: QuoteLine[]
+  globalDiscount?: number  // % remise globale
   notes: string
-  emailContent: string    // Custom email body text
+  paymentTerms?: string    // Conditions de paiement
+
+  emailContent: string
   status: QuoteStatus
   accentColor: string
+
   senderName: string
   senderCompany: string
   senderEmail: string
+  senderPhone?: string
+  senderPhoto?: string     // URL photo
+
   createdAt: string
   sentAt?: string
   viewedAt?: string
@@ -77,4 +106,21 @@ export function formatAmount(amount: number): string {
     style: 'currency',
     currency: 'EUR',
   }).format(amount)
+}
+
+export function computeLineTotals(lines: QuoteLine[], globalDiscount = 0) {
+  let totalHT = 0
+  let totalTVA = 0
+
+  for (const l of lines) {
+    const lineHT = l.quantity * l.unitPrice * (1 - (l.discount || 0) / 100)
+    const lineTVA = lineHT * ((l.tva ?? 20) / 100)
+    totalHT += lineHT
+    totalTVA += lineTVA
+  }
+
+  totalHT = totalHT * (1 - globalDiscount / 100)
+  totalTVA = totalTVA * (1 - globalDiscount / 100)
+
+  return { totalHT, totalTVA, totalTTC: totalHT + totalTVA }
 }

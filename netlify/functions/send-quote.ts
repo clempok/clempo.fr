@@ -1,6 +1,6 @@
 import type { Handler } from '@netlify/functions'
-import { loadQuotes, saveQuotes, slugify, formatAmount } from './_quotes'
-import type { Quote, QuoteLine } from './_quotes'
+import { loadQuotes, saveQuotes, slugify, computeLineTotals, formatAmount } from './_quotes'
+import type { Quote } from './_quotes'
 
 function escapeHtml(str: string): string {
   return str
@@ -10,30 +10,11 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;')
 }
 
-interface QuoteInput {
-  clientName: string
-  clientEmail: string
-  clientCompany: string
-  reference: string
-  date: string
-  dueDate: string
-  lines: QuoteLine[]
-  notes: string
-  emailContent: string
-  senderName: string
-  senderCompany: string
-  senderEmail: string
-  accentColor: string
-  subject: string
-}
-
-function buildEmail(data: QuoteInput, quoteUrl: string): string {
-  const totalHT = data.lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0)
-  const tva = totalHT * 0.2
-  const totalTTC = totalHT + tva
-
-  // Convert newlines in emailContent to <br>
-  const bodyHtml = escapeHtml(data.emailContent).replace(/\n/g, '<br>')
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildEmail(data: any, quoteUrl: string): string {
+  const { totalTTC } = computeLineTotals(data.lines || [], data.globalDiscount || 0)
+  const bodyHtml = escapeHtml(data.emailContent || '').replace(/\n/g, '<br>')
+  const accent = data.accentColor || '#1A1A6B'
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -50,16 +31,16 @@ function buildEmail(data: QuoteInput, quoteUrl: string): string {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <a href="${escapeHtml(quoteUrl)}" style="display: inline-block; background-color: ${data.accentColor}; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: 14px; letter-spacing: 0.3px;">
+                    <a href="${escapeHtml(quoteUrl)}" style="display: inline-block; background-color: ${accent}; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: 14px; letter-spacing: 0.3px;">
                       Voir le Devis
                     </a>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding-top: 16px;">
-                    <span style="font-size: 16px; font-weight: 700; color: #111;">${escapeHtml(data.reference)} — ${escapeHtml(data.clientCompany || data.clientName)}</span><br>
+                    <span style="font-size: 16px; font-weight: 700; color: #111;">${escapeHtml(data.reference)} ${data.offerTitle ? '— ' + escapeHtml(data.offerTitle) : ''}</span><br>
                     <span style="font-size: 15px; color: #555; line-height: 1.8;">
-                      ${formatAmount(totalTTC)} TTC
+                      ${escapeHtml(data.clientCompany || data.clientName)} &middot; ${formatAmount(totalTTC)} TTC
                     </span>
                   </td>
                 </tr>
@@ -67,16 +48,14 @@ function buildEmail(data: QuoteInput, quoteUrl: string): string {
             </td>
           </tr>
 
-          <!-- Email body (custom text) -->
+          <!-- Email body -->
           <tr>
             <td style="padding: 28px 32px;">
               <div style="font-size: 15px; color: #333; line-height: 1.7;">
                 ${bodyHtml}
               </div>
-
-              <!-- CTA button repeated -->
               <div style="text-align: center; margin: 28px 0 12px;">
-                <a href="${escapeHtml(quoteUrl)}" style="display: inline-block; background-color: ${data.accentColor}; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px;">
+                <a href="${escapeHtml(quoteUrl)}" style="display: inline-block; background-color: ${accent}; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px;">
                   Consulter le devis en ligne
                 </a>
               </div>
@@ -89,8 +68,8 @@ function buildEmail(data: QuoteInput, quoteUrl: string): string {
               <p style="margin: 0; font-size: 13px; color: #888;">
                 --<br>
                 ${escapeHtml(data.senderName)}<br>
-                ${escapeHtml(data.senderCompany)}<br>
-                <a href="mailto:${escapeHtml(data.senderEmail)}" style="color: ${data.accentColor};">${escapeHtml(data.senderEmail)}</a>
+                ${escapeHtml(data.senderCompany)}${data.senderPhone ? '<br>' + escapeHtml(data.senderPhone) : ''}<br>
+                <a href="mailto:${escapeHtml(data.senderEmail)}" style="color: ${accent};">${escapeHtml(data.senderEmail)}</a>
               </p>
             </td>
           </tr>
@@ -116,7 +95,8 @@ const handler: Handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}')
-    const { token, data, previewOnly } = body as { token: string; data: QuoteInput; previewOnly?: boolean }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { token, data, previewOnly } = body as { token: string; data: any; previewOnly?: boolean }
 
     // Auth — accept QUOTE_SECRET or ADMIN_PASSWORD
     const secret = process.env.QUOTE_SECRET
@@ -126,14 +106,12 @@ const handler: Handler = async (event) => {
       return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) }
     }
 
-    // Build the quote ID & URL
     const quoteId = crypto.randomUUID()
-    const companySlug = slugify(data.clientCompany || data.clientName)
+    const companySlug = slugify(data.clientCompany || data.clientName || 'client')
     const quoteUrl = `https://www.clempo.fr/devis/${companySlug}/${quoteId}`
 
     const html = buildEmail(data, quoteUrl)
 
-    // Preview mode
     if (previewOnly) {
       return { statusCode: 200, headers, body: JSON.stringify({ html, quoteUrl }) }
     }
@@ -147,16 +125,26 @@ const handler: Handler = async (event) => {
       companyName: data.clientCompany || data.clientName,
       clientName: data.clientName,
       clientEmail: data.clientEmail,
+      prospectLogo: data.prospectLogo || undefined,
       date: data.date,
       dueDate: data.dueDate,
+      validUntil: data.validUntil || data.dueDate,
+      offerTitle: data.offerTitle || undefined,
+      context: data.context || undefined,
+      presentation: data.presentation || undefined,
+      arguments: data.arguments || undefined,
       lines: data.lines,
+      globalDiscount: data.globalDiscount || 0,
       notes: data.notes,
+      paymentTerms: data.paymentTerms || undefined,
       emailContent: data.emailContent,
       status: 'sent',
-      accentColor: data.accentColor,
+      accentColor: data.accentColor || '#1A1A6B',
       senderName: data.senderName,
       senderCompany: data.senderCompany,
       senderEmail: data.senderEmail,
+      senderPhone: data.senderPhone || undefined,
+      senderPhoto: data.senderPhoto || undefined,
       createdAt: now,
       sentAt: now,
     }
