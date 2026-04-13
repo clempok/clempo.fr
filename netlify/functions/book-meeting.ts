@@ -1,6 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { recordEvent } from './_analytics'
-import { upsertContact } from './_crm'
+import { upsertContact, addTaskToContactCompany } from './_crm'
 
 function pad(n: number): string {
   return n.toString().padStart(2, '0')
@@ -150,6 +150,15 @@ const handler: Handler = async (event) => {
       },
       'Lead',
     )
+
+    // Create a CRM task on the booking date
+    await addTaskToContactCompany(email, {
+      title: `RDV ${firstName} ${lastName} — ${pad(hour)}:${pad(minute)}`,
+      dueDate: date,
+      description: message
+        ? `RDV de 30 min pris sur clempo.fr\n\nMessage : ${message}`
+        : 'RDV de 30 min pris sur clempo.fr',
+    })
 
     const eventData = await calendarRes.json()
     const dateFormatted = formatDateParis(date, isFr ? 'fr-FR' : 'en-GB')

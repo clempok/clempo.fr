@@ -355,6 +355,41 @@ export async function writeCrm(data: CrmData): Promise<void> {
 }
 
 /**
+ * Add a task to the company that owns a given contact email.
+ * If no company found, does nothing.
+ */
+export async function addTaskToContactCompany(
+  email: string,
+  task: { title: string; dueDate: string; description?: string },
+): Promise<void> {
+  try {
+    const data = await readCrm()
+    const normalizedEmail = email.trim().toLowerCase()
+    const now = new Date().toISOString()
+
+    for (const co of data.companies) {
+      if (co.contacts.some(c => c.email.toLowerCase() === normalizedEmail)) {
+        if (!co.tasks) co.tasks = []
+        co.tasks.push({
+          id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          title: task.title,
+          dueDate: task.dueDate,
+          description: task.description || '',
+          done: false,
+          createdAt: now,
+          updatedAt: now,
+        })
+        co.updatedAt = now
+        await writeCrm(data)
+        return
+      }
+    }
+  } catch (err) {
+    console.error('addTaskToContactCompany error:', err)
+  }
+}
+
+/**
  * Upsert a contact by email, grouped under a company.
  */
 export async function upsertContact(
