@@ -15,6 +15,24 @@ export type QuoteArgument = {
   description: string
 }
 
+export type QuoteSignature = {
+  image: string             // base64 (drawn) or rendered text
+  type: 'drawn' | 'typed'
+  signerName: string
+  signerEmail: string
+  signerCompany: string
+  signerEmailCompta?: string
+  signerAddress?: string
+  signerPostalCode?: string
+  signerCity?: string
+  signerCountry?: string
+  signerTva?: string
+  ip: string
+  userAgent: string
+  signedAt: string
+  cgvAccepted: boolean
+}
+
 export type QuoteStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected'
 
 export type Quote = {
@@ -54,9 +72,12 @@ export type Quote = {
   senderPhone?: string
   senderPhoto?: string     // URL photo
 
+  cgvText?: string           // HTML des CGV
+
   createdAt: string
   sentAt?: string
   viewedAt?: string
+  signature?: QuoteSignature
 }
 
 export type QuotesData = {

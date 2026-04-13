@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 
 /* ───────────────────────── Constants ───────────────────────── */
@@ -30,6 +30,13 @@ type QuoteLine = {
   unit?: string; unitPrice: number; tva?: number; discount?: number
 }
 
+type QuoteSignature = {
+  image: string; type: 'drawn' | 'typed'
+  signerName: string; signerEmail: string; signerCompany: string
+  signerEmailCompta?: string; signerTva?: string
+  signedAt: string; cgvAccepted: boolean
+}
+
 type QuoteData = {
   reference: string; companyName: string; clientName: string
   prospectLogo?: string; date: string; dueDate: string; validUntil?: string
@@ -39,6 +46,7 @@ type QuoteData = {
   paymentTerms?: string; accentColor: string
   senderName: string; senderCompany: string; senderEmail: string
   senderPhone?: string; senderPhoto?: string; status: string
+  signature?: QuoteSignature; cgvText?: string
 }
 
 /* ───────────────────────── Helpers ───────────────────────── */
@@ -68,6 +76,7 @@ export default function QuotePage() {
     document.body.style.cursor = 'auto'
     const s = document.createElement('style')
     s.textContent = `
+      @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
       *, a, button { cursor: auto !important; }
       a, button { cursor: pointer !important; }
       @keyframes spin { to { transform: rotate(360deg) } }
@@ -526,6 +535,9 @@ export default function QuotePage() {
           </div>
         )}
 
+        {/* ═══════ SIGNATURE SECTION ═══════ */}
+        <SignatureSection quote={quote} accent={accent} company={company!} id={id!} onSigned={(sig) => setQuote({ ...quote, signature: sig, status: 'accepted' })} />
+
         {/* ═══════ CTA SECTION ═══════ */}
         <div style={{
           background: `linear-gradient(135deg, ${accent}08, ${accent}04)`,
@@ -570,6 +582,431 @@ export default function QuotePage() {
         <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#bbb', paddingBottom: '2rem' }}>
           &copy; {new Date().getFullYear()} {quote.senderCompany} &middot;{' '}
           <a href="https://www.clempo.fr" style={{ color: '#bbb', textDecoration: 'none' }}>www.clempo.fr</a>
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SIGNATURE SECTION — Billing form, CGV, Draw/Type signature
+   ═══════════════════════════════════════════════════════════════ */
+
+function SignatureSection({ quote, accent, company, id, onSigned }: {
+  quote: QuoteData; accent: string; company: string; id: string
+  onSigned: (sig: QuoteSignature) => void
+}) {
+  const [mode, setMode] = useState<'draw' | 'type'>('draw')
+  const [typedName, setTypedName] = useState('')
+  const [form, setForm] = useState({
+    signerName: '', signerEmail: '', signerCompany: quote.companyName || '',
+    signerEmailCompta: '', signerAddress: '', signerPostalCode: '',
+    signerCity: '', signerCountry: 'France', signerTva: '',
+  })
+  const [cgvAccepted, setCgvAccepted] = useState(false)
+  const [showCgv, setShowCgv] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const isDrawing = useRef(false)
+  const lastPos = useRef<{ x: number; y: number } | null>(null)
+
+  // Canvas drawing handlers
+  const getPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    if ('touches' in e) {
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top }
+    }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+  }, [])
+
+  const startDraw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    isDrawing.current = true
+    lastPos.current = getPos(e)
+  }, [getPos])
+
+  const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawing.current || !canvasRef.current) return
+    e.preventDefault()
+    const ctx = canvasRef.current.getContext('2d')
+    if (!ctx || !lastPos.current) return
+    const pos = getPos(e)
+    ctx.strokeStyle = '#111'
+    ctx.lineWidth = 2.5
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.beginPath()
+    ctx.moveTo(lastPos.current.x, lastPos.current.y)
+    ctx.lineTo(pos.x, pos.y)
+    ctx.stroke()
+    lastPos.current = pos
+  }, [getPos])
+
+  const stopDraw = useCallback(() => {
+    isDrawing.current = false
+    lastPos.current = null
+  }, [])
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
+  }
+
+  const getSignatureImage = (): string => {
+    if (mode === 'draw') {
+      return canvasRef.current?.toDataURL('image/png') || ''
+    }
+    // Render typed name to canvas
+    const c = document.createElement('canvas')
+    c.width = 500; c.height = 120
+    const ctx = c.getContext('2d')!
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, 500, 120)
+    ctx.font = 'italic 42px "Dancing Script", "Brush Script MT", cursive'
+    ctx.fillStyle = '#111'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(typedName, 250, 60)
+    return c.toDataURL('image/png')
+  }
+
+  const isCanvasEmpty = (): boolean => {
+    const canvas = canvasRef.current
+    if (!canvas) return true
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return true
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] !== 0) return false
+    }
+    return true
+  }
+
+  const handleSubmit = async () => {
+    if (!form.signerName || !form.signerEmail) {
+      setError('Veuillez renseigner votre nom et email.')
+      return
+    }
+    if (!cgvAccepted) {
+      setError('Veuillez accepter les conditions générales de vente.')
+      return
+    }
+    if (mode === 'draw' && isCanvasEmpty()) {
+      setError('Veuillez dessiner votre signature.')
+      return
+    }
+    if (mode === 'type' && !typedName.trim()) {
+      setError('Veuillez saisir votre nom pour la signature.')
+      return
+    }
+
+    setError('')
+    setSubmitting(true)
+    try {
+      const image = getSignatureImage()
+      const res = await fetch('/.netlify/functions/sign-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company, ref: id,
+          signature: {
+            image, type: mode,
+            signerName: form.signerName,
+            signerEmail: form.signerEmail,
+            signerCompany: form.signerCompany,
+            signerEmailCompta: form.signerEmailCompta || undefined,
+            signerAddress: form.signerAddress || undefined,
+            signerPostalCode: form.signerPostalCode || undefined,
+            signerCity: form.signerCity || undefined,
+            signerCountry: form.signerCountry || undefined,
+            signerTva: form.signerTva || undefined,
+            cgvAccepted,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erreur lors de la signature')
+      onSigned({
+        image, type: mode,
+        signerName: form.signerName, signerEmail: form.signerEmail,
+        signerCompany: form.signerCompany, signerTva: form.signerTva || undefined,
+        signerEmailCompta: form.signerEmailCompta || undefined,
+        signedAt: data.signedAt, cgvAccepted,
+      })
+    } catch (e) {
+      setError(String(e instanceof Error ? e.message : e))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Already signed — show signed state
+  if (quote.signature) {
+    return (
+      <div style={{
+        background: '#f0fdf4', borderRadius: 20, padding: '2.5rem',
+        border: '1px solid #bbf7d0', marginBottom: '2rem', textAlign: 'center',
+      }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%', background: '#16a34a',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 1rem',
+        }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <h3 style={{ fontFamily: FT, fontSize: '1.3rem', fontWeight: 700, color: '#15803d', margin: '0 0 0.5rem' }}>
+          Devis signé
+        </h3>
+        <p style={{ fontSize: '0.9rem', color: '#166534', margin: '0 0 1rem', lineHeight: 1.6 }}>
+          Ce devis a été signé par <strong>{quote.signature.signerName}</strong> le{' '}
+          {new Date(quote.signature.signedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}.
+        </p>
+        {quote.signature.image && (
+          <div style={{
+            background: '#fff', borderRadius: 12, padding: '1rem',
+            display: 'inline-block', border: '1px solid #dcfce7',
+          }}>
+            <img src={quote.signature.image} alt="Signature" style={{ maxWidth: 240, height: 'auto' }} />
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '0.7rem 1rem', borderRadius: 10,
+    border: `1px solid ${BORDER}`, fontSize: '0.9rem', fontFamily: FB,
+    outline: 'none', transition: 'border-color 0.2s',
+    background: '#fff',
+  }
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: '0.78rem', fontWeight: 600,
+    color: MUTED, marginBottom: '0.35rem',
+  }
+
+  return (
+    <div style={{
+      background: CARD, borderRadius: 20, overflow: 'hidden',
+      border: `1px solid ${BORDER}`, boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+      marginBottom: '2rem',
+    }}>
+      {/* Header */}
+      <div style={{
+        background: `linear-gradient(135deg, ${accent}, ${accent}dd)`,
+        padding: '1.25rem 2.5rem',
+      }}>
+        <h3 style={{ fontFamily: FT, fontSize: '1.15rem', fontWeight: 700, color: '#fff', margin: 0 }}>
+          Signer ce devis
+        </h3>
+      </div>
+
+      <div style={{ padding: '2rem 2.5rem' }}>
+        {/* Billing info form */}
+        <div style={{ marginBottom: '2rem' }}>
+          <div style={{
+            fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase',
+            letterSpacing: '0.1em', color: MUTED, marginBottom: '1rem',
+          }}>
+            Informations de facturation
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label style={labelStyle}>Nom complet *</label>
+              <input style={inputStyle} value={form.signerName}
+                onChange={e => setForm({ ...form, signerName: e.target.value })}
+                placeholder="Prénom Nom" />
+            </div>
+            <div>
+              <label style={labelStyle}>Email *</label>
+              <input style={inputStyle} type="email" value={form.signerEmail}
+                onChange={e => setForm({ ...form, signerEmail: e.target.value })}
+                placeholder="email@entreprise.com" />
+            </div>
+            <div>
+              <label style={labelStyle}>Société</label>
+              <input style={inputStyle} value={form.signerCompany}
+                onChange={e => setForm({ ...form, signerCompany: e.target.value })} />
+            </div>
+            <div>
+              <label style={labelStyle}>Email comptabilité</label>
+              <input style={inputStyle} type="email" value={form.signerEmailCompta}
+                onChange={e => setForm({ ...form, signerEmailCompta: e.target.value })}
+                placeholder="compta@entreprise.com" />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>Adresse</label>
+              <input style={inputStyle} value={form.signerAddress}
+                onChange={e => setForm({ ...form, signerAddress: e.target.value })}
+                placeholder="Rue, numéro" />
+            </div>
+            <div>
+              <label style={labelStyle}>Code postal</label>
+              <input style={inputStyle} value={form.signerPostalCode}
+                onChange={e => setForm({ ...form, signerPostalCode: e.target.value })} />
+            </div>
+            <div>
+              <label style={labelStyle}>Ville</label>
+              <input style={inputStyle} value={form.signerCity}
+                onChange={e => setForm({ ...form, signerCity: e.target.value })} />
+            </div>
+            <div>
+              <label style={labelStyle}>Pays</label>
+              <input style={inputStyle} value={form.signerCountry}
+                onChange={e => setForm({ ...form, signerCountry: e.target.value })} />
+            </div>
+            <div>
+              <label style={labelStyle}>N° TVA intracommunautaire</label>
+              <input style={inputStyle} value={form.signerTva}
+                onChange={e => setForm({ ...form, signerTva: e.target.value })}
+                placeholder="FR12345678901" />
+            </div>
+          </div>
+        </div>
+
+        {/* CGV acceptance */}
+        <div style={{
+          background: '#fafaf8', borderRadius: 12, padding: '1.25rem',
+          border: `1px solid ${BORDER}`, marginBottom: '2rem',
+        }}>
+          <label style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', cursor: 'pointer' }}>
+            <input
+              type="checkbox" checked={cgvAccepted}
+              onChange={e => setCgvAccepted(e.target.checked)}
+              style={{ marginTop: 3, width: 18, height: 18, accentColor: accent, cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '0.88rem', color: '#444', lineHeight: 1.6 }}>
+              J'accepte les{' '}
+              <button
+                onClick={(e) => { e.preventDefault(); setShowCgv(!showCgv) }}
+                style={{
+                  background: 'none', border: 'none', color: accent,
+                  textDecoration: 'underline', cursor: 'pointer', fontSize: '0.88rem',
+                  fontFamily: FB, padding: 0,
+                }}
+              >
+                conditions générales de vente
+              </button>
+              {' '}et confirme la commande des prestations décrites dans ce devis.
+            </span>
+          </label>
+          {showCgv && (
+            <div style={{
+              marginTop: '1rem', padding: '1.25rem', background: '#fff',
+              borderRadius: 10, border: `1px solid ${BORDER}`,
+              maxHeight: 300, overflowY: 'auto',
+              fontSize: '0.82rem', color: '#555', lineHeight: 1.7,
+            }}
+              dangerouslySetInnerHTML={{ __html: quote.cgvText || '<p>Les conditions générales de vente sont disponibles sur demande.</p>' }}
+            />
+          )}
+        </div>
+
+        {/* Signature pad */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginBottom: '1rem',
+          }}>
+            <div style={{
+              fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase',
+              letterSpacing: '0.1em', color: MUTED,
+            }}>
+              Votre signature
+            </div>
+            <div style={{ display: 'flex', gap: '0.25rem', background: '#f4f4f2', borderRadius: 8, padding: 3 }}>
+              {(['draw', 'type'] as const).map(m => (
+                <button key={m} onClick={() => setMode(m)} style={{
+                  padding: '0.4rem 1rem', borderRadius: 6, border: 'none',
+                  fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                  fontFamily: FB,
+                  background: mode === m ? '#fff' : 'transparent',
+                  color: mode === m ? TEXT : MUTED,
+                  boxShadow: mode === m ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                }}>
+                  {m === 'draw' ? 'Dessiner' : 'Saisir'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {mode === 'draw' ? (
+            <div style={{ position: 'relative' }}>
+              <canvas
+                ref={canvasRef}
+                width={500} height={120}
+                onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
+                onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
+                style={{
+                  width: '100%', height: 120, borderRadius: 12,
+                  border: `2px dashed ${BORDER}`, background: '#fff',
+                  cursor: 'crosshair', touchAction: 'none',
+                }}
+              />
+              <button onClick={clearCanvas} style={{
+                position: 'absolute', top: 8, right: 8,
+                background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 6,
+                padding: '0.3rem 0.6rem', fontSize: '0.72rem', color: MUTED,
+                cursor: 'pointer', fontFamily: FB,
+              }}>
+                Effacer
+              </button>
+            </div>
+          ) : (
+            <div>
+              <input
+                value={typedName} onChange={e => setTypedName(e.target.value)}
+                placeholder="Votre nom complet"
+                style={{ ...inputStyle, marginBottom: '0.75rem' }}
+              />
+              {typedName && (
+                <div style={{
+                  background: '#fff', borderRadius: 12, padding: '1.5rem',
+                  border: `2px dashed ${BORDER}`, textAlign: 'center',
+                  fontFamily: '"Dancing Script", "Brush Script MT", cursive',
+                  fontSize: '2.5rem', fontStyle: 'italic', color: '#111',
+                }}>
+                  {typedName}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Error message */}
+        {error && (
+          <div style={{
+            background: '#fef2f2', borderRadius: 10, padding: '0.75rem 1rem',
+            fontSize: '0.85rem', color: '#dc2626', marginBottom: '1rem',
+            border: '1px solid #fecaca',
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Submit */}
+        <button
+          onClick={handleSubmit} disabled={submitting}
+          style={{
+            width: '100%', padding: '1rem', borderRadius: 12, border: 'none',
+            background: submitting ? '#aaa' : accent, color: '#fff',
+            fontFamily: FT, fontWeight: 700, fontSize: '1rem', cursor: submitting ? 'not-allowed' : 'pointer',
+            boxShadow: submitting ? 'none' : `0 4px 16px ${accent}40`,
+            transition: 'all 0.2s',
+          }}
+        >
+          {submitting ? 'Signature en cours...' : 'Signer et valider le devis'}
+        </button>
+
+        <p style={{ fontSize: '0.72rem', color: '#aaa', textAlign: 'center', marginTop: '0.75rem', lineHeight: 1.5 }}>
+          En signant, vous acceptez le devis {quote.reference} pour un montant total indiqué ci-dessus.
+          Votre signature, adresse IP et horodatage seront enregistrés.
         </p>
       </div>
     </div>

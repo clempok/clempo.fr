@@ -58,6 +58,18 @@ const handler: Handler = async (event) => {
       senderPhone: quote.senderPhone,
       senderPhoto: quote.senderPhoto,
       status: quote.status,
+      cgvText: quote.cgvText || undefined,
+      signature: quote.signature ? {
+        image: quote.signature.image,
+        type: quote.signature.type,
+        signerName: quote.signature.signerName,
+        signerEmail: quote.signature.signerEmail,
+        signerCompany: quote.signature.signerCompany,
+        signerEmailCompta: quote.signature.signerEmailCompta,
+        signerTva: quote.signature.signerTva,
+        signedAt: quote.signature.signedAt,
+        cgvAccepted: quote.signature.cgvAccepted,
+      } : undefined,
     }),
   }
 }
