@@ -38,6 +38,7 @@ export type CrmTask = {
   id: string
   title: string
   dueDate: string // YYYY-MM-DD
+  description: string
   done: boolean
   createdAt: string
   updatedAt: string

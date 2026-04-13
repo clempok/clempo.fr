@@ -144,7 +144,7 @@ const handler: Handler = async (event) => {
       // --- Task-level actions ---
 
       if (action === 'create-task') {
-        const { companyId, fields } = body as { companyId: string; fields: { title: string; dueDate: string } }
+        const { companyId, fields } = body as { companyId: string; fields: { title: string; dueDate: string; description?: string } }
         const company = data.companies.find(c => c.id === companyId)
         if (!company) return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
         if (!fields.title?.trim()) return { statusCode: 400, body: JSON.stringify({ error: 'Title required' }) }
@@ -155,6 +155,7 @@ const handler: Handler = async (event) => {
           id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           title: fields.title.trim(),
           dueDate: fields.dueDate,
+          description: fields.description?.trim() || '',
           done: false,
           createdAt: now,
           updatedAt: now,
@@ -176,6 +177,7 @@ const handler: Handler = async (event) => {
         if (!task) return { statusCode: 404, body: JSON.stringify({ error: 'Task not found' }) }
         if (fields.title !== undefined) task.title = fields.title
         if (fields.dueDate !== undefined) task.dueDate = fields.dueDate
+        if (fields.description !== undefined) task.description = fields.description
         if (fields.done !== undefined) task.done = fields.done
         task.updatedAt = new Date().toISOString()
         await writeCrm(data)

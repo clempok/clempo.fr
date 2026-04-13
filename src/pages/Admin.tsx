@@ -88,6 +88,7 @@ type CrmTask = {
   id: string
   title: string
   dueDate: string // YYYY-MM-DD
+  description: string
   done: boolean
   createdAt: string
   updatedAt: string
@@ -532,12 +533,15 @@ const tdStyle: React.CSSProperties = {
 
 /* ---------- TaskRow ---------- */
 
-function TaskRow({ task, isOverdue, onToggle, onDelete }: {
+function TaskRow({ task, isOverdue, onToggle, onDelete, onUpdateDesc }: {
   task: CrmTask
   isOverdue: boolean
   onToggle: (done: boolean) => void
   onDelete: () => void
+  onUpdateDesc: (desc: string) => void
 }) {
+  const [expanded, setExpanded] = useState(false)
+  const [desc, setDesc] = useState(task.description || '')
   const today = new Date().toISOString().slice(0, 10)
   const isToday = task.dueDate === today
   const dateLabel = isToday ? "Aujourd'hui"
@@ -546,36 +550,67 @@ function TaskRow({ task, isOverdue, onToggle, onDelete }: {
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: '0.5rem',
-      padding: '0.35rem 0.5rem', borderRadius: '7px', marginBottom: '2px',
+      borderRadius: '7px', marginBottom: '2px',
       background: isOverdue && !task.done ? '#fff5f5' : '#fff',
       border: `1px solid ${isOverdue && !task.done ? '#fecaca' : '#f0f0f0'}`,
+      overflow: 'hidden',
     }}>
-      <input
-        type="checkbox"
-        checked={task.done}
-        onChange={e => onToggle(e.target.checked)}
-        style={{ cursor: 'pointer', accentColor: ACCENT, flexShrink: 0 }}
-      />
-      <span style={{
-        flex: 1, fontSize: '0.78rem', color: task.done ? '#aaa' : '#222',
-        textDecoration: task.done ? 'line-through' : 'none',
-      }}>
-        {task.title}
-      </span>
-      <span style={{
-        fontSize: '0.65rem', fontWeight: 600, whiteSpace: 'nowrap',
-        color: task.done ? '#bbb' : isOverdue ? '#dc2626' : isToday ? '#1A1A6B' : '#888',
-      }}>
-        {dateLabel}
-      </span>
-      <button
-        onClick={onDelete}
-        style={{ background: 'none', border: 'none', color: '#ddd', cursor: 'pointer', fontSize: '0.85rem', padding: '0 2px', lineHeight: 1, flexShrink: 0 }}
-        title="Supprimer"
-      >
-        ×
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.5rem' }}>
+        <input
+          type="checkbox"
+          checked={task.done}
+          onChange={e => onToggle(e.target.checked)}
+          style={{ cursor: 'pointer', accentColor: ACCENT, flexShrink: 0 }}
+        />
+        <span
+          onClick={() => setExpanded(e => !e)}
+          style={{
+            flex: 1, fontSize: '0.78rem', color: task.done ? '#aaa' : '#222',
+            textDecoration: task.done ? 'line-through' : 'none',
+            cursor: 'pointer',
+          }}
+        >
+          {task.title}
+          {(task.description || '') && !expanded && (
+            <span style={{ marginLeft: '6px', fontSize: '0.65rem', color: '#bbb' }}>···</span>
+          )}
+        </span>
+        <span style={{
+          fontSize: '0.65rem', fontWeight: 600, whiteSpace: 'nowrap',
+          color: task.done ? '#bbb' : isOverdue ? '#dc2626' : isToday ? '#1A1A6B' : '#888',
+        }}>
+          {dateLabel}
+        </span>
+        <button
+          onClick={() => setExpanded(e => !e)}
+          style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '0.7rem', padding: '0 2px', lineHeight: 1, flexShrink: 0 }}
+        >
+          {expanded ? '▲' : '▼'}
+        </button>
+        <button
+          onClick={onDelete}
+          style={{ background: 'none', border: 'none', color: '#ddd', cursor: 'pointer', fontSize: '0.85rem', padding: '0 2px', lineHeight: 1, flexShrink: 0 }}
+          title="Supprimer"
+        >
+          ×
+        </button>
+      </div>
+      {expanded && (
+        <div style={{ padding: '0 0.5rem 0.5rem 1.8rem' }}>
+          <textarea
+            value={desc}
+            onChange={e => setDesc(e.target.value)}
+            onBlur={() => onUpdateDesc(desc)}
+            placeholder="Description, CR de réunion, notes..."
+            rows={3}
+            style={{
+              width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #e0e0e0',
+              borderRadius: '7px', fontSize: '0.75rem', outline: 'none', background: '#fafafa',
+              boxSizing: 'border-box', resize: 'vertical', fontFamily: "'Inter', sans-serif", lineHeight: 1.5,
+            }}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -985,6 +1020,7 @@ function CrmView({ password }: { password: string }) {
   const [addTaskForCo, setAddTaskForCo] = useState<string | null>(null)
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [newTaskDate, setNewTaskDate] = useState('')
+  const [newTaskDesc, setNewTaskDesc] = useState('')
 
   const authHeaders = useMemo(
     () => ({ Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' }),
@@ -1101,7 +1137,7 @@ function CrmView({ password }: { password: string }) {
     try {
       const res = await fetch('/.netlify/functions/admin-crm', {
         method: 'POST', headers: authHeaders,
-        body: JSON.stringify({ action: 'create-task', companyId, fields: { title: newTaskTitle.trim(), dueDate: newTaskDate } }),
+        body: JSON.stringify({ action: 'create-task', companyId, fields: { title: newTaskTitle.trim(), dueDate: newTaskDate, description: newTaskDesc.trim() } }),
       })
       const body = await res.text()
       if (!res.ok) throw new Error(body)
@@ -1112,6 +1148,7 @@ function CrmView({ password }: { password: string }) {
       ) || null)
       setNewTaskTitle('')
       setNewTaskDate('')
+      setNewTaskDesc('')
       setAddTaskForCo(null)
     } catch (err) { alert(`Erreur : ${String(err)}`) }
   }
@@ -1128,6 +1165,16 @@ function CrmView({ password }: { password: string }) {
       })
       if (!res.ok) throw new Error(await res.text())
     } catch (err) { alert(`Erreur : ${String(err)}`); refresh() }
+  }
+
+  const updateTaskDesc = async (companyId: string, taskId: string, description: string) => {
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'update-task', companyId, taskId, fields: { description } }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+    } catch (err) { alert(`Erreur : ${String(err)}`) }
   }
 
   const deleteTask = async (companyId: string, taskId: string) => {
@@ -1384,7 +1431,7 @@ function CrmView({ password }: { password: string }) {
                               Tâches ({tasks.filter(t => !t.done).length} actives)
                             </p>
                             <button
-                              onClick={() => { setAddTaskForCo(addTaskForCo === co.id ? null : co.id); setNewTaskTitle(''); setNewTaskDate('') }}
+                              onClick={() => { setAddTaskForCo(addTaskForCo === co.id ? null : co.id); setNewTaskTitle(''); setNewTaskDate(''); setNewTaskDesc('') }}
                               style={{ padding: '3px 10px', border: '1px solid #e0e0e0', borderRadius: '6px', background: '#fff', color: ACCENT, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
                             >
                               + Tâche
@@ -1392,36 +1439,45 @@ function CrmView({ password }: { password: string }) {
                           </div>
 
                           {addTaskForCo === co.id && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                              <input
-                                value={newTaskTitle}
-                                onChange={e => setNewTaskTitle(e.target.value)}
-                                placeholder="Titre de la tâche..."
-                                style={{ padding: '0.45rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
-                                onKeyDown={e => e.key === 'Enter' && createTask(co.id)}
-                                autoFocus
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.5rem', alignItems: 'center' }}>
+                                <input
+                                  value={newTaskTitle}
+                                  onChange={e => setNewTaskTitle(e.target.value)}
+                                  placeholder="Titre de la tâche..."
+                                  style={{ padding: '0.45rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
+                                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && createTask(co.id)}
+                                  autoFocus
+                                />
+                                <input
+                                  type="date"
+                                  value={newTaskDate}
+                                  onChange={e => setNewTaskDate(e.target.value)}
+                                  min={today}
+                                  style={{ padding: '0.45rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
+                                />
+                                <button
+                                  onClick={() => createTask(co.id)}
+                                  disabled={!newTaskTitle.trim() || !newTaskDate}
+                                  style={{ padding: '0.45rem 0.9rem', border: 'none', borderRadius: '8px', background: ACCENT, color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', opacity: (!newTaskTitle.trim() || !newTaskDate) ? 0.5 : 1 }}
+                                >
+                                  Ajouter
+                                </button>
+                              </div>
+                              <textarea
+                                value={newTaskDesc}
+                                onChange={e => setNewTaskDesc(e.target.value)}
+                                placeholder="Description, CR de réunion, notes... (optionnel)"
+                                rows={2}
+                                style={{ padding: '0.45rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', outline: 'none', background: '#fff', resize: 'vertical', fontFamily: "'Inter', sans-serif", lineHeight: 1.5 }}
                               />
-                              <input
-                                type="date"
-                                value={newTaskDate}
-                                onChange={e => setNewTaskDate(e.target.value)}
-                                min={today}
-                                style={{ padding: '0.45rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', outline: 'none', background: '#fff' }}
-                              />
-                              <button
-                                onClick={() => createTask(co.id)}
-                                disabled={!newTaskTitle.trim() || !newTaskDate}
-                                style={{ padding: '0.45rem 0.9rem', border: 'none', borderRadius: '8px', background: ACCENT, color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', opacity: (!newTaskTitle.trim() || !newTaskDate) ? 0.5 : 1 }}
-                              >
-                                Ajouter
-                              </button>
                             </div>
                           )}
 
                           {overdue.length > 0 && (
                             <div style={{ marginBottom: '0.4rem' }}>
                               {overdue.map(t => (
-                                <TaskRow key={t.id} task={t} isOverdue onToggle={done => toggleTask(co.id, t.id, done)} onDelete={() => deleteTask(co.id, t.id)} />
+                                <TaskRow key={t.id} task={t} isOverdue onToggle={done => toggleTask(co.id, t.id, done)} onDelete={() => deleteTask(co.id, t.id)} onUpdateDesc={desc => updateTaskDesc(co.id, t.id, desc)} />
                               ))}
                             </div>
                           )}
@@ -1429,7 +1485,7 @@ function CrmView({ password }: { password: string }) {
                           {upcoming.length > 0 && (
                             <div style={{ marginBottom: '0.4rem' }}>
                               {upcoming.map(t => (
-                                <TaskRow key={t.id} task={t} isOverdue={false} onToggle={done => toggleTask(co.id, t.id, done)} onDelete={() => deleteTask(co.id, t.id)} />
+                                <TaskRow key={t.id} task={t} isOverdue={false} onToggle={done => toggleTask(co.id, t.id, done)} onDelete={() => deleteTask(co.id, t.id)} onUpdateDesc={desc => updateTaskDesc(co.id, t.id, desc)} />
                               ))}
                             </div>
                           )}
@@ -1445,7 +1501,7 @@ function CrmView({ password }: { password: string }) {
                               </summary>
                               <div style={{ marginTop: '0.25rem', opacity: 0.6 }}>
                                 {done.map(t => (
-                                  <TaskRow key={t.id} task={t} isOverdue={false} onToggle={d => toggleTask(co.id, t.id, d)} onDelete={() => deleteTask(co.id, t.id)} />
+                                  <TaskRow key={t.id} task={t} isOverdue={false} onToggle={d => toggleTask(co.id, t.id, d)} onDelete={() => deleteTask(co.id, t.id)} onUpdateDesc={desc => updateTaskDesc(co.id, t.id, desc)} />
                                 ))}
                               </div>
                             </details>
