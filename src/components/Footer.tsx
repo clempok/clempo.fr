@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useLang } from '../contexts/LangContext'
+import { bookingUrl } from '../lib/cta'
 
 export default function Footer() {
   const { t } = useLang()
@@ -30,7 +31,7 @@ export default function Footer() {
         >
           {t('nav', 'articles')}
         </Link>
-        <Link to="/booking"
+        <Link to={bookingUrl('footer')}
           style={{ textDecoration: 'none', color: '#71717A', fontSize: '0.78rem', transition: 'color 0.2s' }}
           onMouseEnter={e => (e.currentTarget.style.color = '#1A1A6B')}
           onMouseLeave={e => (e.currentTarget.style.color = '#71717A')}
