@@ -6,6 +6,7 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import Background from './components/Background'
 import LiquidCursor from './components/LiquidCursor'
+import ReturnVisitorPopup from './components/ReturnVisitorPopup'
 import Home from './pages/Home'
 import Articles from './pages/Articles'
 import ArticlePage from './pages/ArticlePage'
@@ -67,6 +68,7 @@ function Shell() {
         <Route path="/transition-cmo" element={<TransitionCMO />} />
       </Routes>
       {!isAdmin && !isQuote && <Footer />}
+      {!isAdmin && !isQuote && <ReturnVisitorPopup />}
     </div>
   )
 }
