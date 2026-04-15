@@ -96,58 +96,54 @@ export default function TransitionCMO() {
   const rows: Row[] = isFr ? [
     { label: 'Ramp-up secteur santé', cabinet: '4-6 semaines', generic: '2-3 mois', me: 'Zéro — 12 ans dans le secteur dont 5 ans chez Doctolib' },
     { label: 'Stack marketing 2026', cabinet: 'Frameworks génériques', generic: 'Marketing traditionnel', me: 'Product Marketing, Growth, IA, automation' },
-    { label: 'Disponibilité', cabinet: 'Partagée avec 3-5 clients', generic: 'Temps plein', me: 'Temps plein, démarrage sous 2 semaines' },
+    { label: 'Disponibilité', cabinet: 'Partagée avec 3-5 clients', generic: 'Temps plein', me: 'Temps plein, démarrage rapide selon dispo' },
     { label: 'TJM indicatif', cabinet: '2 500 - 4 000 €', generic: '1 500 - 2 200 €', me: 'Sur brief (aligné marché transition CMO santé)' },
-    { label: 'Durée mission', cabinet: '3-6 mois, puis rotation', generic: '3-12 mois', me: '6 à 12 mois, engagement full-time' },
+    { label: 'Durée mission', cabinet: '3-6 mois, puis rotation', generic: '3-12 mois', me: '6 à 12 mois, au-delà selon contexte' },
   ] : [
     { label: 'Healthcare ramp-up', cabinet: '4-6 weeks', generic: '2-3 months', me: 'Zero. 12 years in the sector, 5 at Doctolib' },
     { label: '2026 marketing stack', cabinet: 'Generic frameworks', generic: 'Traditional marketing', me: 'Product Marketing, Growth, AI, automation' },
-    { label: 'Availability', cabinet: 'Split across 3-5 clients', generic: 'Full-time', me: 'Full-time, start within 2 weeks' },
+    { label: 'Availability', cabinet: 'Split across 3-5 clients', generic: 'Full-time', me: 'Full-time, fast start subject to availability' },
     { label: 'Indicative rate', cabinet: '€2,500 - €4,000/day', generic: '€1,500 - €2,200/day', me: 'On brief (aligned with healthcare interim CMO market)' },
-    { label: 'Engagement length', cabinet: '3-6 months, then rotate', generic: '3-12 months', me: '6 to 12 months, full-time commitment' },
+    { label: 'Engagement length', cabinet: '3-6 months, then rotate', generic: '3-12 months', me: '6 to 12 months, longer if context justifies' },
   ]
 
   const cases = isFr ? [
-    { tag: 'Scaleup', title: 'Éditeur SaaS médical, Série B',
+    { tag: 'ETI', title: "Éditeur de logiciel médical",
       bullets: [
-        'Contexte : remplacement du CMO partant en congé maternité, équipe de 6 personnes',
-        'Durée : 6 mois, temps plein',
-        'Résultats : maintien du pipeline marketing (+8% vs quarter précédent), 2 campagnes lancées, handoff documenté à 32 pages pour le CMO revenant',
+        'Profil : 300 personnes, 35 M€ de CA, équipe marketing de 15 personnes',
+        'Durée : 9 mois, temps plein',
       ] },
-    { tag: 'Grand groupe', title: 'Acteur pharma français, division digital health',
+    { tag: 'Scaleup', title: 'HR Tech',
       bullets: [
-        'Contexte : démission CMO, recrutement CDI engagé en parallèle',
-        "Durée : 9 mois, temps plein, transition vers l'équipe en place",
-        "Résultats : budget 2026 défendu en COMEX, 3 partenariats signés, équipe de 11 personnes stabilisée, passation au nouveau CMO sur 4 semaines",
+        'Profil : 50 personnes, 10 M€ de CA, équipe marketing de 5 personnes',
+        'Durée : 12 mois, temps plein',
       ] },
   ] : [
-    { tag: 'Scaleup', title: 'Medical SaaS vendor, Series B',
+    { tag: 'Mid-market', title: 'Medical software vendor',
       bullets: [
-        'Context: cover for CMO on maternity leave, 6-person team',
-        'Duration: 6 months, full-time',
-        'Outcome: pipeline maintained (+8% vs prior quarter), 2 campaigns launched, 32-page handoff doc for the returning CMO',
+        'Profile: 300 people, €35M revenue, 15-person marketing team',
+        'Duration: 9 months, full-time',
       ] },
-    { tag: 'Large group', title: 'French pharma group, digital health division',
+    { tag: 'Scaleup', title: 'HR Tech',
       bullets: [
-        'Context: CMO resignation, full-time search in parallel',
-        'Duration: 9 months, full-time, handover to incoming team',
-        'Outcome: 2026 budget defended at exec committee, 3 partnerships signed, 11-person team stabilized, 4-week handover to new CMO',
+        'Profile: 50 people, €10M revenue, 5-person marketing team',
+        'Duration: 12 months, full-time',
       ] },
   ]
 
   const faq = isFr ? [
     { q: 'Quel est votre TJM ?', a: "Je m'aligne sur le marché CMO de transition santé (fourchette haute, car zéro ramp-up). Tarif précis donné après le brief de 30 minutes, en fonction du scope et de la durée." },
-    { q: 'Quelle durée minimum et maximum ?', a: "Minimum 4 mois pour que l'impact soit réel. Maximum 12 mois : au-delà, ce n'est plus de la transition, c'est un CDI déguisé." },
+    { q: 'Quelle durée minimum et maximum ?', a: "Minimum 4 mois pour que l'impact soit réel. Le format naturel tourne autour de 6 à 12 mois, mais si le contexte le justifie (recrutement CDI qui s'étire, transformation en cours, projet international) on peut prolonger au-delà. On en parle au brief." },
     { q: 'Quel statut juridique ?', a: "SASU française, facturation directe. Portage salarial possible si votre grille interne l'exige. Contrat de prestation standard, NDA systématique." },
     { q: 'Travaillez-vous sous NDA ?', a: "Toujours. Les cas publiés sur cette page sont anonymisés. Les clients du passé peuvent fournir des références sur demande après signature du NDA." },
-    { q: 'À quelle vitesse démarrez-vous ?', a: "Sous 2 semaines après signature dans la majorité des cas. En urgence documentée (départ brutal), sous 5 jours ouvrés." },
+    { q: 'À quelle vitesse démarrez-vous ?', a: "Démarrage rapide selon ma disponibilité. Si je ne suis pas déjà en poste, je peux enchaîner sous quelques jours ; sinon, on cale la date de bascule au brief." },
     { q: 'Comment gérez-vous le handoff au CMO permanent ?', a: "Documentation écrite (roadmap, 1:1 team, stack outils, contrats agences, KPIs). 2 à 4 semaines de recouvrement selon la complexité. Zéro trou de mémoire organisationnelle." },
   ] : [
     { q: 'What is your day rate?', a: "Aligned with the healthcare interim CMO market (upper range, because zero ramp-up). Precise rate shared after the 30-minute brief, based on scope and duration." },
-    { q: 'Minimum and maximum engagement length?', a: "Minimum 4 months for real impact. Maximum 12 months. Beyond that, it is not transition anymore, it is a disguised full-time role." },
+    { q: 'Minimum and maximum engagement length?', a: "Minimum 4 months for real impact. The natural window is 6 to 12 months, but if context justifies it (slow full-time hire, ongoing transformation, international project) we can extend further. We discuss it at the brief." },
     { q: 'Legal structure?', a: "French SASU, direct invoicing. Umbrella company (portage salarial) possible if your internal grid requires it. Standard services contract, NDA always." },
     { q: 'Do you work under NDA?', a: "Always. Cases on this page are anonymized. Past clients can provide references on request after NDA signature." },
-    { q: 'How fast can you start?', a: "Within 2 weeks of signature in most cases. In a documented emergency (sudden exit), within 5 business days." },
+    { q: 'How fast can you start?', a: "Fast start subject to availability. If I'm between engagements I can start within days; otherwise we align on a handover date at the brief." },
     { q: 'How do you handle handoff to the permanent CMO?', a: "Written documentation (roadmap, 1:1 team, tools stack, agency contracts, KPIs). 2 to 4 weeks of overlap depending on complexity. Zero institutional memory loss." },
   ]
 
