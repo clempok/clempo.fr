@@ -24,7 +24,7 @@ const slugs = [
   'contacter-medecins-courrier-postal-1-euro-methode',
 ]
 
-const routes = ['/', '/articles', ...slugs.map(s => `/articles/${s}`)]
+const routes = ['/', '/articles', '/transition-cmo', ...slugs.map(s => `/articles/${s}`)]
 
 async function prerender() {
   const template = fs.readFileSync(path.join(root, 'dist/index.html'), 'utf-8')

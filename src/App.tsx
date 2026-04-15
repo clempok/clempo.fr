@@ -13,6 +13,7 @@ import Confirmation from './pages/Confirmation'
 import Admin from './pages/Admin'
 import Booking from './pages/Booking'
 import QuotePage from './pages/QuotePage'
+import TransitionCMO from './pages/TransitionCMO'
 
 function VisitTracker() {
   const location = useLocation()
@@ -21,13 +22,17 @@ function VisitTracker() {
     if (location.pathname.startsWith('/admin')) return
     try {
       const today = new Date().toISOString().slice(0, 10)
-      const key = `clempo_visit_${today}`
-      if (sessionStorage.getItem(key)) return
-      sessionStorage.setItem(key, '1')
+      // Dedupe per (day + path + src) so attribution data isn't lost if the
+      // same visitor lands on Home then Transition-CMO the same day.
+      const params = new URLSearchParams(location.search)
+      const src = (params.get('src') || '').slice(0, 64) // hard cap
+      const dedupeKey = `clempo_visit_${today}_${location.pathname}_${src}`
+      if (sessionStorage.getItem(dedupeKey)) return
+      sessionStorage.setItem(dedupeKey, '1')
       fetch('/.netlify/functions/track-visit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: today }),
+        body: JSON.stringify({ date: today, path: location.pathname, src: src || null }),
         keepalive: true,
       })
         .then(r => r.ok ? r.json() : r.text().then(t => Promise.reject(t)))
@@ -36,7 +41,7 @@ function VisitTracker() {
     } catch {
       /* ignore */
     }
-  }, [location.pathname])
+  }, [location.pathname, location.search])
   return null
 }
 
@@ -59,6 +64,7 @@ function Shell() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/booking" element={<Booking />} />
         <Route path="/devis/:company/:id" element={<QuotePage />} />
+        <Route path="/transition-cmo" element={<TransitionCMO />} />
       </Routes>
       {!isAdmin && !isQuote && <Footer />}
     </div>
