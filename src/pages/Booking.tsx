@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useLang } from '../contexts/LangContext'
-import { Calendar, Clock, ChevronLeft, ChevronRight, Check, User, Mail, MessageSquare, ArrowLeft } from 'lucide-react'
+import { Calendar, Clock, ChevronLeft, ChevronRight, Check, User, Mail, MessageSquare, ArrowLeft, AlertCircle } from 'lucide-react'
 
 const ACCENT = '#1A1A6B'
 const ACCENT_HOVER = '#2D2D8A'
@@ -10,7 +10,7 @@ const TEXT = '#0A0A0A'
 const BG_OFF = '#F8F8F6'
 const SLOT_DURATION = 30 // minutes
 
-type Step = 'select' | 'form' | 'confirmed'
+type Step = 'select' | 'form' | 'confirmed' | 'error'
 
 interface Slot {
   date: Date
@@ -122,7 +122,32 @@ export default function Booking() {
     duration: '30 min',
     timezone: 'Europe/Paris (CET)',
     bookAnother: isFr ? 'Réserver un autre créneau' : 'Book another slot',
+    errorTitle: isFr ? 'La réservation a échoué' : 'Booking failed',
+    errorSub: isFr
+      ? 'Un problème technique est survenu. Votre créneau n\'a pas été réservé. Merci de réessayer ou de contacter Clément directement.'
+      : 'A technical error occurred. Your slot has not been booked. Please try again or contact Clément directly.',
+    errorRetry: isFr ? 'Réessayer' : 'Try again',
+    errorContact: isFr ? 'Écrire par email' : 'Email instead',
+    errorLemcal: isFr ? 'Réserver via Lemcal' : 'Book via Lemcal',
+    // Bio card
+    bioName: 'Clément Pouget-Osmont',
+    bioRole: isFr ? 'Healthcare Marketing Director — Freelance' : 'Healthcare Marketing Director — Freelance',
+    bioTagline: isFr
+      ? "12 ans d'expérience en marketing santé, dont 5 ans chez Doctolib. J'accompagne les entreprises HealthTech, MedTech et Pharma dans leur croissance."
+      : '12 years in healthcare marketing, including 5 years at Doctolib. I help HealthTech, MedTech and Pharma companies grow.',
+    // Social proof
+    socialProofLabel: isFr ? "Ils m'ont fait confiance" : 'They trusted me',
   }
+
+  const industryBadges = ['Healthtech', 'Biotech', 'Medtech', 'Pharma']
+  const functionBadges = ['Product Marketing', 'Growth', 'Direction Marketing']
+
+  const socialProofClients = [
+    'Doctolib', 'Kiro', 'Cherry Biotech', 'Corilus France', 'Andrew', 'Semble',
+    'MonBilanDeSanté', 'HeyTeam', 'Sorcova Health', 'Neok', 'Doqboard', 'DocCity',
+  ]
+
+  const PHOTO_URL = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6913248fb7d48a3e5503c26d/48d8d0835_nano-banana-2025-11-11T10-55-151.png'
 
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
@@ -130,7 +155,8 @@ export default function Booking() {
   const [step, setStep] = useState<Step>('select')
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', message: '' })
   const [busy, setBusy] = useState<BusyInterval[]>([])
-  const submitting = false
+  const [submitting, setSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string>('')
 
   // Fetch busy slots from Google Calendar (refetch on week change + focus)
   useEffect(() => {
@@ -208,27 +234,47 @@ export default function Booking() {
     setStep('select')
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedSlot) return
+    if (!selectedSlot || submitting) return
 
-    // Show confirmation immediately, send email in background
-    setStep('confirmed')
+    setSubmitting(true)
+    setErrorMessage('')
 
-    fetch('/.netlify/functions/book-meeting', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        date: `${selectedSlot.date.getFullYear()}-${String(selectedSlot.date.getMonth() + 1).padStart(2, '0')}-${String(selectedSlot.date.getDate()).padStart(2, '0')}`,
-        hour: selectedSlot.hour,
-        minute: selectedSlot.minute,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        message: form.message,
-        lang,
-      }),
-    }).catch(() => {})
+    try {
+      const res = await fetch('/.netlify/functions/book-meeting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: `${selectedSlot.date.getFullYear()}-${String(selectedSlot.date.getMonth() + 1).padStart(2, '0')}-${String(selectedSlot.date.getDate()).padStart(2, '0')}`,
+          hour: selectedSlot.hour,
+          minute: selectedSlot.minute,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          message: form.message,
+          lang,
+        }),
+      })
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '')
+        throw new Error(txt || `HTTP ${res.status}`)
+      }
+
+      const data = await res.json().catch(() => null)
+      if (!data?.success) {
+        throw new Error(data?.error || 'Booking failed')
+      }
+
+      setStep('confirmed')
+    } catch (err) {
+      console.error('Booking error:', err)
+      setErrorMessage(err instanceof Error ? err.message : String(err))
+      setStep('error')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const resetBooking = () => {
@@ -236,6 +282,7 @@ export default function Booking() {
     setSelectedSlot(null)
     setSelectedDay(null)
     setForm({ firstName: '', lastName: '', email: '', message: '' })
+    setErrorMessage('')
   }
 
   const formatSelectedDate = () => {
@@ -300,6 +347,58 @@ export default function Booking() {
           <p style={{ color: MUTED, fontSize: '1rem', lineHeight: 1.6 }}>
             {t.subtitle}
           </p>
+
+          {/* Positioning badges — industries + functions */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginTop: '1.5rem',
+          }}>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: '0.4rem',
+            }}>
+              {industryBadges.map((label, i) => (
+                <span key={i} style={{
+                  padding: '0.4rem 0.85rem',
+                  background: 'rgba(26,26,107,0.07)',
+                  color: ACCENT,
+                  borderRadius: '100px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.01em',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {label}
+                </span>
+              ))}
+            </div>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: '0.4rem',
+            }}>
+              {functionBadges.map((label, i) => (
+                <span key={i} style={{
+                  padding: '0.4rem 0.85rem',
+                  background: '#fff',
+                  border: `1px solid ${BORDER}`,
+                  color: TEXT,
+                  borderRadius: '100px',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                }}>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Card */}
@@ -767,6 +866,214 @@ export default function Booking() {
               </button>
             </div>
           )}
+
+          {/* ─── STEP: ERROR ─── */}
+          {step === 'error' && (
+            <div style={{
+              padding: 'clamp(2rem, 5vw, 3.5rem)',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1rem',
+            }}>
+              <div style={{
+                width: '56px', height: '56px',
+                borderRadius: '50%',
+                background: 'rgba(220,38,38,0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '0.5rem',
+              }}>
+                <AlertCircle size={28} color="#DC2626" strokeWidth={2.5} />
+              </div>
+
+              <h2 style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: TEXT,
+                letterSpacing: '-0.02em',
+              }}>
+                {t.errorTitle}
+              </h2>
+
+              <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, maxWidth: '380px' }}>
+                {t.errorSub}
+              </p>
+
+              {errorMessage && (
+                <div style={{
+                  background: 'rgba(220,38,38,0.05)',
+                  border: '1px solid rgba(220,38,38,0.15)',
+                  borderRadius: '10px',
+                  padding: '0.75rem 1rem',
+                  fontSize: '0.75rem',
+                  color: '#991B1B',
+                  fontFamily: 'monospace',
+                  maxWidth: '380px',
+                  wordBreak: 'break-word',
+                  textAlign: 'left',
+                }}>
+                  {errorMessage}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', width: '100%', maxWidth: '280px', marginTop: '0.5rem' }}>
+                <button
+                  onClick={() => setStep('form')}
+                  style={{
+                    padding: '0.8rem 1.5rem',
+                    background: ACCENT,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '100px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = ACCENT_HOVER)}
+                  onMouseLeave={e => (e.currentTarget.style.background = ACCENT)}
+                >
+                  {t.errorRetry}
+                </button>
+                <a
+                  href="https://app.lemcal.com/@clementpougetosmont/30minutes"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: 'transparent',
+                    color: ACCENT,
+                    border: `1px solid ${ACCENT}`,
+                    borderRadius: '100px',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    textAlign: 'center',
+                  }}
+                >
+                  {t.errorLemcal}
+                </a>
+                <a
+                  href="mailto:clement.pougetosmont@gmail.com"
+                  style={{
+                    padding: '0.5rem',
+                    color: MUTED,
+                    fontSize: '0.8rem',
+                    textDecoration: 'underline',
+                    textAlign: 'center',
+                  }}
+                >
+                  {t.errorContact}
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ─── Bio card (photo + name + tagline) ─── */}
+        <div style={{
+          marginTop: '3rem',
+          padding: 'clamp(1.5rem, 3vw, 2rem)',
+          background: BG_OFF,
+          borderRadius: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'clamp(1rem, 3vw, 1.75rem)',
+          flexWrap: 'wrap',
+        }}>
+          <img
+            src={PHOTO_URL}
+            alt="Portrait Clément Pouget-Osmont"
+            style={{
+              width: 'clamp(88px, 14vw, 120px)',
+              height: 'clamp(88px, 14vw, 120px)',
+              borderRadius: '16px',
+              objectFit: 'cover',
+              flexShrink: 0,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+            }}
+          />
+          <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+            <div style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: '1.15rem',
+              fontWeight: 700,
+              color: TEXT,
+              letterSpacing: '-0.02em',
+              marginBottom: '0.2rem',
+            }}>
+              {t.bioName}
+            </div>
+            <div style={{
+              fontSize: '0.78rem',
+              fontWeight: 500,
+              color: ACCENT,
+              letterSpacing: '0.02em',
+              marginBottom: '0.75rem',
+            }}>
+              {t.bioRole}
+            </div>
+            <p style={{
+              fontSize: '0.85rem',
+              color: MUTED,
+              lineHeight: 1.6,
+              margin: 0,
+            }}>
+              {t.bioTagline}
+            </p>
+          </div>
+        </div>
+
+        {/* ─── Client references ─── */}
+        <div style={{
+          marginTop: '1.5rem',
+          padding: '1.75rem 1.5rem',
+          background: '#fff',
+          border: `1px solid ${BORDER}`,
+          borderRadius: '20px',
+          textAlign: 'center',
+        }}>
+          <div style={{
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: MUTED,
+            marginBottom: '1.25rem',
+          }}>
+            {t.socialProofLabel}
+          </div>
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '0.5rem 0',
+          }}>
+            {socialProofClients.map((c, i) => (
+              <span key={i} style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '1rem',
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                color: TEXT,
+                letterSpacing: '-0.005em',
+                padding: '0 0.75rem',
+              }}>
+                {c}
+                {i < socialProofClients.length - 1 && (
+                  <span style={{ color: ACCENT, opacity: 0.35, fontSize: '0.9rem' }}>·</span>
+                )}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* Info footer */}

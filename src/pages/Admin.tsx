@@ -63,11 +63,113 @@ type LeadEvent = {
   minute?: number
   message?: string
   lang?: string
+  bookingStatus?: 'pending' | 'success' | 'failed'
+  bookingError?: string
+  calendarEventId?: string
+  hangoutLink?: string
+  notificationSent?: boolean
+  notificationError?: string
 }
 
 type AnalyticsResponse = {
   events: LeadEvent[]
   visits: Record<string, number>
+  visits_by_path?: Record<string, Record<string, number>>
+  visits_by_src?: Record<string, Record<string, number>>
+  visits_by_ref?: Record<string, Record<string, number>>
+  // Rolling 7-day LinkedIn impressions snapshots, keyed by scan date (YYYY-MM-DD).
+  // Pushed each morning by the linkedin-sync skill.
+  linkedin_impressions?: Record<string, number>
+}
+
+// Friendly labels for referrer keys emitted by normalizeRef() in App.tsx.
+const REF_LABELS: Record<string, string> = {
+  direct: 'Accès direct / bookmark',
+  google: 'Google',
+  bing: 'Bing',
+  duckduckgo: 'DuckDuckGo',
+  yahoo: 'Yahoo',
+  ecosia: 'Ecosia',
+  qwant: 'Qwant',
+  linkedin: 'LinkedIn',
+  'twitter/x': 'Twitter / X',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  reddit: 'Reddit',
+  chatgpt: 'ChatGPT',
+  claude: 'Claude',
+  perplexity: 'Perplexity',
+  gemini: 'Gemini',
+}
+
+function refLabel(key: string): string {
+  return REF_LABELS[key] || key
+}
+
+type FunnelPeriod = {
+  key: string
+  label: string
+  startISO: string  // inclusive
+  endISO: string    // exclusive
+}
+
+/**
+ * Build the last `count` periods (most recent first) for the funnel table.
+ * - Weekly: ISO-style weeks starting Monday, labelled "S14 2026" (week number).
+ * - Monthly: calendar months, labelled "avril 2026".
+ */
+function buildPeriods(mode: 'week' | 'month', count: number): FunnelPeriod[] {
+  const periods: FunnelPeriod[] = []
+  const today = new Date()
+
+  if (mode === 'week') {
+    // Align `cursor` to Monday of the current week (local time)
+    const cursor = new Date(today)
+    cursor.setHours(0, 0, 0, 0)
+    const dow = cursor.getDay() // 0 = Sunday, 1 = Monday...
+    const daysFromMonday = (dow + 6) % 7
+    cursor.setDate(cursor.getDate() - daysFromMonday)
+
+    for (let i = 0; i < count; i++) {
+      const start = new Date(cursor)
+      const end = new Date(cursor)
+      end.setDate(end.getDate() + 7)
+      periods.push({
+        key: start.toISOString().slice(0, 10),
+        label: isoWeekLabel(start),
+        startISO: start.toISOString(),
+        endISO: end.toISOString(),
+      })
+      cursor.setDate(cursor.getDate() - 7)
+    }
+    return periods
+  }
+
+  // Monthly
+  const cursor = new Date(today.getFullYear(), today.getMonth(), 1)
+  for (let i = 0; i < count; i++) {
+    const start = new Date(cursor)
+    const end = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1)
+    periods.push({
+      key: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}`,
+      label: start.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+      startISO: start.toISOString(),
+      endISO: end.toISOString(),
+    })
+    cursor.setMonth(cursor.getMonth() - 1)
+  }
+  return periods
+}
+
+/** ISO-8601 week number (Monday = start of week). Returns "S14 2026" */
+function isoWeekLabel(date: Date): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  const weekNum = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+  return `S${weekNum} ${d.getUTCFullYear()}`
 }
 
 const CRM_STATUSES = ['Non qualifié', 'Prospect', 'Lead', 'Opportunité', 'Client', 'Lost'] as const
@@ -94,6 +196,11 @@ type CrmTask = {
   updatedAt: string
 }
 
+type CrmStatusHistoryEntry = {
+  status: CrmStatus
+  at: string
+}
+
 type CrmCompany = {
   id: string
   name: string
@@ -103,6 +210,7 @@ type CrmCompany = {
   notes: string
   createdAt: string
   updatedAt: string
+  statusHistory?: CrmStatusHistoryEntry[]
 }
 
 const STATUS_COLORS: Record<CrmStatus, { bg: string; fg: string }> = {
@@ -289,22 +397,34 @@ export default function Admin() {
 
 function AnalyticsView({ password }: { password: string }) {
   const [data, setData] = useState<AnalyticsResponse | null>(null)
+  const [crmCompanies, setCrmCompanies] = useState<CrmCompany[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [range, setRange] = useState<7 | 30 | 90>(30)
+  const [funnelPeriod, setFunnelPeriod] = useState<'week' | 'month'>('week')
   const [diag, setDiag] = useState('')
 
   const refresh = useCallback(() => {
     setLoading(true)
-    fetch('/.netlify/functions/admin-data', {
-      headers: { Authorization: `Bearer ${password}` },
-    })
-      .then(async r => {
+    // Fetch analytics + CRM in parallel — the Funnel block below joins them.
+    const hdrs = { Authorization: `Bearer ${password}` }
+    Promise.all([
+      fetch('/.netlify/functions/admin-data', { headers: hdrs }).then(async r => {
         const body = await r.text()
-        if (!r.ok) throw new Error(`${r.status}: ${body}`)
-        return JSON.parse(body)
+        if (!r.ok) throw new Error(`admin-data ${r.status}: ${body}`)
+        return JSON.parse(body) as AnalyticsResponse
+      }),
+      fetch('/.netlify/functions/admin-crm', { headers: hdrs }).then(async r => {
+        const body = await r.text()
+        if (!r.ok) throw new Error(`admin-crm ${r.status}: ${body}`)
+        return JSON.parse(body) as { companies: CrmCompany[] }
+      }),
+    ])
+      .then(([analytics, crm]) => {
+        setData(analytics)
+        setCrmCompanies(crm.companies || [])
+        setLoading(false)
       })
-      .then(d => { setData(d); setLoading(false) })
       .catch(err => { setError(String(err)); setLoading(false) })
   }, [password])
 
@@ -341,14 +461,104 @@ function AnalyticsView({ password }: { password: string }) {
     const visitsByDay = dates.map(d => ({ date: d, count: data.visits[d] || 0 }))
     const totalVisits = visitsByDay.reduce((s, x) => s + x.count, 0)
 
+    // Aggregate per-day breakdowns (path/src/ref) across the selected range.
+    const aggregate = (buckets?: Record<string, Record<string, number>>): { key: string; count: number }[] => {
+      if (!buckets) return []
+      const totals: Record<string, number> = {}
+      for (const d of dates) {
+        const day = buckets[d]
+        if (!day) continue
+        for (const [k, v] of Object.entries(day)) {
+          totals[k] = (totals[k] || 0) + (v || 0)
+        }
+      }
+      return Object.entries(totals)
+        .map(([key, count]) => ({ key, count }))
+        .sort((a, b) => b.count - a.count)
+    }
+
+    const byRef = aggregate(data.visits_by_ref)
+    const bySrc = aggregate(data.visits_by_src)
+    const byPath = aggregate(data.visits_by_path)
+    const refTotal = byRef.reduce((s, x) => s + x.count, 0)
+    const srcTotal = bySrc.reduce((s, x) => s + x.count, 0)
+    const pathTotal = byPath.reduce((s, x) => s + x.count, 0)
+
     const eventsInRange = data.events.filter(e => e.ts.slice(0, 10) >= startKey)
     const bookings = eventsInRange.filter(e => e.type === 'booking').length
     const brochures = eventsInRange.filter(e => e.type === 'brochure').length
     const conversions = bookings + brochures
     const rate = totalVisits > 0 ? (conversions / totalVisits) * 100 : 0
 
-    return { visitsByDay, totalVisits, bookings, brochures, conversions, rate }
+    return {
+      visitsByDay, totalVisits, bookings, brochures, conversions, rate,
+      byRef, bySrc, byPath, refTotal, srcTotal, pathTotal,
+    }
   }, [data, range])
+
+  // Funnel over time — weekly or monthly. Decoupled from `range` because the
+  // funnel has its own time granularity (always shows last 8 periods).
+  const funnelRows = useMemo(() => {
+    if (!data) return null
+    const periods = buildPeriods(funnelPeriod, 8)
+
+    // Count status transitions by scanning each company's statusHistory.
+    const countTransitions = (target: CrmStatus, startISO: string, endISO: string): number => {
+      if (!crmCompanies) return 0
+      let count = 0
+      for (const co of crmCompanies) {
+        const history = co.statusHistory && co.statusHistory.length > 0
+          ? co.statusHistory
+          // Fallback for any company the backend forgot to backfill
+          : [{ status: co.status, at: co.createdAt }]
+        for (const entry of history) {
+          if (entry.status === target && entry.at >= startISO && entry.at < endISO) {
+            count++
+          }
+        }
+      }
+      return count
+    }
+
+    // Count visits by summing the per-day `visits` bucket that falls inside the period.
+    const countVisits = (startISO: string, endISO: string): number => {
+      const startKey = startISO.slice(0, 10)
+      const endKey = endISO.slice(0, 10)
+      let total = 0
+      for (const [day, n] of Object.entries(data.visits)) {
+        if (day >= startKey && day < endKey) total += n
+      }
+      return total
+    }
+
+    // LinkedIn impressions are stored as rolling-7-day snapshots keyed by scan
+    // date. For each period, pick the most recent snapshot whose date falls
+    // inside the period — that's the best "impressions as of end-of-period" read.
+    const linkedinImpressions = data.linkedin_impressions || {}
+    const impressionsFor = (startISO: string, endISO: string): number | null => {
+      const startKey = startISO.slice(0, 10)
+      const endKey = endISO.slice(0, 10)
+      let bestDate = ''
+      let bestVal: number | null = null
+      for (const [day, n] of Object.entries(linkedinImpressions)) {
+        if (day >= startKey && day < endKey && day > bestDate) {
+          bestDate = day
+          bestVal = n
+        }
+      }
+      return bestVal
+    }
+
+    return periods.map(p => ({
+      key: p.key,
+      label: p.label,
+      impressions: impressionsFor(p.startISO, p.endISO),
+      visits: countVisits(p.startISO, p.endISO),
+      leads: countTransitions('Lead', p.startISO, p.endISO),
+      opportunities: countTransitions('Opportunité', p.startISO, p.endISO),
+      clients: countTransitions('Client', p.startISO, p.endISO),
+    }))
+  }, [data, crmCompanies, funnelPeriod])
 
   if (loading) return <div style={{ padding: '3rem' }}>Chargement...</div>
   if (error) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error}</div>
@@ -423,6 +633,77 @@ function AnalyticsView({ password }: { password: string }) {
         />
       </div>
 
+      {/* Marketing funnel (weekly / monthly) */}
+      <div style={{ background: '#fafafa', border: '1px solid #eee', borderRadius: '14px', padding: '1.5rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#555', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Funnel marketing
+            </h3>
+            <p style={{ fontSize: '0.7rem', color: '#999', margin: '0.25rem 0 0' }}>
+              Impressions LinkedIn → Visites → Leads → Opportunités → Clients, par {funnelPeriod === 'week' ? 'semaine' : 'mois'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '4px', background: '#f4f4f5', padding: '4px', borderRadius: '10px' }}>
+            {(['week', 'month'] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => setFunnelPeriod(p)}
+                style={{
+                  padding: '0.4rem 0.8rem', border: 'none', borderRadius: '6px',
+                  background: funnelPeriod === p ? '#fff' : 'transparent',
+                  color: funnelPeriod === p ? ACCENT : '#666',
+                  fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                  boxShadow: funnelPeriod === p ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                {p === 'week' ? 'Hebdo' : 'Mensuel'}
+              </button>
+            ))}
+          </div>
+        </div>
+        {!funnelRows ? (
+          <p style={{ fontSize: '0.75rem', color: '#999', margin: 0 }}>Chargement…</p>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #e5e5e5' }}>
+                <th style={{ ...thStyle, background: 'transparent' }}>Période</th>
+                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }} title="Snapshot LinkedIn « 7 derniers jours » au moment du scan matinal">Impressions LinkedIn</th>
+                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }}>Visites</th>
+                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }}>Nouveaux leads</th>
+                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }}>Nouv. opportunités</th>
+                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }}>Nouveaux clients</th>
+              </tr>
+            </thead>
+            <tbody>
+              {funnelRows.map((row, idx) => (
+                <tr key={row.key} style={{ borderBottom: '1px solid #f0f0f0', background: idx === 0 ? '#fff' : 'transparent' }}>
+                  <td style={{ ...tdStyle, fontWeight: idx === 0 ? 600 : 400 }}>
+                    {row.label}
+                    {idx === 0 && (
+                      <span style={{ marginLeft: 8, fontSize: '0.65rem', color: ACCENT, fontWeight: 600 }}>en cours</span>
+                    )}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.impressions == null ? '#ccc' : '#111' }}>
+                    {row.impressions == null ? '—' : row.impressions.toLocaleString('fr-FR')}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.visits}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.leads > 0 ? '#111' : '#ccc' }}>{row.leads}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.opportunities > 0 ? '#111' : '#ccc' }}>{row.opportunities}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.clients > 0 ? '#111' : '#ccc', fontWeight: row.clients > 0 ? 600 : 400 }}>{row.clients}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {crmCompanies && crmCompanies.length > 0 && (
+          <p style={{ fontSize: '0.65rem', color: '#aaa', margin: '0.75rem 0 0' }}>
+            Compte les transitions de statut dans le CRM. L'historique avant aujourd'hui n'a pas été tracké — les données passées se limitent au statut actuel à la date de création de l'entreprise.
+          </p>
+        )}
+      </div>
+
       {/* Visits chart */}
       <div style={{ background: '#fafafa', border: '1px solid #eee', borderRadius: '14px', padding: '1.5rem', marginBottom: '2rem' }}>
         <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#555', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -452,6 +733,31 @@ function AnalyticsView({ password }: { password: string }) {
         </div>
       </div>
 
+      {/* Sources de trafic */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        <SourceBreakdown
+          title="Sources externes"
+          hint="D'où viennent les visiteurs (moteurs, réseaux, IA, direct)"
+          rows={stats.byRef.map(r => ({ key: r.key, label: refLabel(r.key), count: r.count }))}
+          total={stats.refTotal}
+          emptyMsg="Pas encore de données de référent. Les visites actuelles n'ont pas d'info de provenance."
+        />
+        <SourceBreakdown
+          title="CTAs internes"
+          hint="Bouton ou lien cliqué pour arriver sur la page (paramètre ?src=)"
+          rows={stats.bySrc.map(r => ({ key: r.key, label: r.key, count: r.count }))}
+          total={stats.srcTotal}
+          emptyMsg="Aucun CTA taggé n'a encore été cliqué sur la période."
+        />
+        <SourceBreakdown
+          title="Top pages visitées"
+          hint="Pages les plus vues sur la période"
+          rows={stats.byPath.slice(0, 20).map(r => ({ key: r.key, label: r.key, count: r.count }))}
+          total={stats.pathTotal}
+          emptyMsg="Pas encore de visites tracées par page."
+        />
+      </div>
+
       {/* Events table */}
       <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#555', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         Derniers contacts ({data.events.length})
@@ -466,6 +772,7 @@ function AnalyticsView({ password }: { password: string }) {
             <thead>
               <tr style={{ background: '#fafafa', borderBottom: '1px solid #eee' }}>
                 <th style={thStyle}>Type</th>
+                <th style={thStyle}>Statut</th>
                 <th style={thStyle}>Date</th>
                 <th style={thStyle}>Nom</th>
                 <th style={thStyle}>Email</th>
@@ -473,8 +780,15 @@ function AnalyticsView({ password }: { password: string }) {
               </tr>
             </thead>
             <tbody>
-              {data.events.slice(0, 100).map(ev => (
-                <tr key={ev.id} style={{ borderBottom: '1px solid #f4f4f5' }}>
+              {data.events.slice(0, 100).map(ev => {
+                const status = ev.bookingStatus
+                const statusColor =
+                  status === 'success' ? { bg: '#dcfce7', fg: '#166534' }
+                  : status === 'failed' ? { bg: '#fee2e2', fg: '#991b1b' }
+                  : status === 'pending' ? { bg: '#fef3c7', fg: '#92400e' }
+                  : null
+                return (
+                <tr key={ev.id} style={{ borderBottom: '1px solid #f4f4f5' }} title={ev.bookingError || ''}>
                   <td style={tdStyle}>
                     <span style={{
                       display: 'inline-block', padding: '2px 8px', borderRadius: '6px',
@@ -485,18 +799,36 @@ function AnalyticsView({ password }: { password: string }) {
                       {ev.type === 'booking' ? 'RDV' : 'Brochure'}
                     </span>
                   </td>
+                  <td style={tdStyle}>
+                    {ev.type === 'booking' && statusColor ? (
+                      <span style={{
+                        display: 'inline-block', padding: '2px 8px', borderRadius: '6px',
+                        background: statusColor.bg, color: statusColor.fg,
+                        fontSize: '0.7rem', fontWeight: 600,
+                      }}>
+                        {status === 'success' ? '✓ OK' : status === 'failed' ? '✗ Échec' : '⋯ En cours'}
+                      </span>
+                    ) : ev.type === 'booking' ? (
+                      <span style={{ color: '#aaa', fontSize: '0.7rem' }}>legacy</span>
+                    ) : '—'}
+                  </td>
                   <td style={tdStyle}>{new Date(ev.ts).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                   <td style={tdStyle}>{[ev.firstName, ev.lastName].filter(Boolean).join(' ') || '—'}</td>
                   <td style={tdStyle}>
                     {ev.email ? <a href={`mailto:${ev.email}`} style={{ color: ACCENT }}>{ev.email}</a> : '—'}
                   </td>
                   <td style={{ ...tdStyle, color: '#666' }}>
-                    {ev.type === 'booking'
-                      ? `${ev.date || ''} ${ev.hour !== undefined ? `${String(ev.hour).padStart(2, '0')}:${String(ev.minute || 0).padStart(2, '0')}` : ''}`.trim()
-                      : [ev.company, ev.phone].filter(Boolean).join(' · ') || '—'}
+                    {ev.type === 'booking' ? (
+                      <>
+                        {`${ev.date || ''} ${ev.hour !== undefined ? `${String(ev.hour).padStart(2, '0')}:${String(ev.minute || 0).padStart(2, '0')}` : ''}`.trim()}
+                        {ev.message ? <div style={{ color: '#999', fontSize: '0.7rem', marginTop: '2px' }}>« {ev.message} »</div> : null}
+                        {ev.bookingError ? <div style={{ color: '#991b1b', fontSize: '0.7rem', marginTop: '2px', fontFamily: 'monospace', wordBreak: 'break-all' }}>{ev.bookingError.slice(0, 120)}{ev.bookingError.length > 120 ? '…' : ''}</div> : null}
+                        {ev.hangoutLink ? <div style={{ marginTop: '2px' }}><a href={ev.hangoutLink} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: '0.7rem' }}>Meet →</a></div> : null}
+                      </>
+                    ) : [ev.company, ev.phone].filter(Boolean).join(' · ') || '—'}
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         )}
@@ -523,6 +855,54 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
   )
 }
 
+function SourceBreakdown({
+  title, hint, rows, total, emptyMsg,
+}: {
+  title: string
+  hint: string
+  rows: { key: string; label: string; count: number }[]
+  total: number
+  emptyMsg: string
+}) {
+  const max = Math.max(1, ...rows.map(r => r.count))
+  return (
+    <div style={{ background: '#fafafa', border: '1px solid #eee', borderRadius: '14px', padding: '1.25rem' }}>
+      <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#555', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {title}
+      </h3>
+      <p style={{ fontSize: '0.7rem', color: '#999', margin: '0.25rem 0 0.9rem' }}>{hint}</p>
+      {rows.length === 0 ? (
+        <p style={{ fontSize: '0.75rem', color: '#aaa', fontStyle: 'italic', margin: 0 }}>{emptyMsg}</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {rows.map(r => {
+            const pct = total > 0 ? (r.count / total) * 100 : 0
+            const barW = (r.count / max) * 100
+            return (
+              <div key={r.key} title={`${r.count} visites — ${pct.toFixed(1)}%`}>
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                  fontSize: '0.78rem', color: '#333', marginBottom: '3px', gap: '0.5rem',
+                }}>
+                  <span style={{
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+                  }}>{r.label}</span>
+                  <span style={{ color: '#777', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                    {r.count} <span style={{ color: '#bbb', fontSize: '0.7rem' }}>({pct.toFixed(0)}%)</span>
+                  </span>
+                </div>
+                <div style={{ height: '6px', background: '#ececec', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${barW}%`, height: '100%', background: ACCENT, borderRadius: '3px' }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const thStyle: React.CSSProperties = {
   padding: '0.75rem 1rem',
   textAlign: 'left',
@@ -541,14 +921,33 @@ const tdStyle: React.CSSProperties = {
 
 /* ---------- TaskRow ---------- */
 
-function TaskRow({ task, isOverdue, onToggle, onDelete, onUpdateDesc }: {
+/** Render text with clickable URLs */
+function Linkify({ text }: { text: string }) {
+  const urlRe = /(https?:\/\/[^\s)]+)/g
+  const parts = text.split(urlRe)
+  return (
+    <>
+      {parts.map((part, i) =>
+        urlRe.test(part) ? (
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: ACCENT, wordBreak: 'break-all' }}>{part}</a>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  )
+}
+
+function TaskRow({ task, isOverdue, onToggle, onDelete, onUpdateDesc, companyName }: {
   task: CrmTask
   isOverdue: boolean
   onToggle: (done: boolean) => void
   onDelete: () => void
   onUpdateDesc: (desc: string) => void
+  companyName?: string
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [desc, setDesc] = useState(task.description || '')
   const today = new Date().toISOString().slice(0, 10)
   const isToday = task.dueDate === today
@@ -578,6 +977,7 @@ function TaskRow({ task, isOverdue, onToggle, onDelete, onUpdateDesc }: {
             cursor: 'pointer',
           }}
         >
+          {companyName && <span style={{ fontSize: '0.65rem', color: '#999', marginRight: '6px' }}>{companyName} ·</span>}
           {task.title}
           {(task.description || '') && !expanded && (
             <span style={{ marginLeft: '6px', fontSize: '0.65rem', color: '#bbb' }}>···</span>
@@ -605,18 +1005,34 @@ function TaskRow({ task, isOverdue, onToggle, onDelete, onUpdateDesc }: {
       </div>
       {expanded && (
         <div style={{ padding: '0 0.5rem 0.5rem 1.8rem' }}>
-          <textarea
-            value={desc}
-            onChange={e => setDesc(e.target.value)}
-            onBlur={() => onUpdateDesc(desc)}
-            placeholder="Description, CR de réunion, notes..."
-            rows={3}
-            style={{
-              width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #e0e0e0',
-              borderRadius: '7px', fontSize: '0.75rem', outline: 'none', background: '#fafafa',
-              boxSizing: 'border-box', resize: 'vertical', fontFamily: "'Inter', sans-serif", lineHeight: 1.5,
-            }}
-          />
+          {editing ? (
+            <textarea
+              value={desc}
+              onChange={e => setDesc(e.target.value)}
+              onBlur={() => { onUpdateDesc(desc); setEditing(false) }}
+              placeholder="Description, CR de réunion, notes..."
+              rows={3}
+              autoFocus
+              style={{
+                width: '100%', padding: '0.4rem 0.6rem', border: '1px solid #e0e0e0',
+                borderRadius: '7px', fontSize: '0.75rem', outline: 'none', background: '#fafafa',
+                boxSizing: 'border-box', resize: 'vertical', fontFamily: "'Inter', sans-serif", lineHeight: 1.5,
+              }}
+            />
+          ) : (
+            <div
+              onClick={() => { setDesc(task.description || ''); setEditing(true) }}
+              style={{
+                padding: '0.4rem 0.6rem', borderRadius: '7px', fontSize: '0.75rem',
+                background: '#fafafa', cursor: 'text', minHeight: '2.5rem',
+                fontFamily: "'Inter', sans-serif", lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                color: (task.description || '') ? '#333' : '#bbb',
+                border: '1px solid transparent',
+              }}
+            >
+              {(task.description || '') ? <Linkify text={task.description} /> : 'Cliquer pour ajouter une description...'}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1281,6 +1697,59 @@ function CrmView({ password }: { password: string }) {
       />
 
       {showAddCompany && <NewCompanyForm onSave={createCompany} onCancel={() => setShowAddCompany(false)} />}
+
+      {/* Global tasks section */}
+      {(() => {
+        if (!companies) return null
+        const today = new Date().toISOString().slice(0, 10)
+        const future7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
+        type TaskWithCo = { task: CrmTask; companyId: string; companyName: string }
+        const allOverdue: TaskWithCo[] = []
+        const allUpcoming: TaskWithCo[] = []
+        for (const co of companies) {
+          for (const t of (co.tasks || [])) {
+            if (t.done) continue
+            if (t.dueDate < today) allOverdue.push({ task: t, companyId: co.id, companyName: co.name })
+            else if (t.dueDate <= future7) allUpcoming.push({ task: t, companyId: co.id, companyName: co.name })
+          }
+        }
+        allOverdue.sort((a, b) => a.task.dueDate.localeCompare(b.task.dueDate))
+        allUpcoming.sort((a, b) => a.task.dueDate.localeCompare(b.task.dueDate))
+        const total = allOverdue.length + allUpcoming.length
+        if (total === 0) return null
+        return (
+          <div style={{ border: '1px solid #eee', borderRadius: '14px', overflow: 'hidden', background: '#fff', marginBottom: '1rem' }}>
+            <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f4f4f5', background: '#fafafa' }}>
+              <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111', margin: 0 }}>
+                Tâches
+                <span style={{ fontWeight: 400, color: '#999', marginLeft: '8px', fontSize: '0.72rem' }}>
+                  {allOverdue.length > 0 && <span style={{ color: '#dc2626', fontWeight: 600 }}>{allOverdue.length} en retard</span>}
+                  {allOverdue.length > 0 && allUpcoming.length > 0 && ' · '}
+                  {allUpcoming.length > 0 && `${allUpcoming.length} à venir (7j)`}
+                </span>
+              </p>
+            </div>
+            <div style={{ padding: '0.5rem 0.75rem' }}>
+              {allOverdue.length > 0 && (
+                <div style={{ marginBottom: allUpcoming.length > 0 ? '0.5rem' : 0 }}>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 600, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 0.3rem' }}>En retard</p>
+                  {allOverdue.map(({ task: t, companyId, companyName }) => (
+                    <TaskRow key={t.id} task={t} isOverdue companyName={companyName} onToggle={done => toggleTask(companyId, t.id, done)} onDelete={() => deleteTask(companyId, t.id)} onUpdateDesc={desc => updateTaskDesc(companyId, t.id, desc)} />
+                  ))}
+                </div>
+              )}
+              {allUpcoming.length > 0 && (
+                <div>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em', margin: '0 0 0.3rem' }}>À venir (7 jours)</p>
+                  {allUpcoming.map(({ task: t, companyId, companyName }) => (
+                    <TaskRow key={t.id} task={t} isOverdue={false} companyName={companyName} onToggle={done => toggleTask(companyId, t.id, done)} onDelete={() => deleteTask(companyId, t.id)} onUpdateDesc={desc => updateTaskDesc(companyId, t.id, desc)} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Companies list */}
       <div style={{ border: '1px solid #eee', borderRadius: '14px', overflow: 'hidden', background: '#fff' }}>

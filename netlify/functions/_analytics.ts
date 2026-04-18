@@ -15,6 +15,13 @@ export type LeadEvent = {
   minute?: number
   message?: string
   lang?: string
+  // booking-only — outcome tracking
+  bookingStatus?: 'pending' | 'success' | 'failed'
+  bookingError?: string
+  calendarEventId?: string
+  hangoutLink?: string
+  notificationSent?: boolean
+  notificationError?: string
 }
 
 export type AnalyticsData = {
@@ -56,7 +63,7 @@ export async function writeData(data: AnalyticsData): Promise<void> {
   await s.setJSON('data', data)
 }
 
-export async function recordEvent(ev: Omit<LeadEvent, 'id' | 'ts'> & Partial<Pick<LeadEvent, 'ts'>>): Promise<void> {
+export async function recordEvent(ev: Omit<LeadEvent, 'id' | 'ts'> & Partial<Pick<LeadEvent, 'ts'>>): Promise<string | null> {
   try {
     const data = await readData()
     const full: LeadEvent = {
@@ -70,8 +77,23 @@ export async function recordEvent(ev: Omit<LeadEvent, 'id' | 'ts'> & Partial<Pic
       data.events = data.events.slice(-2000)
     }
     await writeData(data)
+    return full.id
   } catch (err) {
     console.error('recordEvent error:', err)
+    return null
+  }
+}
+
+export async function updateEvent(id: string | null, patch: Partial<LeadEvent>): Promise<void> {
+  if (!id) return
+  try {
+    const data = await readData()
+    const ev = data.events.find(e => e.id === id)
+    if (!ev) return
+    Object.assign(ev, patch)
+    await writeData(data)
+  } catch (err) {
+    console.error('updateEvent error:', err)
   }
 }
 
