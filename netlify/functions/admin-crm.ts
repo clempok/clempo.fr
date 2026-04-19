@@ -33,10 +33,21 @@ const handler: Handler = async (event) => {
         if (fields.status && !CRM_STATUSES.includes(fields.status as CrmStatus)) {
           return { statusCode: 400, body: JSON.stringify({ error: 'Invalid status' }) }
         }
+        const now = new Date().toISOString()
         if (fields.name !== undefined) company.name = fields.name
-        if (fields.status !== undefined) company.status = fields.status as CrmStatus
+        if (fields.status !== undefined) {
+          const newStatus = fields.status as CrmStatus
+          if (newStatus !== company.status) {
+            // Log the transition for the Analytics funnel.
+            if (!company.statusHistory || company.statusHistory.length === 0) {
+              company.statusHistory = [{ status: company.status, at: company.createdAt || now }]
+            }
+            company.statusHistory.push({ status: newStatus, at: now })
+            company.status = newStatus
+          }
+        }
         if (fields.notes !== undefined) company.notes = fields.notes
-        company.updatedAt = new Date().toISOString()
+        company.updatedAt = now
         await writeCrm(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true, company }) }
       }
@@ -62,14 +73,16 @@ const handler: Handler = async (event) => {
           return { statusCode: 409, body: JSON.stringify({ error: 'Company already exists' }) }
         }
         const now = new Date().toISOString()
+        const initialStatus = (fields.status as CrmStatus) || 'Non qualifié'
         const company: CrmCompany = {
           id: 'co-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
           name,
-          status: (fields.status as CrmStatus) || 'Non qualifié',
+          status: initialStatus,
           contacts: [],
           notes: fields.notes || '',
           createdAt: now,
           updatedAt: now,
+          statusHistory: [{ status: initialStatus, at: now }],
         }
         data.companies.push(company)
         await writeCrm(data)
@@ -91,6 +104,7 @@ const handler: Handler = async (event) => {
         if (fields.lastName !== undefined) contact.lastName = fields.lastName
         if (fields.source !== undefined) contact.source = fields.source
         if (fields.notes !== undefined) contact.notes = fields.notes
+        if (fields.linkedIn !== undefined) contact.linkedIn = fields.linkedIn
         contact.updatedAt = new Date().toISOString()
         await writeCrm(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true, contact }) }
@@ -118,6 +132,7 @@ const handler: Handler = async (event) => {
           lastName: fields.lastName || '',
           source: fields.source || 'Manual',
           notes: fields.notes || '',
+          linkedIn: fields.linkedIn || undefined,
           createdAt: now,
           updatedAt: now,
         }

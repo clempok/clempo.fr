@@ -4,6 +4,7 @@
 /systeme-sante-monde                  /articles                            301
 /systemes-sante-incription            /articles/systeme-sante-europe       301
 /a-propos                             /#about                              301
+/consultant-marketing-sante           /#accompagnements                    301
 
 # Forcer www (canonical)
 https://clempo.fr/*    https://www.clempo.fr/:splat    301!

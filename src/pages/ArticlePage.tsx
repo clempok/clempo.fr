@@ -4,6 +4,7 @@ import { ChevronRight, List, X } from 'lucide-react'
 import { articles } from '../data/articles'
 import { useLang } from '../contexts/LangContext'
 import SEO from '../components/SEO'
+import { bookingUrl } from '../lib/cta'
 
 // ---- Markdown renderer ----
 
@@ -461,7 +462,7 @@ export default function ArticlePage() {
               <p style={{ color: '#71717A', fontSize: '0.9375rem', marginBottom: '1.5rem' }}>
                 {t('article_page', 'cta_sub')}
               </p>
-              <Link to="/booking"
+              <Link to={bookingUrl(`article-${slug || 'unknown'}`)}
                 className="inline-flex items-center font-bold rounded-full"
                 style={{ backgroundColor: '#1A1A6B', color: '#fff', padding: '0.75rem 1.75rem', fontSize: '0.9375rem', textDecoration: 'none', transition: 'all 0.2s' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#2D2D8A'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)' }}

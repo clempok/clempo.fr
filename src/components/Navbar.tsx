@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import { useLang } from '../contexts/LangContext'
+import { bookingUrl } from '../lib/cta'
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -79,7 +80,7 @@ export default function Navbar() {
 
         {/* CTA button */}
         <Link
-          to="/booking"
+          to={bookingUrl('navbar')}
           className="hidden md:inline-flex"
           style={{
             alignItems: 'center', gap: '0.4rem',
@@ -138,7 +139,7 @@ export default function Navbar() {
             ))}
           </div>
           <Link
-            to="/booking"
+            to={bookingUrl('navbar')}
             onClick={() => setMobileOpen(false)}
             style={{
               display: 'inline-flex', justifyContent: 'center',

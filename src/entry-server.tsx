@@ -10,6 +10,7 @@ import LiquidCursor from './components/LiquidCursor'
 import Home from './pages/Home'
 import Articles from './pages/Articles'
 import ArticlePage from './pages/ArticlePage'
+import TransitionCMO from './pages/TransitionCMO'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const HelmetProviderAny = HelmetProvider as any
@@ -29,6 +30,7 @@ export function render(url: string) {
               <Route path="/" element={<Home />} />
               <Route path="/articles" element={<Articles />} />
               <Route path="/articles/:slug" element={<ArticlePage />} />
+              <Route path="/transition-cmo" element={<TransitionCMO />} />
             </Routes>
             <Footer />
           </div>

@@ -4,6 +4,7 @@ import { articles } from '../data/articles'
 import { useLang } from '../contexts/LangContext'
 import { useContent } from '../contexts/ContentContext'
 import SEO from '../components/SEO'
+import { bookingUrl } from '../lib/cta'
 
 const ACCENT = '#1A1A6B'
 const ACCENT_LIGHT = 'rgba(26,26,107,0.07)'
@@ -15,10 +16,6 @@ const BG_OFF = '#F8F8F6'
 const defaultClients = [
   'Doctolib','Kiro','Santé Académie','Cherry Biotech','Neok',
   'Médéré','Sorcova','DocCity','Semble','Andrew','Sofia Développement',
-]
-
-const defaultCompanies = [
-  'Doctolib', 'Kiro', 'Cherry Biotech', 'Santé Académie', 'DocCity', 'Corilus France',
 ]
 
 function useReveal() {
@@ -39,8 +36,6 @@ export default function Home() {
   const { content: c } = useContent()
 
   const clients = [...(c?.clients || defaultClients), ...(c?.clients || defaultClients)]
-  const COMPANIES = c?.companies_loader || defaultCompanies
-  const loaderContent = c?.loader || { tagline: 'Marketing · Strategy · Growth', phrase: 'Working with the shapers of healthcare', scroll_hint: 'scroll ↓' }
   const accomp = c?.accompagnements || null
   const seoData = c?.seo?.[lang] || null
 
@@ -48,61 +43,6 @@ export default function Home() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const [loaderCompanyIdx, setLoaderCompanyIdx] = useState(0)
-  const [loaderCompanyExiting, setLoaderCompanyExiting] = useState(false)
-  const [loaderDone, setLoaderDone] = useState(false)
-  const loaderAdvancing = useRef(false)
-  const loaderCount = useRef(0)
-  const touchStartY = useRef(0)
-
-  const advanceLoader = useRef(() => {})
-  advanceLoader.current = () => {
-    if (loaderAdvancing.current || loaderDone) return
-    loaderAdvancing.current = true
-    setLoaderCompanyExiting(true)
-    setTimeout(() => {
-      loaderCount.current += 1
-      if (loaderCount.current >= COMPANIES.length) {
-        document.body.style.overflow = ''
-        window.scrollTo(0, 0)
-        setLoaderDone(true)
-        loaderAdvancing.current = false
-        return
-      }
-      setLoaderCompanyIdx(prev => (prev + 1) % COMPANIES.length)
-      setLoaderCompanyExiting(false)
-      setTimeout(() => { loaderAdvancing.current = false }, 400)
-    }, 300)
-  }
-
-  useEffect(() => {
-    // Lock page scroll while loader is active
-    document.body.style.overflow = 'hidden'
-    let wheelAccum = 0
-    const onWheel = (e: WheelEvent) => {
-      wheelAccum += Math.abs(e.deltaY) + Math.abs(e.deltaX)
-      if (wheelAccum > 30) { wheelAccum = 0; advanceLoader.current() }
-    }
-    const onTouchStart = (e: TouchEvent) => { touchStartY.current = e.touches[0].clientY }
-    const onTouchMove = (e: TouchEvent) => {
-      const dy = touchStartY.current - e.touches[0].clientY
-      if (dy > 20) { touchStartY.current = e.touches[0].clientY; advanceLoader.current() }
-    }
-    window.addEventListener('wheel', onWheel, { passive: true })
-    window.addEventListener('touchstart', onTouchStart, { passive: true })
-    window.addEventListener('touchmove', onTouchMove, { passive: true })
-    const fallback = setTimeout(() => {
-      document.body.style.overflow = ''
-      window.scrollTo(0, 0)
-      setLoaderDone(true)
-    }, 8000)
-    return () => {
-      window.removeEventListener('wheel', onWheel)
-      window.removeEventListener('touchstart', onTouchStart)
-      window.removeEventListener('touchmove', onTouchMove)
-      clearTimeout(fallback)
-    }
-  }, [])
 
   const locale = lang === 'fr' ? 'fr-FR' : 'en-GB'
   const formatDate = (d: string) =>
@@ -190,23 +130,6 @@ export default function Home() {
           ],
         }}
       />
-      {/* Loader */}
-      <div className={`loader${loaderDone ? ' loader-exit' : ''}`}>
-        <div className="loader-tagline">{loaderContent.tagline}</div>
-        <div className="loader-phrase">{loaderContent.phrase}</div>
-        <div className="loader-company-wrap">
-          <span
-            key={loaderCompanyIdx}
-            className={loaderCompanyExiting ? 'company-out' : 'company-in'}
-            style={{ position: 'absolute', whiteSpace: 'nowrap' }}
-          >
-            {COMPANIES[loaderCompanyIdx]}
-          </span>
-        </div>
-        <div className="loader-line" />
-        <div className="loader-scroll-hint">{loaderContent.scroll_hint}</div>
-      </div>
-
       <div style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ── HERO ── */}
@@ -244,7 +167,7 @@ export default function Home() {
           {/* CTAs */}
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <Link
-              to="/booking"
+              to={bookingUrl('home-hero')}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                 padding: '1rem 2.2rem', background: ACCENT, color: '#fff',
@@ -332,7 +255,7 @@ export default function Home() {
                 ))}
               </div>
               <Link
-                to="/booking"
+                to={bookingUrl('home-about')}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
                   textDecoration: 'none', color: TEXT,
@@ -361,59 +284,102 @@ export default function Home() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '4rem' }}>
-            {(accomp?.cards || [
+            {[
               {
-                badge: 'Early Stage',
-                title: 'Trouver vos premiers clients.',
-                text: "Vous avez un produit, quelques early adopters, mais pas encore de moteur d'acquisition qui tourne. Je vous aide à identifier ce qui convertit et à l'activer vite.",
+                badge: 'Advisor médico-marketing',
+                trigger: "Fondateur early-stage qui galère à scaler son acquisition ?",
+                title: "Un regard senior santé, sans embaucher.",
+                format: '1×1h30/mois + WhatsApp',
+                price: '900 €/mois',
+                ctaLabel: 'Démarrer un essai →',
+                to: bookingUrl('home-advisor'),
+                badgeBg: 'rgba(16,185,129,0.1)', badgeColor: '#059669',
+                starred: false,
               },
               {
-                badge: 'Scaleup',
-                title: 'Maintenir un rythme de croissance soutenu.',
-                text: "La croissance est là, mais elle doit être préparée pour passer à l'échelle. Je vous aide à structurer ce qui existe pour que ça tienne dans la durée, sans perdre de vitesse.",
+                badge: 'Part-Time CMO',
+                trigger: "Scaleup qui cherche son premier CMO mais veut maîtriser le coût ?",
+                title: "Je prends le rôle 2-3 jours par semaine.",
+                format: '2-3 j/semaine · 6 mois min.',
+                price: 'TJM sur brief',
+                ctaLabel: "En parler 30 min →",
+                to: bookingUrl('home-parttime'),
+                badgeBg: 'rgba(26,26,107,0.08)', badgeColor: ACCENT,
+                starred: false,
               },
               {
-                badge: 'ETI · Grand groupe',
-                title: 'Garder son avance.',
-                text: "Votre CMO actuel s'en va ? Je le / la remplace en apportant ma connaissance du secteur santé et les méthodes de marketing innovantes pour garder votre avance face aux nouveaux entrants.",
+                badge: 'Transition CMO',
+                trigger: "CMO qui part en congé ou démissionne, poste à couvrir 6-12 mois ?",
+                title: 'Je prends le relais lundi.',
+                format: 'Full-time · 6-12 mois',
+                price: 'TJM transparent sur brief',
+                ctaLabel: "Voir l'offre transition →",
+                to: '/transition-cmo',
+                badgeBg: 'rgba(245,158,11,0.1)', badgeColor: '#B45309',
+                starred: true,
               },
-            ]).map((item: { badge: string; title: string; text: string }, i: number) => {
-              const badgeStyles = [
-                { badgeBg: 'rgba(16,185,129,0.1)', badgeColor: '#059669' },
-                { badgeBg: 'rgba(26,26,107,0.08)', badgeColor: ACCENT },
-                { badgeBg: 'rgba(245,158,11,0.1)', badgeColor: '#B45309' },
-              ]
-              const style = badgeStyles[i] || badgeStyles[0]
-              return { ...item, badgeBg: style.badgeBg, badgeColor: style.badgeColor }
-            }).map((item: { badge: string; title: string; text: string; badgeBg: string; badgeColor: string }, i: number) => (
+            ].map((item, i) => (
               <div key={i} style={{
                 background: BG_OFF, borderRadius: '24px',
-                padding: '2.5rem', border: `1px solid ${BORDER}`,
-                display: 'flex', flexDirection: 'column', gap: '1.2rem',
-                transition: 'all 0.3s',
+                padding: '2.5rem', border: item.starred ? `1px solid rgba(26,26,107,0.25)` : `1px solid ${BORDER}`,
+                display: 'flex', flexDirection: 'column', gap: '1rem',
+                transition: 'all 0.3s', position: 'relative',
+                boxShadow: item.starred ? '0 16px 50px rgba(26,26,107,0.08)' : 'none',
               }}
-                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.boxShadow = '0 16px 50px rgba(0,0,0,0.06)'; el.style.borderColor = 'rgba(26,26,107,0.15)' }}
-                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = ''; el.style.boxShadow = ''; el.style.borderColor = BORDER }}
+                onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-4px)'; el.style.boxShadow = '0 16px 50px rgba(0,0,0,0.08)'; el.style.borderColor = 'rgba(26,26,107,0.25)' }}
+                onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = ''; el.style.boxShadow = item.starred ? '0 16px 50px rgba(26,26,107,0.08)' : 'none'; el.style.borderColor = item.starred ? 'rgba(26,26,107,0.25)' : BORDER }}
               >
+                {item.starred && (
+                  <span style={{
+                    position: 'absolute', top: '-12px', right: '1.5rem',
+                    background: ACCENT, color: '#fff',
+                    padding: '0.3rem 0.8rem', borderRadius: '100px',
+                    fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  }}>
+                    ⭐ Mission préférée
+                  </span>
+                )}
                 <span style={{
                   display: 'inline-flex', width: 'fit-content',
                   padding: '0.5rem 1.2rem', borderRadius: '100px',
                   background: item.badgeBg, color: item.badgeColor,
-                  fontSize: '1rem', fontWeight: 700,
+                  fontSize: '0.78rem', fontWeight: 700,
                   letterSpacing: '0.05em', textTransform: 'uppercase',
                 }}>
                   {item.badge}
                 </span>
+                <p style={{ fontSize: '0.88rem', color: MUTED, fontStyle: 'italic', fontWeight: 300, lineHeight: 1.5, margin: 0 }}>
+                  {item.trigger}
+                </p>
                 <h3 style={{
                   fontFamily: "'Space Grotesk', sans-serif",
-                  fontSize: '1.35rem', fontWeight: 700,
-                  letterSpacing: '-0.02em', lineHeight: 1.2, color: TEXT,
+                  fontSize: '1.3rem', fontWeight: 700,
+                  letterSpacing: '-0.02em', lineHeight: 1.2, color: TEXT, margin: 0,
                 }}>
                   {item.title}
                 </h3>
-                <p style={{ fontSize: '0.92rem', lineHeight: 1.8, color: MUTED, fontWeight: 300 }}>
-                  {item.text}
-                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingTop: '0.5rem', borderTop: `1px solid ${BORDER}` }}>
+                  <div style={{ fontSize: '0.8rem', color: MUTED, fontWeight: 400 }}>{item.format}</div>
+                  <div style={{ fontSize: '1rem', color: TEXT, fontWeight: 700, letterSpacing: '-0.01em' }}>{item.price}</div>
+                </div>
+                <Link
+                  to={item.to}
+                  style={{
+                    marginTop: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    padding: '0.75rem 1.2rem',
+                    background: item.starred ? ACCENT : 'transparent',
+                    color: item.starred ? '#fff' : ACCENT,
+                    border: item.starred ? `1px solid ${ACCENT}` : `1px solid ${ACCENT}`,
+                    textDecoration: 'none', borderRadius: '100px',
+                    fontSize: '0.82rem', fontWeight: 600,
+                    transition: 'all 0.3s',
+                    width: 'fit-content',
+                  }}
+                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = ACCENT; el.style.color = '#fff' }}
+                  onMouseLeave={e => { const el = e.currentTarget as HTMLElement; if (!item.starred) { el.style.background = 'transparent'; el.style.color = ACCENT } }}
+                >
+                  {item.ctaLabel}
+                </Link>
               </div>
             ))}
           </div>
@@ -443,7 +409,7 @@ export default function Home() {
               }
             `}</style>
             <Link
-              to="/booking"
+              to={bookingUrl('home-footer')}
               className="cta-main"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
