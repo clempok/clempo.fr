@@ -1,5 +1,5 @@
 import type { Handler } from '@netlify/functions'
-import { recordEvent } from './_analytics'
+import { recordEvent, updateEvent } from './_analytics'
 import { upsertContact, addTaskToContactCompany } from './_crm'
 
 function pad(n: number): string {
@@ -58,12 +58,31 @@ const handler: Handler = async (event) => {
     return { statusCode: 405, body: 'Method not allowed' }
   }
 
+  // Record the attempt IMMEDIATELY, before any external call.
+  // If anything fails later (Google OAuth, Calendar API, Resend), we still
+  // have a durable trace of who tried to book and when.
+  let attemptId: string | null = null
+
   try {
     const { date, hour, minute, firstName, lastName, email, message, lang } = JSON.parse(event.body || '{}')
 
     if (!date || hour === undefined || minute === undefined || !firstName || !lastName || !email) {
       return { statusCode: 400, body: 'Missing required fields' }
     }
+
+    // Persist the attempt before doing anything that can fail.
+    attemptId = await recordEvent({
+      type: 'booking',
+      firstName,
+      lastName,
+      email,
+      date,
+      hour,
+      minute,
+      message,
+      lang,
+      bookingStatus: 'pending',
+    })
 
     const isFr = lang === 'fr'
     const endMinute = (minute + 30) % 60
@@ -87,7 +106,7 @@ const handler: Handler = async (event) => {
     // Create event in Google Calendar with guest as attendee
     // sendUpdates=all → Google sends calendar invitation email to attendees natively
     const calendarRes = await fetch(
-      'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all',
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all&conferenceDataVersion=1',
       {
         method: 'POST',
         headers: {
@@ -108,6 +127,12 @@ const handler: Handler = async (event) => {
           attendees: [
             { email, displayName: `${firstName} ${lastName}` },
           ],
+          conferenceData: {
+            createRequest: {
+              requestId: `clempo-${date}-${hour}${minute}-${Date.now()}`,
+              conferenceSolutionKey: { type: 'hangoutsMeet' },
+            },
+          },
           reminders: {
             useDefault: true,
           },
@@ -120,24 +145,15 @@ const handler: Handler = async (event) => {
     if (!calendarRes.ok) {
       const err = await calendarRes.text()
       console.error('Google Calendar error:', err)
+      await updateEvent(attemptId, {
+        bookingStatus: 'failed',
+        bookingError: `Google Calendar ${calendarRes.status}: ${err}`.slice(0, 1000),
+      })
       return {
         statusCode: 500,
         body: JSON.stringify({ success: false, error: err }),
       }
     }
-
-    // Record booking event in analytics store (non-blocking failure)
-    await recordEvent({
-      type: 'booking',
-      firstName,
-      lastName,
-      email,
-      date,
-      hour,
-      minute,
-      message,
-      lang,
-    })
 
     // Upsert into CRM with status "Lead"
     await upsertContact(
@@ -150,6 +166,16 @@ const handler: Handler = async (event) => {
       },
       'Lead',
     )
+
+    // Create a "Prépa rdv" task the day before the meeting
+    const dayBefore = new Date(`${date}T12:00:00Z`)
+    dayBefore.setUTCDate(dayBefore.getUTCDate() - 1)
+    const prepDate = dayBefore.toISOString().slice(0, 10)
+    await addTaskToContactCompany(email, {
+      title: `Prépa rdv ${firstName} ${lastName}`,
+      dueDate: prepDate,
+      description: `Préparer le RDV du ${date} à ${pad(hour)}:${pad(minute)} avec ${firstName} ${lastName}${message ? `\n\nMessage : ${message}` : ''}`,
+    })
 
     // Create a CRM task on the booking date
     await addTaskToContactCompany(email, {
@@ -164,9 +190,28 @@ const handler: Handler = async (event) => {
     const dateFormatted = formatDateParis(date, isFr ? 'fr-FR' : 'en-GB')
     const timeFormatted = `${pad(hour)}:${pad(minute)} — ${pad(endHour)}:${pad(endMinute)}`
 
+    // Extract Meet link from response. Google populates either hangoutLink
+    // (legacy) or conferenceData.entryPoints[0].uri (new). Log the full
+    // conferenceData shape for debugging when it's missing.
+    const meetLink: string | null =
+      eventData.hangoutLink ||
+      eventData.conferenceData?.entryPoints?.find((e: { entryPointType?: string; uri?: string }) => e.entryPointType === 'video')?.uri ||
+      null
+    if (!meetLink) {
+      console.warn(
+        'book-meeting: no Meet link in Calendar response. conferenceData =',
+        JSON.stringify(eventData.conferenceData || null),
+      )
+    }
+
     // Send notification email to Clement via Resend (Google doesn't email organizer)
     const resendKey = process.env.RESEND_API_KEY
-    if (resendKey) {
+    let notificationSent = false
+    let notificationError: string | null = null
+    if (!resendKey) {
+      notificationError = 'RESEND_API_KEY env var is missing'
+      console.error('book-meeting: RESEND_API_KEY env var is missing — owner will not receive notification')
+    } else {
       const notifHtml = `
         <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
           <h2 style="color: #1A1A6B; margin-bottom: 24px;">Nouveau rendez-vous</h2>
@@ -195,15 +240,19 @@ const handler: Handler = async (event) => {
               <td style="padding: 10px 0; font-weight: 600;">${message}</td>
             </tr>` : ''}
           </table>
-          ${eventData.htmlLink ? `
+          ${meetLink ? `
           <p style="margin-top: 24px;">
-            <a href="${eventData.htmlLink}" style="color: #1A1A6B; font-weight: 600;">Voir dans Google Calendar →</a>
+            <a href="${meetLink}" style="color: #1A1A6B; font-weight: 600;">Rejoindre Google Meet →</a>
+          </p>` : '<p style="margin-top: 24px; color: #DC2626; font-size: 13px;">⚠️ Pas de lien Google Meet dans cet event — à vérifier.</p>'}
+          ${eventData.htmlLink ? `
+          <p style="margin-top: 8px;">
+            <a href="${eventData.htmlLink}" style="color: #666; font-size: 13px;">Voir dans Google Calendar →</a>
           </p>` : ''}
         </div>
       `
 
       try {
-        await fetch('https://api.resend.com/emails', {
+        const resendRes = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${resendKey}`,
@@ -216,10 +265,27 @@ const handler: Handler = async (event) => {
             html: notifHtml,
           }),
         })
+        if (!resendRes.ok) {
+          const errTxt = await resendRes.text().catch(() => '')
+          notificationError = `Resend ${resendRes.status}: ${errTxt}`
+          console.error('book-meeting: Resend notification failed —', notificationError)
+        } else {
+          notificationSent = true
+        }
       } catch (e) {
-        console.error('Resend notification failed:', e)
+        notificationError = String(e)
+        console.error('book-meeting: Resend notification threw:', e)
       }
     }
+
+    // Mark attempt as successful + enrich with calendar details.
+    await updateEvent(attemptId, {
+      bookingStatus: 'success',
+      calendarEventId: eventData.id,
+      hangoutLink: meetLink || undefined,
+      notificationSent,
+      notificationError: notificationError || undefined,
+    })
 
     return {
       statusCode: 200,
@@ -227,11 +293,19 @@ const handler: Handler = async (event) => {
         success: true,
         eventId: eventData.id,
         htmlLink: eventData.htmlLink,
+        hangoutLink: meetLink,
+        notificationSent,
+        notificationError,
         debug: { date, hour, minute, dateFormatted, startDateTime, endDateTime },
       }),
     }
   } catch (err) {
     console.error('Function error:', err)
+    // Best-effort: mark the attempt as failed if we had registered one.
+    await updateEvent(attemptId, {
+      bookingStatus: 'failed',
+      bookingError: String(err).slice(0, 1000),
+    })
     return { statusCode: 500, body: String(err) }
   }
 }
