@@ -171,23 +171,23 @@
   },
   "accompagnements": {
     "badge_label": "Accompagnements",
-    "title": "Les entreprises que j'accompagne",
+    "title": "Les accompagnements proposés",
     "cta": "Voyons ce que je peux faire pour vous",
     "cards": [
       {
-        "badge": "Early Stage",
-        "title": "Trouver vos premiers clients.",
-        "text": "Vous avez un produit, quelques early adopters, mais pas encore de moteur d'acquisition qui tourne. Je vous aide à identifier ce qui convertit et à l'activer vite."
+        "badge": "Advisory",
+        "title": "Advisory",
+        "text": "Session one shoot ou régulier dans le temps. Je vous accompagne pour faire les bons choix stratégiques pour grossir, challenger vos campagnes, vos recrutements et vous mettre en relation avec les bons partenaires.\n\nIdéal pour avoir un oeil extérieur expérimenté à moindre coût."
       },
       {
-        "badge": "Scaleup",
-        "title": "Maintenir un rythme de croissance soutenu.",
-        "text": "La croissance est là, mais elle doit être préparée pour passer à l'échelle. Je vous aide à structurer ce qui existe pour que ça tienne dans la durée, sans perdre de vitesse."
+        "badge": "Part-Time CMO",
+        "title": "Part-Time CMO Santé",
+        "text": "J'interviens entre 1 à 3 jours par semaine pour structurer votre acquisition, la notoriété de votre marque et votre équipe marketing.\n\nIdéal pour les entreprises qui ont validé leur Product Market Fit et qui ont besoin d'accélerer"
       },
       {
-        "badge": "ETI · Grand groupe",
-        "title": "Garder son avance.",
-        "text": "Votre CMO actuel s'en va ? Je le / la remplace en apportant ma connaissance du secteur santé et les méthodes de marketing innovantes pour garder votre avance face aux nouveaux entrants."
+        "badge": "Management de Transition",
+        "title": "Management de Transition Santé",
+        "text": "J'interviens à temps plein lors d'un départ du directeur marketing. Idéal pour les ETI / Grands Groupes qui veulent une conserver une expertise santé dans leur management en attendant le retour ou le remplacement définitif."
       }
     ]
   },
