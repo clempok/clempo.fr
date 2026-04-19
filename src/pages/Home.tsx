@@ -252,10 +252,61 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── BOOKING EMBED (replaces the previous About block) ── */}
+        {/* ── ABOUT + BOOKING ── */}
         <section id="about" style={{ padding: '6rem 4vw 4rem' }}>
-          <div ref={revealAbout} className="reveal">
-            <Booking embedded />
+          <div ref={revealAbout} className="reveal about-booking-row" style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 'clamp(2rem, 4vw, 4rem)',
+            alignItems: 'flex-start',
+          }}>
+            {/* À propos */}
+            <div className="about-block" style={{
+              flex: '1 1 360px',
+              minWidth: 0,
+              background: BG_OFF,
+              borderRadius: '24px',
+              padding: 'clamp(2rem, 4vw, 3rem)',
+              position: 'sticky',
+              top: '6rem',
+            }}>
+              <p style={{ fontSize: '0.68rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: ACCENT, marginBottom: '1.25rem', fontWeight: 500 }}>
+                À propos
+              </p>
+              <h2 style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 'clamp(1.6rem, 2.6vw, 2.3rem)',
+                fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '1.5rem', color: TEXT,
+              }}>
+                {t('about', 'title')}
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', marginBottom: '1.75rem' }}>
+                {['p1','p2','p3'].map(k => (
+                  <p key={k} style={{ fontSize: '0.88rem', lineHeight: 1.75, color: MUTED, fontWeight: 300 }}>
+                    {t('about', k)}
+                  </p>
+                ))}
+              </div>
+              <Link
+                to={bookingUrl('home-about')}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
+                  textDecoration: 'none', color: TEXT,
+                  fontSize: '0.83rem', fontWeight: 500,
+                  paddingBottom: '0.3rem', borderBottom: `2px solid ${ACCENT}`,
+                  transition: 'gap 0.3s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.gap = '1rem')}
+                onMouseLeave={e => (e.currentTarget.style.gap = '0.6rem')}
+              >
+                {t('about', 'cta')} →
+              </Link>
+            </div>
+
+            {/* Booking embed */}
+            <div className="booking-block" style={{ flex: '1 1 480px', minWidth: 0 }}>
+              <Booking embedded />
+            </div>
           </div>
         </section>
 

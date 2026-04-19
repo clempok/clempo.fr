@@ -51,6 +51,18 @@ a, button { cursor: none; }
   }
 }
 
+/* ─── ABOUT + BOOKING ROW ─── */
+/* Desktop: about (DOM order 1) then booking (DOM order 2) side-by-side */
+/* Mobile: booking first, about below — reversed with column-reverse */
+@media (max-width: 900px) {
+  .about-booking-row {
+    flex-direction: column-reverse !important;
+  }
+  .about-block {
+    position: static !important;
+  }
+}
+
 /* ─── MEDIA GRID ─── */
 .media-grid {
   display: grid;
