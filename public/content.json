@@ -176,18 +176,64 @@
     "cards": [
       {
         "badge": "Advisory",
+        "trigger": "",
         "title": "Advisory",
-        "text": "Session one shoot ou régulier dans le temps. Je vous accompagne pour faire les bons choix stratégiques pour grossir, challenger vos campagnes, vos recrutements et vous mettre en relation avec les bons partenaires.\n\nIdéal pour avoir un oeil extérieur expérimenté à moindre coût."
+        "text": "Session one shoot ou régulier dans le temps. Je vous accompagne pour faire les bons choix stratégiques pour grossir, challenger vos campagnes, vos recrutements et vous mettre en relation avec les bons partenaires.\n\nIdéal pour avoir un oeil extérieur expérimenté à moindre coût.",
+        "format": "1×1h30/mois + WhatsApp",
+        "price": "900 €/mois",
+        "cta_label": "Démarrer un essai →"
       },
       {
         "badge": "Part-Time CMO",
+        "trigger": "",
         "title": "Part-Time CMO Santé",
-        "text": "J'interviens entre 1 à 3 jours par semaine pour structurer votre acquisition, la notoriété de votre marque et votre équipe marketing.\n\nIdéal pour les entreprises qui ont validé leur Product Market Fit et qui ont besoin d'accélerer"
+        "text": "J'interviens entre 1 à 3 jours par semaine pour structurer votre acquisition, la notoriété de votre marque et votre équipe marketing.\n\nIdéal pour les entreprises qui ont validé leur Product Market Fit et qui ont besoin d'accélerer",
+        "format": "2-3 j/semaine · 6 mois min.",
+        "price": "TJM sur brief",
+        "cta_label": "En parler 30 min →"
       },
       {
         "badge": "Management de Transition",
+        "trigger": "",
         "title": "Management de Transition Santé",
-        "text": "J'interviens à temps plein lors d'un départ du directeur marketing. Idéal pour les ETI / Grands Groupes qui veulent une conserver une expertise santé dans leur management en attendant le retour ou le remplacement définitif."
+        "text": "J'interviens à temps plein lors d'un départ du directeur marketing. Idéal pour les ETI / Grands Groupes qui veulent une conserver une expertise santé dans leur management en attendant le retour ou le remplacement définitif.",
+        "format": "Full-time · 6-12 mois",
+        "price": "TJM transparent sur brief",
+        "cta_label": "Voir l'offre transition →"
+      }
+    ]
+  },
+  "secteurs": {
+    "badge_label": "Secteurs",
+    "title": "Mes expériences en santé",
+    "cards": [
+      {
+        "icon": "🧬",
+        "title": "Pharma & Biotech",
+        "text": "Vente de produits hautement techniques à des décideurs Pharma, Biotech et académiques.",
+        "role": "VP Marketing — Cherry Biotech (fournisseur d'organoïdes)",
+        "clients": "Cherry Biotech, Doqboard"
+      },
+      {
+        "icon": "💻",
+        "title": "Healthtech",
+        "text": "Vente de logiciels à des professionnels de santé et des établissements hospitaliers.",
+        "role": "",
+        "clients": "Doctolib, Kiro, Corilus France, Andrew, Semble, MonBilanDeSanté"
+      },
+      {
+        "icon": "🏢",
+        "title": "B2B",
+        "text": "Vente de solutions santé et RH à de grandes entreprises.",
+        "role": "",
+        "clients": "HeyTeam, Sorcova Health, Neok"
+      },
+      {
+        "icon": "🏥",
+        "title": "Établissements de soins",
+        "text": "Marketing pour des centres de santé afin d'attirer patients et médecins.",
+        "role": "",
+        "clients": "DocCity, Clinique stomatologie Dr Solène Vo Quang"
       }
     ]
   },

@@ -40,6 +40,7 @@ export default function Home() {
 
   const clients = [...(c?.clients || defaultClients), ...(c?.clients || defaultClients)]
   const accomp = c?.accompagnements || null
+  const secteurs = c?.secteurs || null
   const seoData = c?.seo?.[lang] || null
 
   const [formData, setFormData] = useState({ firstName: '', lastName: '', company: '', email: '', phone: '' })
@@ -322,41 +323,32 @@ export default function Home() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '4rem' }}>
-            {[
-              {
-                badge: 'Advisor médico-marketing',
-                trigger: "Fondateur early-stage qui galère à scaler son acquisition ?",
-                title: "Un regard senior santé, sans embaucher.",
-                format: '1×1h30/mois + WhatsApp',
-                price: '900 €/mois',
-                ctaLabel: 'Démarrer un essai →',
-                to: bookingUrl('home-advisor'),
-                badgeBg: 'rgba(16,185,129,0.1)', badgeColor: '#059669',
-                starred: false,
-              },
-              {
-                badge: 'Part-Time CMO',
-                trigger: "Scaleup qui cherche son premier CMO mais veut maîtriser le coût ?",
-                title: "Je prends le rôle 2-3 jours par semaine.",
-                format: '2-3 j/semaine · 6 mois min.',
-                price: 'TJM sur brief',
-                ctaLabel: "En parler 30 min →",
-                to: bookingUrl('home-parttime'),
-                badgeBg: 'rgba(26,26,107,0.08)', badgeColor: ACCENT,
-                starred: false,
-              },
-              {
-                badge: 'Transition CMO',
-                trigger: "CMO qui part en congé ou démissionne, poste à couvrir 6-12 mois ?",
-                title: 'Je prends le relais lundi.',
-                format: 'Full-time · 6-12 mois',
-                price: 'TJM transparent sur brief',
-                ctaLabel: "Voir l'offre transition →",
-                to: '/transition-cmo',
-                badgeBg: 'rgba(245,158,11,0.1)', badgeColor: '#B45309',
-                starred: true,
-              },
-            ].map((item, i) => (
+            {(() => {
+              const accompStyles = [
+                { to: bookingUrl('home-advisor'), badgeBg: 'rgba(16,185,129,0.1)', badgeColor: '#059669', starred: false },
+                { to: bookingUrl('home-parttime'), badgeBg: 'rgba(26,26,107,0.08)', badgeColor: ACCENT, starred: false },
+                { to: '/transition-cmo', badgeBg: 'rgba(245,158,11,0.1)', badgeColor: '#B45309', starred: true },
+              ]
+              const accompDefaults = [
+                { badge: 'Advisory', trigger: '', title: 'Advisory', text: '', format: '1×1h30/mois + WhatsApp', price: '900 €/mois', cta_label: 'Démarrer un essai →' },
+                { badge: 'Part-Time CMO', trigger: '', title: 'Part-Time CMO Santé', text: '', format: '2-3 j/semaine · 6 mois min.', price: 'TJM sur brief', cta_label: 'En parler 30 min →' },
+                { badge: 'Management de Transition', trigger: '', title: 'Management de Transition Santé', text: '', format: 'Full-time · 6-12 mois', price: 'TJM transparent sur brief', cta_label: "Voir l'offre transition →" },
+              ]
+              const cmsCards = Array.isArray(accomp?.cards) ? accomp!.cards : accompDefaults
+              return cmsCards.map((card: Record<string, string>, i: number) => ({
+                badge: card.badge ?? accompDefaults[i]?.badge ?? '',
+                trigger: card.trigger ?? accompDefaults[i]?.trigger ?? '',
+                title: card.title ?? accompDefaults[i]?.title ?? '',
+                text: card.text ?? accompDefaults[i]?.text ?? '',
+                format: card.format ?? accompDefaults[i]?.format ?? '',
+                price: card.price ?? accompDefaults[i]?.price ?? '',
+                ctaLabel: card.cta_label ?? accompDefaults[i]?.cta_label ?? '',
+                to: accompStyles[i]?.to || bookingUrl('home-advisor'),
+                badgeBg: accompStyles[i]?.badgeBg || 'rgba(26,26,107,0.08)',
+                badgeColor: accompStyles[i]?.badgeColor || ACCENT,
+                starred: !!accompStyles[i]?.starred,
+              }))
+            })().map((item, i) => (
               <div key={i} style={{
                 background: BG_OFF, borderRadius: '24px',
                 padding: '2.5rem', border: item.starred ? `1px solid rgba(26,26,107,0.25)` : `1px solid ${BORDER}`,
@@ -386,9 +378,11 @@ export default function Home() {
                 }}>
                   {item.badge}
                 </span>
-                <p style={{ fontSize: '0.88rem', color: MUTED, fontStyle: 'italic', fontWeight: 300, lineHeight: 1.5, margin: 0 }}>
-                  {item.trigger}
-                </p>
+                {item.trigger && (
+                  <p style={{ fontSize: '0.88rem', color: MUTED, fontStyle: 'italic', fontWeight: 300, lineHeight: 1.5, margin: 0 }}>
+                    {item.trigger}
+                  </p>
+                )}
                 <h3 style={{
                   fontFamily: "'Space Grotesk', sans-serif",
                   fontSize: '1.3rem', fontWeight: 700,
@@ -396,6 +390,11 @@ export default function Home() {
                 }}>
                   {item.title}
                 </h3>
+                {item.text && (
+                  <p style={{ fontSize: '0.88rem', color: MUTED, lineHeight: 1.6, fontWeight: 300, margin: 0, whiteSpace: 'pre-line' }}>
+                    {item.text}
+                  </p>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingTop: '0.5rem', borderTop: `1px solid ${BORDER}` }}>
                   <div style={{ fontSize: '0.8rem', color: MUTED, fontWeight: 400 }}>{item.format}</div>
                   <div style={{ fontSize: '1rem', color: TEXT, fontWeight: 700, letterSpacing: '-0.01em' }}>{item.price}</div>
@@ -466,41 +465,31 @@ export default function Home() {
         <section style={{ padding: '0 4vw 8rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
             <p style={{ fontSize: '0.68rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: ACCENT, marginBottom: '1rem', fontWeight: 500 }}>
-              Secteurs
+              {secteurs?.badge_label || 'Secteurs'}
             </p>
             <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700, letterSpacing: '-0.03em', color: TEXT }}>
-              Mes expériences en santé
+              {secteurs?.title || 'Mes expériences en santé'}
             </h2>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-            {[
-              {
-                icon: '🧬',
-                title: 'Pharma & Biotech',
-                text: "Vente de produits hautement techniques à des décideurs Pharma, Biotech et académiques.",
-                clients: ['Cherry Biotech', 'Doqboard'],
-                role: "VP Marketing — Cherry Biotech (fournisseur d'organoïdes)",
-              },
-              {
-                icon: '💻',
-                title: 'Healthtech',
-                text: "Vente de logiciels à des professionnels de santé et des établissements hospitaliers.",
-                clients: ['Doctolib', 'Kiro', 'Corilus France', 'Andrew', 'Semble', 'MonBilanDeSanté'],
-              },
-              {
-                icon: '🏢',
-                title: 'B2B',
-                text: "Vente de solutions santé et RH à de grandes entreprises.",
-                clients: ['HeyTeam', 'Sorcova Health', 'Neok'],
-              },
-              {
-                icon: '🏥',
-                title: 'Établissements de soins',
-                text: "Marketing pour des centres de santé afin d'attirer patients et médecins.",
-                clients: ['DocCity', 'Clinique stomatologie Dr Solène Vo Quang'],
-              },
-            ].map((item, i) => (
+            {(() => {
+              const secteursDefaults = [
+                { icon: '🧬', title: 'Pharma & Biotech', text: "Vente de produits hautement techniques à des décideurs Pharma, Biotech et académiques.", clients: 'Cherry Biotech, Doqboard', role: "VP Marketing — Cherry Biotech (fournisseur d'organoïdes)" },
+                { icon: '💻', title: 'Healthtech', text: "Vente de logiciels à des professionnels de santé et des établissements hospitaliers.", clients: 'Doctolib, Kiro, Corilus France, Andrew, Semble, MonBilanDeSanté', role: '' },
+                { icon: '🏢', title: 'B2B', text: "Vente de solutions santé et RH à de grandes entreprises.", clients: 'HeyTeam, Sorcova Health, Neok', role: '' },
+                { icon: '🏥', title: 'Établissements de soins', text: "Marketing pour des centres de santé afin d'attirer patients et médecins.", clients: 'DocCity, Clinique stomatologie Dr Solène Vo Quang', role: '' },
+              ]
+              const cmsCards = Array.isArray(secteurs?.cards) ? secteurs!.cards : secteursDefaults
+              return cmsCards.map((card: Record<string, string>, i: number) => ({
+                icon: card.icon || secteursDefaults[i]?.icon || '',
+                title: card.title || secteursDefaults[i]?.title || '',
+                text: card.text || secteursDefaults[i]?.text || '',
+                role: card.role || secteursDefaults[i]?.role || '',
+                clients: String(card.clients || secteursDefaults[i]?.clients || '')
+                  .split(',').map(s => s.trim()).filter(Boolean),
+              }))
+            })().map((item, i) => (
               <div key={i} style={{
                 background: BG_OFF, borderRadius: '24px',
                 padding: '2.5rem', border: `1px solid ${BORDER}`,

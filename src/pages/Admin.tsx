@@ -28,6 +28,7 @@ const sectionLabels: Record<string, string> = {
   'companies_loader': 'Entreprises (loader)',
   'loader': 'Loader intro',
   'accompagnements': 'Accompagnements',
+  'secteurs': 'Secteurs (santé)',
   'seo.fr': 'SEO (FR)',
   'seo.en': 'SEO (EN)',
 }
