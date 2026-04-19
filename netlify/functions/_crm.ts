@@ -44,6 +44,11 @@ export type CrmTask = {
   updatedAt: string
 }
 
+export type CrmStatusHistoryEntry = {
+  status: CrmStatus
+  at: string // ISO timestamp of when the company entered this status
+}
+
 export type CrmCompany = {
   id: string
   name: string
@@ -53,6 +58,12 @@ export type CrmCompany = {
   notes: string
   createdAt: string
   updatedAt: string
+  /**
+   * Chronological log of status transitions, used by the Analytics funnel.
+   * Back-filled on read for legacy companies created before this field existed
+   * (initial entry = current status at createdAt).
+   */
+  statusHistory?: CrmStatusHistoryEntry[]
 }
 
 export type CrmData = {
@@ -244,6 +255,10 @@ function mergeLemcalInto(data: CrmData): void {
 
         // Status rule: keep if != "Non qualifié", else set to "Opportunité"
         if (co.status === 'Non qualifié') {
+          if (!co.statusHistory || co.statusHistory.length === 0) {
+            co.statusHistory = [{ status: co.status, at: co.createdAt || now }]
+          }
+          co.statusHistory.push({ status: 'Opportunité', at: now })
           co.status = 'Opportunité'
           co.updatedAt = now
         }
@@ -275,6 +290,10 @@ function mergeLemcalInto(data: CrmData): void {
         })
         // Status rule
         if (company.status === 'Non qualifié') {
+          if (!company.statusHistory || company.statusHistory.length === 0) {
+            company.statusHistory = [{ status: company.status, at: company.createdAt || now }]
+          }
+          company.statusHistory.push({ status: 'Opportunité', at: now })
           company.status = 'Opportunité'
           company.updatedAt = now
         }
@@ -288,6 +307,7 @@ function mergeLemcalInto(data: CrmData): void {
           tasks: [],
           createdAt: now,
           updatedAt: now,
+          statusHistory: [{ status: 'Opportunité', at: now }],
           contacts: [{
             id: makeId(email),
             email,
@@ -337,11 +357,18 @@ export async function readCrm(): Promise<CrmData> {
   }
 
   const data = raw as CrmData
-  // Backfill tasks array for companies that predate this feature
+  // Backfill tasks array + statusHistory for companies that predate these features
   let needsWrite = false
   for (const co of data.companies) {
     if (!co.tasks) {
       co.tasks = []
+      needsWrite = true
+    }
+    if (!co.statusHistory || co.statusHistory.length === 0) {
+      // Seed history with the current status at creation time. This is an
+      // approximation — for companies that already went through transitions
+      // before this field existed, we can't recover the intermediate states.
+      co.statusHistory = [{ status: co.status, at: co.createdAt || new Date().toISOString() }]
       needsWrite = true
     }
   }
@@ -425,7 +452,11 @@ export async function upsertContact(
           existing.notes = existing.notes ? `${existing.notes}\n${input.notes}` : input.notes
         }
         existing.updatedAt = now
-        if (forceStatus) {
+        if (forceStatus && co.status !== forceStatus) {
+          if (!co.statusHistory || co.statusHistory.length === 0) {
+            co.statusHistory = [{ status: co.status, at: co.createdAt || now }]
+          }
+          co.statusHistory.push({ status: forceStatus, at: now })
           co.status = forceStatus
           co.updatedAt = now
         }
@@ -453,11 +484,16 @@ export async function upsertContact(
           contacts: [],
           createdAt: now,
           updatedAt: now,
+          statusHistory: [{ status, at: now }],
         }
         data.companies.push(company)
       }
 
-      if (forceStatus) {
+      if (forceStatus && company.status !== forceStatus) {
+        if (!company.statusHistory || company.statusHistory.length === 0) {
+          company.statusHistory = [{ status: company.status, at: company.createdAt || now }]
+        }
+        company.statusHistory.push({ status: forceStatus, at: now })
         company.status = forceStatus
         company.updatedAt = now
       }

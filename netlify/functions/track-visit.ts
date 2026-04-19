@@ -11,6 +11,7 @@ const handler: Handler = async (event) => {
       date?: string
       path?: string
       src?: string | null
+      ref?: string | null
     }
     const key = /^\d{4}-\d{2}-\d{2}$/.test(body.date || '')
       ? (body.date as string)
@@ -26,6 +27,10 @@ const handler: Handler = async (event) => {
       typeof body.src === 'string' && body.src.length > 0
         ? body.src.slice(0, 64)
         : null
+    const ref =
+      typeof body.ref === 'string' && body.ref.length > 0
+        ? body.ref.slice(0, 64)
+        : null
 
     const store = getAnalyticsStore()
     const existing = (await store.get('data', { type: 'json' })) as
@@ -34,6 +39,7 @@ const handler: Handler = async (event) => {
           visits: Record<string, number>
           visits_by_path?: Record<string, Record<string, number>>
           visits_by_src?: Record<string, Record<string, number>>
+          visits_by_ref?: Record<string, Record<string, number>>
         }
       | null
     const data = existing || { events: [], visits: {} }
@@ -49,13 +55,18 @@ const handler: Handler = async (event) => {
       data.visits_by_src[key] = data.visits_by_src[key] || {}
       data.visits_by_src[key][src] = (data.visits_by_src[key][src] || 0) + 1
     }
+    if (ref) {
+      data.visits_by_ref = data.visits_by_ref || {}
+      data.visits_by_ref[key] = data.visits_by_ref[key] || {}
+      data.visits_by_ref[key][ref] = (data.visits_by_ref[key][ref] || 0) + 1
+    }
 
     await store.setJSON('data', data)
 
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ok: true, date: key, count: data.visits[key], path, src }),
+      body: JSON.stringify({ ok: true, date: key, count: data.visits[key], path, src, ref }),
     }
   } catch (err) {
     console.error('track-visit error:', err)

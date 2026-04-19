@@ -16,6 +16,53 @@ import Booking from './pages/Booking'
 import QuotePage from './pages/QuotePage'
 import TransitionCMO from './pages/TransitionCMO'
 
+// Normalize a referrer hostname into a short stable label so the admin dashboard
+// can group "www.google.fr", "google.com", "www.google.co.uk" under "google".
+function normalizeRef(host: string): string {
+  const h = host.toLowerCase().replace(/^www\./, '')
+  if (/(^|\.)google\./.test(h)) return 'google'
+  if (/(^|\.)bing\./.test(h)) return 'bing'
+  if (/(^|\.)duckduckgo\./.test(h)) return 'duckduckgo'
+  if (/(^|\.)yahoo\./.test(h)) return 'yahoo'
+  if (/(^|\.)ecosia\./.test(h)) return 'ecosia'
+  if (/(^|\.)qwant\./.test(h)) return 'qwant'
+  if (h.includes('linkedin.') || h === 'lnkd.in') return 'linkedin'
+  if (h.includes('twitter.') || h === 'x.com' || h === 't.co') return 'twitter/x'
+  if (h.includes('facebook.') || h === 'fb.me' || h === 'l.facebook.com') return 'facebook'
+  if (h.includes('instagram.')) return 'instagram'
+  if (h.includes('youtube.') || h === 'youtu.be') return 'youtube'
+  if (h.includes('reddit.')) return 'reddit'
+  if (h.includes('chatgpt.com') || h.includes('chat.openai.com')) return 'chatgpt'
+  if (h.includes('claude.ai')) return 'claude'
+  if (h.includes('perplexity.')) return 'perplexity'
+  if (h.includes('gemini.google.com') || h === 'bard.google.com') return 'gemini'
+  return h.slice(0, 64)
+}
+
+// Resolve the referrer ONCE per browser session so the attribution is credited
+// to the first landing page only, not to every subsequent in-site navigation.
+function resolveSessionRef(): string | null {
+  const KEY = 'clempo_session_ref'
+  const existing = sessionStorage.getItem(KEY)
+  if (existing !== null) return existing || null
+  let ref = 'direct'
+  try {
+    if (document.referrer) {
+      const refUrl = new URL(document.referrer)
+      if (refUrl.hostname && !/(^|\.)clempo\.fr$/.test(refUrl.hostname)) {
+        ref = normalizeRef(refUrl.hostname)
+      } else {
+        // Self-referral (internal navigation) — do not attribute
+        ref = ''
+      }
+    }
+  } catch {
+    ref = ''
+  }
+  try { sessionStorage.setItem(KEY, ref) } catch { /* ignore */ }
+  return ref || null
+}
+
 function VisitTracker() {
   const location = useLocation()
   useEffect(() => {
@@ -30,10 +77,21 @@ function VisitTracker() {
       const dedupeKey = `clempo_visit_${today}_${location.pathname}_${src}`
       if (sessionStorage.getItem(dedupeKey)) return
       sessionStorage.setItem(dedupeKey, '1')
+
+      // Only attribute the external referrer on the FIRST track-visit of a
+      // session so a Google landing isn't counted again when the visitor
+      // clicks through to /articles.
+      const refSentKey = 'clempo_session_ref_sent'
+      let ref: string | null = null
+      if (!sessionStorage.getItem(refSentKey)) {
+        ref = resolveSessionRef()
+        try { sessionStorage.setItem(refSentKey, '1') } catch { /* ignore */ }
+      }
+
       fetch('/.netlify/functions/track-visit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: today, path: location.pathname, src: src || null }),
+        body: JSON.stringify({ date: today, path: location.pathname, src: src || null, ref }),
         keepalive: true,
       })
         .then(r => r.ok ? r.json() : r.text().then(t => Promise.reject(t)))
