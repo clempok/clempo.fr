@@ -5,6 +5,9 @@ import { useLang } from '../contexts/LangContext'
 import { useContent } from '../contexts/ContentContext'
 import SEO from '../components/SEO'
 import { bookingUrl } from '../lib/cta'
+import Booking from './Booking'
+
+const PORTRAIT_URL = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6913248fb7d48a3e5503c26d/48d8d0835_nano-banana-2025-11-11T10-55-151.png'
 
 const ACCENT = '#1A1A6B'
 const ACCENT_LIGHT = 'rgba(26,26,107,0.07)'
@@ -133,67 +136,94 @@ export default function Home() {
       <div style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ── HERO ── */}
-        <section style={{ minHeight: '75vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '6rem 4vw 3rem' }}>
-          {/* Mega name */}
-          <h1 style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 'clamp(3.5rem, 9vw, 9rem)',
-            fontWeight: 700, lineHeight: 0.95, letterSpacing: '-0.045em',
-            marginBottom: '1.5rem',
-          }}>
-            <span className="hero-line"><span className="hero-line-inner" style={{ color: TEXT }}>Clément</span></span>
-            <span className="hero-line"><span className="hero-line-inner">
-              Pouget-<span style={{ color: ACCENT }}>Osmont</span>
-            </span></span>
-          </h1>
+        <section style={{ minHeight: '75vh', display: 'flex', alignItems: 'center', padding: '6rem 4vw 3rem' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 1fr)',
+            gap: 'clamp(2rem, 5vw, 5rem)',
+            alignItems: 'center',
+            width: '100%',
+          }} className="hero-grid">
+            <div style={{ minWidth: 0 }}>
+              {/* Mega name */}
+              <h1 style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 'clamp(3rem, 7.5vw, 7.5rem)',
+                fontWeight: 700, lineHeight: 0.95, letterSpacing: '-0.045em',
+                marginBottom: '1.5rem',
+              }}>
+                <span className="hero-line"><span className="hero-line-inner" style={{ color: TEXT }}>Clément</span></span>
+                <span className="hero-line"><span className="hero-line-inner">
+                  Pouget-<span style={{ color: ACCENT }}>Osmont</span>
+                </span></span>
+              </h1>
 
-          {/* Subtitle */}
-          <p style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 'clamp(1.1rem, 2vw, 1.6rem)',
-            fontWeight: 500, color: TEXT, marginBottom: '0.75rem', letterSpacing: '-0.01em',
-          }}>
-            {t('hero', 'title')}
-          </p>
+              {/* Subtitle */}
+              <p style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 'clamp(1.1rem, 2vw, 1.6rem)',
+                fontWeight: 500, color: TEXT, marginBottom: '0.75rem', letterSpacing: '-0.01em',
+              }}>
+                {t('hero', 'title')}
+              </p>
 
-          {/* Tags */}
-          <p style={{ fontSize: '0.78rem', color: MUTED, fontWeight: 300, marginBottom: '3rem', lineHeight: 1.6, letterSpacing: '0.02em' }}>
-            Product Marketing <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
-            Growth Marketing <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
-            Revenue Strategy <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
-            Team Management
-          </p>
+              {/* Tags */}
+              <p style={{ fontSize: '0.78rem', color: MUTED, fontWeight: 300, marginBottom: '3rem', lineHeight: 1.6, letterSpacing: '0.02em' }}>
+                Product Marketing <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
+                Growth Marketing <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
+                Revenue Strategy <span style={{ opacity: 0.4, margin: '0 0.3rem' }}>·</span>
+                Team Management
+              </p>
 
-          {/* CTAs */}
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <Link
-              to={bookingUrl('home-hero')}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                padding: '1rem 2.2rem', background: ACCENT, color: '#fff',
-                textDecoration: 'none', borderRadius: '100px',
-                fontSize: '0.85rem', fontWeight: 500, letterSpacing: '0.01em',
-                transition: 'all 0.3s',
-              }}
-              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = '#2D2D8A'; el.style.transform = 'translateY(-2px)'; el.style.boxShadow = '0 12px 40px rgba(26,26,107,0.2)' }}
-              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = ACCENT; el.style.transform = ''; el.style.boxShadow = '' }}
-            >
-              📅 {t('hero', 'cta_chat')}
-            </Link>
-            <a
-              href="#about"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                padding: '1rem 2.2rem', background: 'transparent', color: TEXT,
-                textDecoration: 'none', borderRadius: '100px',
-                fontSize: '0.85rem', fontWeight: 500,
-                border: `1px solid ${BORDER}`, transition: 'all 0.3s',
-              }}
-              onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = TEXT; el.style.transform = 'translateY(-2px)' }}
-              onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = BORDER; el.style.transform = '' }}
-            >
-              {t('hero', 'cta_more')} ↓
-            </a>
+              {/* CTAs */}
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <Link
+                  to={bookingUrl('home-hero')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '1rem 2.2rem', background: ACCENT, color: '#fff',
+                    textDecoration: 'none', borderRadius: '100px',
+                    fontSize: '0.85rem', fontWeight: 500, letterSpacing: '0.01em',
+                    transition: 'all 0.3s',
+                  }}
+                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = '#2D2D8A'; el.style.transform = 'translateY(-2px)'; el.style.boxShadow = '0 12px 40px rgba(26,26,107,0.2)' }}
+                  onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = ACCENT; el.style.transform = ''; el.style.boxShadow = '' }}
+                >
+                  📅 {t('hero', 'cta_chat')}
+                </Link>
+                <a
+                  href="#about"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '1rem 2.2rem', background: 'transparent', color: TEXT,
+                    textDecoration: 'none', borderRadius: '100px',
+                    fontSize: '0.85rem', fontWeight: 500,
+                    border: `1px solid ${BORDER}`, transition: 'all 0.3s',
+                  }}
+                  onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = TEXT; el.style.transform = 'translateY(-2px)' }}
+                  onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = BORDER; el.style.transform = '' }}
+                >
+                  {t('hero', 'cta_more')} ↓
+                </a>
+              </div>
+            </div>
+
+            {/* Portrait */}
+            <div className="hero-portrait" style={{ display: 'flex', justifyContent: 'center' }}>
+              <img
+                src={PORTRAIT_URL}
+                alt="Portrait Clément Pouget-Osmont"
+                loading="eager"
+                style={{
+                  width: '100%',
+                  maxWidth: '420px',
+                  aspectRatio: '4/5',
+                  objectFit: 'cover',
+                  borderRadius: '24px',
+                  boxShadow: '0 40px 100px rgba(0,0,0,0.08)',
+                }}
+              />
+            </div>
           </div>
 
           {/* Scroll indicator */}
@@ -222,53 +252,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── ABOUT ── */}
-        <section id="about" style={{ padding: '8rem 4vw' }}>
-          <div ref={revealAbout} className="reveal" style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '5rem', alignItems: 'center',
-            background: BG_OFF, borderRadius: '24px', padding: 'clamp(2.5rem, 5vw, 5rem)',
-          }}>
-            <div>
-              <img
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6913248fb7d48a3e5503c26d/48d8d0835_nano-banana-2025-11-11T10-55-151.png"
-                alt="Portrait Clément Pouget-Osmont"
-                style={{ width: '100%', maxWidth: '320px', aspectRatio: '3/4', objectFit: 'cover', borderRadius: '16px', boxShadow: '0 30px 80px rgba(0,0,0,0.06)' }}
-              />
-            </div>
-            <div>
-              <p style={{ fontSize: '0.68rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: ACCENT, marginBottom: '1.5rem', fontWeight: 500 }}>
-                À propos
-              </p>
-              <h2 style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 'clamp(1.8rem, 3vw, 2.8rem)',
-                fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '2rem', color: TEXT,
-              }}>
-                {t('about', 'title')}
-              </h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-                {['p1','p2','p3'].map(k => (
-                  <p key={k} style={{ fontSize: '0.92rem', lineHeight: 1.8, color: MUTED, fontWeight: 300 }}>
-                    {t('about', k)}
-                  </p>
-                ))}
-              </div>
-              <Link
-                to={bookingUrl('home-about')}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
-                  textDecoration: 'none', color: TEXT,
-                  fontSize: '0.85rem', fontWeight: 500,
-                  paddingBottom: '0.3rem', borderBottom: `2px solid ${ACCENT}`,
-                  transition: 'gap 0.3s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.gap = '1.2rem')}
-                onMouseLeave={e => (e.currentTarget.style.gap = '0.75rem')}
-              >
-                {t('about', 'cta')} →
-              </Link>
-            </div>
+        {/* ── BOOKING EMBED (replaces the previous About block) ── */}
+        <section id="about" style={{ padding: '6rem 4vw 4rem' }}>
+          <div ref={revealAbout} className="reveal">
+            <Booking embedded />
           </div>
         </section>
 

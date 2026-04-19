@@ -40,6 +40,17 @@ a, button { cursor: none; }
   a, button { cursor: pointer; }
 }
 
+/* ─── HERO GRID (name + portrait) ─── */
+@media (max-width: 900px) {
+  .hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 2.5rem !important;
+  }
+  .hero-portrait img {
+    max-width: 280px !important;
+  }
+}
+
 /* ─── MEDIA GRID ─── */
 .media-grid {
   display: grid;

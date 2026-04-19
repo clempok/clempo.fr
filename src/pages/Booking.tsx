@@ -90,7 +90,11 @@ function formatTime(h: number, m: number): string {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
 }
 
-export default function Booking() {
+interface BookingProps {
+  embedded?: boolean
+}
+
+export default function Booking({ embedded = false }: BookingProps = {}) {
   const { lang } = useLang()
   const isFr = lang === 'fr'
 
@@ -313,9 +317,8 @@ export default function Booking() {
     transition: 'border-color 0.2s',
   }
 
-  return (
-    <main style={{ paddingTop: '7rem', paddingBottom: '6rem', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 5vw' }}>
+  const content = (
+      <div style={{ maxWidth: '720px', margin: '0 auto', padding: embedded ? 0 : '0 5vw' }}>
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
@@ -975,7 +978,8 @@ export default function Booking() {
           )}
         </div>
 
-        {/* ─── Bio card (photo + name + tagline) ─── */}
+        {/* ─── Bio card (photo + name + tagline) — hidden when embedded on Home ─── */}
+        {!embedded && (
         <div style={{
           marginTop: '3rem',
           padding: 'clamp(1.5rem, 3vw, 2rem)',
@@ -1028,8 +1032,10 @@ export default function Booking() {
             </p>
           </div>
         </div>
+        )}
 
-        {/* ─── Client references ─── */}
+        {/* ─── Client references — hidden when embedded (home has its own marquee) ─── */}
+        {!embedded && (
         <div style={{
           marginTop: '1.5rem',
           padding: '1.75rem 1.5rem',
@@ -1076,7 +1082,10 @@ export default function Booking() {
           </div>
         </div>
 
-        {/* Info footer */}
+        )}
+
+        {/* Info footer — hidden when embedded */}
+        {!embedded && (
         <div style={{
           marginTop: '2rem',
           textAlign: 'center',
@@ -1086,7 +1095,14 @@ export default function Booking() {
         }}>
           Clément Pouget-Osmont · clement.pougetosmont@gmail.com
         </div>
+        )}
       </div>
+  )
+
+  if (embedded) return content
+  return (
+    <main style={{ paddingTop: '7rem', paddingBottom: '6rem', minHeight: '100vh' }}>
+      {content}
     </main>
   )
 }
