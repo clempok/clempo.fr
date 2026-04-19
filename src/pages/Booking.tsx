@@ -336,17 +336,58 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
           }}>
             {t.badge}
           </span>
-          <h1 style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
-            fontWeight: 700,
-            letterSpacing: '-0.03em',
-            color: TEXT,
-            lineHeight: 1.15,
-            marginBottom: '0.75rem',
-          }}>
-            {t.title}
-          </h1>
+          {/* Heading — on Home embed, pair a small avatar next to the title
+              so the CTA feels personal. Standalone /booking keeps a plain h1
+              (the bio card below already carries the portrait). */}
+          {embedded ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.85rem',
+              marginBottom: '0.75rem',
+              flexWrap: 'wrap',
+            }}>
+              <img
+                src="/clement-phone.jpeg"
+                alt="Clément au téléphone"
+                loading="lazy"
+                width={56}
+                height={56}
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  flexShrink: 0,
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
+                }}
+              />
+              <h1 style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: 'clamp(1.6rem, 3.2vw, 2.3rem)',
+                fontWeight: 700,
+                letterSpacing: '-0.03em',
+                color: TEXT,
+                lineHeight: 1.15,
+                margin: 0,
+              }}>
+                {t.title}
+              </h1>
+            </div>
+          ) : (
+            <h1 style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
+              fontWeight: 700,
+              letterSpacing: '-0.03em',
+              color: TEXT,
+              lineHeight: 1.15,
+              marginBottom: '0.75rem',
+            }}>
+              {t.title}
+            </h1>
+          )}
           <p style={{ color: MUTED, fontSize: '1rem', lineHeight: 1.6 }}>
             {t.subtitle}
           </p>
