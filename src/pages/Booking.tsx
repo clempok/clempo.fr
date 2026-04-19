@@ -351,7 +351,9 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
             {t.subtitle}
           </p>
 
-          {/* Positioning badges — industries + functions */}
+          {/* Positioning badges — industries + functions. Hidden when embedded
+              on Home (the About card already carries the positioning). */}
+          {!embedded && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -402,6 +404,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
               ))}
             </div>
           </div>
+          )}
         </div>
 
         {/* Card */}
