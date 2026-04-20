@@ -335,7 +335,12 @@ export default function Home() {
                 { badge: 'Management de Transition', trigger: '', title: 'Management de Transition Santé', text: '', format: 'Full-time · 6-12 mois', price: 'TJM transparent sur brief', cta_label: "Voir l'offre transition →" },
               ]
               const cmsCards = Array.isArray(accomp?.cards) ? accomp!.cards : accompDefaults
-              return cmsCards.map((card: Record<string, string>, i: number) => ({
+              type AccompItem = {
+                badge: string; trigger: string; title: string; text: string;
+                format: string; price: string; ctaLabel: string;
+                to: string; badgeBg: string; badgeColor: string; starred: boolean;
+              }
+              return cmsCards.map((card: Record<string, string>, i: number): AccompItem => ({
                 badge: card.badge ?? accompDefaults[i]?.badge ?? '',
                 trigger: card.trigger ?? accompDefaults[i]?.trigger ?? '',
                 title: card.title ?? accompDefaults[i]?.title ?? '',
@@ -348,7 +353,11 @@ export default function Home() {
                 badgeColor: accompStyles[i]?.badgeColor || ACCENT,
                 starred: !!accompStyles[i]?.starred,
               }))
-            })().map((item, i) => (
+            })().map((item: {
+              badge: string; trigger: string; title: string; text: string;
+              format: string; price: string; ctaLabel: string;
+              to: string; badgeBg: string; badgeColor: string; starred: boolean;
+            }, i: number) => (
               <div key={i} style={{
                 background: BG_OFF, borderRadius: '24px',
                 padding: '2.5rem', border: item.starred ? `1px solid rgba(26,26,107,0.25)` : `1px solid ${BORDER}`,
@@ -481,7 +490,10 @@ export default function Home() {
                 { icon: '🏥', title: 'Établissements de soins', text: "Marketing pour des centres de santé afin d'attirer patients et médecins.", clients: 'DocCity, Clinique stomatologie Dr Solène Vo Quang', role: '' },
               ]
               const cmsCards = Array.isArray(secteurs?.cards) ? secteurs!.cards : secteursDefaults
-              return cmsCards.map((card: Record<string, string>, i: number) => ({
+              type SecteurItem = {
+                icon: string; title: string; text: string; role: string; clients: string[];
+              }
+              return cmsCards.map((card: Record<string, string>, i: number): SecteurItem => ({
                 icon: card.icon || secteursDefaults[i]?.icon || '',
                 title: card.title || secteursDefaults[i]?.title || '',
                 text: card.text || secteursDefaults[i]?.text || '',
@@ -489,7 +501,7 @@ export default function Home() {
                 clients: String(card.clients || secteursDefaults[i]?.clients || '')
                   .split(',').map(s => s.trim()).filter(Boolean),
               }))
-            })().map((item, i) => (
+            })().map((item: { icon: string; title: string; text: string; role: string; clients: string[] }, i: number) => (
               <div key={i} style={{
                 background: BG_OFF, borderRadius: '24px',
                 padding: '2.5rem', border: `1px solid ${BORDER}`,
