@@ -3,6 +3,9 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# Scheduled CRM ↔ Notion sync — see netlify/functions/notion-sync-cron.ts
+# (schedule is declared via schedule() helper in the function itself)
+
 # Fichiers statiques tools — servir directement, pas de SPA fallback
 [[redirects]]
   from = "/tools/*"

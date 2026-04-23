@@ -32,6 +32,8 @@ export type CrmContact = {
   linkedIn?: string
   createdAt: string
   updatedAt: string
+  /** Notion page ID in the Contacts mirror DB, filled by notion-sync. */
+  notionPageId?: string
 }
 
 export type CrmTask = {
@@ -64,6 +66,8 @@ export type CrmCompany = {
    * (initial entry = current status at createdAt).
    */
   statusHistory?: CrmStatusHistoryEntry[]
+  /** Notion page ID in the Companies mirror DB, filled by notion-sync. */
+  notionPageId?: string
 }
 
 export type CrmData = {
