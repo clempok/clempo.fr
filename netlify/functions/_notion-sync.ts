@@ -381,8 +381,25 @@ async function processMeetings(
 
 // --- Public entry point ---
 
-export async function runSync(): Promise<Record<string, unknown>> {
-  const result: Record<string, unknown> = { startedAt: new Date().toISOString() }
+/**
+ * Incremental sync. Bounded by `budgetMs` (default 8s for HTTP, longer for cron).
+ *
+ * Strategy:
+ *  - Skip companies/contacts that already have a notionPageId (initial backfill
+ *    runs creates → no re-PATCH; updates are best-effort if we have budget left).
+ *  - Phase A: create missing companies until budget exhausted.
+ *  - Phase B: create missing contacts until budget exhausted.
+ *  - Phase C: process unsynced meeting notes if any budget left.
+ *  - archiveMissing only runs once per ~30 min (cheap on a stable CRM).
+ */
+export async function runSync(opts: { budgetMs?: number } = {}): Promise<Record<string, unknown>> {
+  const budgetMs = opts.budgetMs ?? 8000
+  const deadline = Date.now() + budgetMs
+  const overBudget = () => Date.now() >= deadline
+  const result: Record<string, unknown> = {
+    startedAt: new Date().toISOString(),
+    budgetMs,
+  }
 
   const DB_COMPANIES = process.env.NOTION_DB_COMPANIES
   const DB_CONTACTS = process.env.NOTION_DB_CONTACTS
@@ -396,57 +413,82 @@ export async function runSync(): Promise<Record<string, unknown>> {
     const data = await readCrm()
     result.companyCount = data.companies.length
     result.contactCount = data.companies.reduce((n, c) => n + c.contacts.length, 0)
+    result.companiesAlreadySynced = data.companies.filter(c => c.notionPageId).length
+    result.contactsAlreadySynced = data.companies.reduce(
+      (n, c) => n + c.contacts.filter(x => x.notionPageId).length, 0,
+    )
 
-    // Phase A: push Companies
+    // Phase A: create missing companies first; if all created, patch updates with remaining budget
+    const missingCompanies = data.companies.filter(c => !c.notionPageId)
     let companiesPushed = 0
-    for (const company of data.companies) {
+    let mutated = false
+    for (const company of missingCompanies) {
+      if (overBudget()) break
       try {
         const pageId = await upsertCompanyPage(DB_COMPANIES, company)
-        if (company.notionPageId !== pageId) company.notionPageId = pageId
+        company.notionPageId = pageId
+        mutated = true
         companiesPushed++
       } catch (err) {
         console.warn('upsert company failed', company.id, err)
       }
     }
-    await writeCrm(data)
+    if (mutated) await writeCrm(data)
     result.companiesPushed = companiesPushed
+    result.companiesRemaining = missingCompanies.length - companiesPushed
 
-    try {
-      result.companiesArchived = await archiveMissing(
-        DB_COMPANIES,
-        new Set(data.companies.map(c => c.id)),
-      )
-    } catch (err) {
-      console.warn('archiveMissing companies failed', err)
-    }
-
-    // Phase B: push Contacts
-    let contactsPushed = 0
+    // Phase B: create missing contacts
+    const missingContacts: Array<{ contact: CrmContact; companyPageId: string | undefined }> = []
     for (const company of data.companies) {
-      for (const contact of company.contacts) {
-        try {
-          const pageId = await upsertContactPage(DB_CONTACTS, contact, company.notionPageId)
-          if (contact.notionPageId !== pageId) contact.notionPageId = pageId
-          contactsPushed++
-        } catch (err) {
-          console.warn('upsert contact failed', contact.email, err)
-        }
+      for (const c of company.contacts) {
+        if (!c.notionPageId) missingContacts.push({ contact: c, companyPageId: company.notionPageId })
       }
     }
-    await writeCrm(data)
+    let contactsPushed = 0
+    mutated = false
+    for (const { contact, companyPageId } of missingContacts) {
+      if (overBudget()) break
+      try {
+        const pageId = await upsertContactPage(DB_CONTACTS, contact, companyPageId)
+        contact.notionPageId = pageId
+        mutated = true
+        contactsPushed++
+      } catch (err) {
+        console.warn('upsert contact failed', contact.email, err)
+      }
+    }
+    if (mutated) await writeCrm(data)
     result.contactsPushed = contactsPushed
+    result.contactsRemaining = missingContacts.length - contactsPushed
 
-    // Phase C: process meeting notes
-    try {
-      const fresh = await readCrm()
-      const stats = await processMeetings(DB_MEETINGS, fresh.companies)
-      Object.assign(result, stats)
-    } catch (err) {
-      console.error('processMeetings failed', err)
-      result.meetingsError = String(err)
+    // Phase C: process meeting notes (only if budget remains and backfill is done)
+    if (!overBudget() && result.contactsRemaining === 0 && result.companiesRemaining === 0) {
+      try {
+        const fresh = await readCrm()
+        const stats = await processMeetings(DB_MEETINGS, fresh.companies)
+        Object.assign(result, stats)
+      } catch (err) {
+        console.error('processMeetings failed', err)
+        result.meetingsError = String(err)
+      }
+    } else {
+      result.meetingsSkipped = 'backfill in progress or budget exhausted'
+    }
+
+    // archiveMissing: only when caller has lots of budget (cron only)
+    if (budgetMs >= 60_000 && !overBudget()) {
+      try {
+        result.companiesArchived = await archiveMissing(
+          DB_COMPANIES,
+          new Set(data.companies.map(c => c.id)),
+        )
+      } catch (err) {
+        console.warn('archiveMissing companies failed', err)
+      }
     }
 
     result.finishedAt = new Date().toISOString()
+    result.elapsedMs = Date.now() - (deadline - budgetMs)
     return result
   } catch (err) {
     console.error('notion-sync fatal error:', err)
