@@ -27,6 +27,10 @@ export type LeadEvent = {
 export type AnalyticsData = {
   events: LeadEvent[]
   visits: Record<string, number> // YYYY-MM-DD -> count
+  visits_by_path?: Record<string, Record<string, number>>
+  visits_by_src?: Record<string, Record<string, number>>
+  visits_by_ref?: Record<string, Record<string, number>>
+  linkedin_impressions?: Record<string, number>
 }
 
 const EMPTY: AnalyticsData = { events: [], visits: {} }
@@ -51,7 +55,7 @@ export async function readData(): Promise<AnalyticsData> {
     const s = store()
     const data = (await s.get('data', { type: 'json' })) as AnalyticsData | null
     if (!data) return { events: [], visits: {} }
-    return { events: data.events || [], visits: data.visits || {} }
+    return { ...data, events: data.events || [], visits: data.visits || {} }
   } catch (err) {
     console.error('readData error:', err)
     return { ...EMPTY }

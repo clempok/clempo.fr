@@ -14,62 +14,106 @@ function escapeHtml(str: string): string {
 function buildEmail(data: any, quoteUrl: string): string {
   const { totalTTC } = computeLineTotals(data.lines || [], data.globalDiscount || 0)
   const bodyHtml = escapeHtml(data.emailContent || '').replace(/\n/g, '<br>')
-  const accent = data.accentColor || '#1A1A6B'
+
+  // ── Brand Book 2026 — Ink / Paper / Signal ──
+  const INK = '#0A0A0B'
+  const PAPER = '#EDEBE4'
+  const PAPER_SOFT = '#F4F4F2'
+  const GRAPHITE = '#2A2D35'
+  const STEEL = '#6B6F7A'
+  const MIST = '#B8BCC4'
+  const SIGNAL = '#00D68F'
+  const fontStack = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+  const monoStack = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+  const serifStack = "'Instrument Serif', Georgia, 'Times New Roman', serif"
+
+  const offerLine = data.offerTitle
+    ? `<tr><td style="padding-top: 8px; font-family: ${fontStack}; font-size: 14px; color: ${MIST};">${escapeHtml(data.offerTitle)}</td></tr>`
+    : ''
 
   return `<!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4;">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Devis ${escapeHtml(data.reference)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+</head>
+<body style="margin: 0; padding: 0; background-color: ${PAPER}; font-family: ${fontStack}; color: ${INK};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: ${PAPER};">
     <tr>
-      <td align="center" style="padding: 24px 16px;">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+      <td align="center" style="padding: 32px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: ${PAPER}; border: 1px solid rgba(10,10,11,0.08); border-radius: 4px; overflow: hidden;">
 
-          <!-- Header with CTA -->
+          <!-- Hero band — Ink -->
           <tr>
-            <td style="padding: 28px 32px; background-color: #fafafa; border-bottom: 1px solid #eee;">
+            <td style="padding: 28px 32px; background-color: ${INK};">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <a href="${escapeHtml(quoteUrl)}" style="display: inline-block; background-color: ${accent}; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: 14px; letter-spacing: 0.3px;">
-                      Voir le Devis
-                    </a>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding-top: 16px;">
-                    <span style="font-size: 16px; font-weight: 700; color: #111;">${escapeHtml(data.reference)} ${data.offerTitle ? '— ' + escapeHtml(data.offerTitle) : ''}</span><br>
-                    <span style="font-size: 15px; color: #555; line-height: 1.8;">
-                      ${escapeHtml(data.clientCompany || data.clientName)} &middot; ${formatAmount(totalTTC)} TTC
+                    <span style="font-family: ${monoStack}; font-size: 11px; font-weight: 500; color: ${SIGNAL}; letter-spacing: 0.1em; text-transform: uppercase;">
+                      // Devis ${escapeHtml(data.reference)}
                     </span>
                   </td>
                 </tr>
+                <tr>
+                  <td style="padding-top: 10px;">
+                    <span style="font-family: ${fontStack}; font-size: 22px; font-weight: 700; color: ${PAPER}; letter-spacing: -0.02em; line-height: 1.2;">
+                      ${escapeHtml(data.clientCompany || data.clientName)} — <span style="font-family: ${monoStack}; font-weight: 500;">${formatAmount(totalTTC)}</span>
+                    </span>
+                  </td>
+                </tr>
+                ${offerLine}
               </table>
             </td>
           </tr>
 
           <!-- Email body -->
           <tr>
-            <td style="padding: 28px 32px;">
-              <div style="font-size: 15px; color: #333; line-height: 1.7;">
+            <td style="padding: 32px;">
+              <div style="font-family: ${fontStack}; font-size: 15px; color: ${GRAPHITE}; line-height: 1.75;">
                 ${bodyHtml}
               </div>
-              <div style="text-align: center; margin: 28px 0 12px;">
-                <a href="${escapeHtml(quoteUrl)}" style="display: inline-block; background-color: ${accent}; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px;">
-                  Consulter le devis en ligne
+
+              <!-- Primary CTA -->
+              <div style="text-align: center; margin: 32px 0 8px;">
+                <a href="${escapeHtml(quoteUrl)}" style="display: inline-block; background-color: ${SIGNAL}; color: ${INK}; padding: 14px 32px; border-radius: 4px; text-decoration: none; font-family: ${fontStack}; font-weight: 600; font-size: 15px; letter-spacing: -0.005em;">
+                  Consulter le devis en ligne &nbsp;→
                 </a>
               </div>
+              <p style="font-family: ${monoStack}; font-size: 11px; color: ${STEEL}; text-align: center; margin: 12px 0 0; letter-spacing: 0.05em;">
+                ou copier ce lien : <a href="${escapeHtml(quoteUrl)}" style="color: ${INK}; text-decoration: underline;">${escapeHtml(quoteUrl)}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Sign-off card -->
+          <tr>
+            <td style="padding: 0 32px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: ${PAPER_SOFT}; border-radius: 4px; border-left: 2px solid ${SIGNAL};">
+                <tr>
+                  <td style="padding: 18px 22px;">
+                    <span style="font-family: ${monoStack}; font-size: 11px; color: ${SIGNAL}; letter-spacing: 0.1em; text-transform: uppercase;">// Votre contact</span>
+                    <p style="margin: 6px 0 0; font-family: ${fontStack}; font-size: 14px; color: ${INK}; line-height: 1.7;">
+                      <strong style="font-weight: 700; letter-spacing: -0.01em;">${escapeHtml(data.senderName)}</strong><br>
+                      <span style="font-family: ${serifStack}; font-style: italic; color: ${GRAPHITE};">Healthcare</span>
+                      <span style="color: ${GRAPHITE};">Marketing Director — ${escapeHtml(data.senderCompany)}</span><br>
+                      <a href="mailto:${escapeHtml(data.senderEmail)}" style="color: ${INK}; text-decoration: underline; text-decoration-color: ${SIGNAL}; text-underline-offset: 3px;">${escapeHtml(data.senderEmail)}</a>${data.senderPhone ? ' &middot; <span style="font-family: ' + monoStack + '; color: ' + GRAPHITE + ';">' + escapeHtml(data.senderPhone) + '</span>' : ''}
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 20px 32px; border-top: 1px solid #eee; background-color: #fafafa;">
-              <p style="margin: 0; font-size: 13px; color: #888;">
-                --<br>
-                ${escapeHtml(data.senderName)}<br>
-                ${escapeHtml(data.senderCompany)}${data.senderPhone ? '<br>' + escapeHtml(data.senderPhone) : ''}<br>
-                <a href="mailto:${escapeHtml(data.senderEmail)}" style="color: ${accent};">${escapeHtml(data.senderEmail)}</a>
+            <td style="padding: 18px 32px 22px; border-top: 1px solid rgba(10,10,11,0.08); text-align: center;">
+              <span style="font-family: ${fontStack}; font-size: 14px; font-weight: 700; color: ${INK}; letter-spacing: -0.05em;">
+                clempo<span style="display: inline-block; width: 4px; height: 4px; border-radius: 50%; background-color: ${SIGNAL}; margin-left: 1px; vertical-align: 1px;"></span>
+              </span>
+              <p style="margin: 6px 0 0; font-family: ${monoStack}; font-size: 10px; color: ${STEEL}; letter-spacing: 0.05em;">
+                © ${new Date().getFullYear()} ${escapeHtml(data.senderCompany)} — www.clempo.fr
               </p>
             </td>
           </tr>
@@ -139,7 +183,7 @@ const handler: Handler = async (event) => {
       paymentTerms: data.paymentTerms || undefined,
       emailContent: data.emailContent,
       status: 'sent',
-      accentColor: data.accentColor || '#1A1A6B',
+      accentColor: data.accentColor || '#0A0A0B',
       senderName: data.senderName,
       senderCompany: data.senderCompany,
       senderEmail: data.senderEmail,

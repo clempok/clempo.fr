@@ -4,12 +4,20 @@ import type { QuoteSignature, Quote } from './_quotes'
 // @ts-expect-error jspdf types
 import { jsPDF } from 'jspdf'
 
+function escapeHtml(str: string): string {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 /* ─── PDF generation (no reassurance elements) ─── */
 
 function generateQuotePdf(quote: Quote, signature: QuoteSignature): string {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const W = 210
-  const accent = quote.accentColor || '#1A1A6B'
+  const accent = quote.accentColor || '#0A0A0B'
   let y = 20
 
   const addText = (text: string, x: number, yPos: number, opts: { size?: number; bold?: boolean; color?: string; maxWidth?: number; align?: string } = {}) => {
@@ -301,52 +309,91 @@ const handler: Handler = async (event) => {
 
       const attachments = pdfBase64 ? [{ filename: pdfFilename, content: pdfBase64 }] : []
 
-      // Email to sender (notification)
+      // ── Brand Book 2026 — Ink / Paper / Signal ──
+      const INK = '#0A0A0B'
+      const PAPER = '#EDEBE4'
+      const PAPER_SOFT = '#F4F4F2'
+      const GRAPHITE = '#2A2D35'
+      const STEEL = '#6B6F7A'
+      const MIST = '#B8BCC4'
+      const SIGNAL = '#00D68F'
+      const fontStack = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+      const monoStack = "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+      const serifStack = "'Instrument Serif', Georgia, 'Times New Roman', serif"
+
+      const wordmark = `<span style="font-family:${fontStack};font-size:14px;font-weight:700;color:${INK};letter-spacing:-0.05em;">clempo<span style="display:inline-block;width:4px;height:4px;border-radius:50%;background-color:${SIGNAL};margin-left:1px;vertical-align:1px;"></span></span>`
+
+      // Email to sender (notification) — internal
       const senderHtml = `
-        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-          <h2 style="color:#16a34a;margin:0 0 16px;">Devis signe !</h2>
-          <p style="color:#333;font-size:15px;line-height:1.7;">
-            Le devis <strong>${quote.reference}</strong> a ete signe par <strong>${signature.signerName}</strong>
-            (${signature.signerCompany || quote.companyName}).
-          </p>
-          <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-            <tr><td style="padding:8px 0;color:#666;font-size:14px;">Montant TTC</td><td style="padding:8px 0;font-weight:700;font-size:14px;">${formatAmount(totalTTC)}</td></tr>
-            <tr><td style="padding:8px 0;color:#666;font-size:14px;">Signataire</td><td style="padding:8px 0;font-size:14px;">${signature.signerName} — ${signature.signerEmail}</td></tr>
-            ${signature.signerCompany ? `<tr><td style="padding:8px 0;color:#666;font-size:14px;">Societe</td><td style="padding:8px 0;font-size:14px;">${signature.signerCompany}</td></tr>` : ''}
-            ${signature.signerEmailCompta ? `<tr><td style="padding:8px 0;color:#666;font-size:14px;">Email compta</td><td style="padding:8px 0;font-size:14px;">${signature.signerEmailCompta}</td></tr>` : ''}
-            ${signature.signerTva ? `<tr><td style="padding:8px 0;color:#666;font-size:14px;">N° TVA</td><td style="padding:8px 0;font-size:14px;">${signature.signerTva}</td></tr>` : ''}
-            <tr><td style="padding:8px 0;color:#666;font-size:14px;">Signe le</td><td style="padding:8px 0;font-size:14px;">${new Date().toLocaleString('fr-FR')}</td></tr>
-            <tr><td style="padding:8px 0;color:#666;font-size:14px;">IP</td><td style="padding:8px 0;font-size:14px;">${ip}</td></tr>
-          </table>
-          <a href="${quoteUrl}" style="display:inline-block;background:#1A1A6B;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Voir le devis signe</a>
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"></head>
+<body style="margin:0;padding:0;background-color:${PAPER};font-family:${fontStack};color:${INK};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${PAPER};"><tr><td align="center" style="padding:32px 16px;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:${PAPER};border:1px solid rgba(10,10,11,0.08);border-radius:4px;overflow:hidden;">
+      <tr><td style="padding:24px 32px;background-color:${INK};">
+        <span style="font-family:${monoStack};font-size:11px;font-weight:500;color:${SIGNAL};letter-spacing:0.1em;text-transform:uppercase;">// Devis signé</span>
+        <div style="margin-top:8px;font-family:${fontStack};font-size:20px;font-weight:700;color:${PAPER};letter-spacing:-0.02em;">
+          <span style="font-family:${serifStack};font-style:italic;font-weight:400;">${escapeHtml(signature.signerName)}</span> a signé ${escapeHtml(quote.reference)}
         </div>
-      `
+      </td></tr>
+      <tr><td style="padding:28px 32px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-family:${monoStack};color:${STEEL};font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Montant TTC</td><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-family:${monoStack};font-weight:600;font-size:14px;color:${INK};text-align:right;">${formatAmount(totalTTC)}</td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-family:${monoStack};color:${STEEL};font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Signataire</td><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-size:14px;color:${INK};text-align:right;">${escapeHtml(signature.signerName)} — <a href="mailto:${escapeHtml(signature.signerEmail)}" style="color:${INK};text-decoration:underline;text-decoration-color:${SIGNAL};">${escapeHtml(signature.signerEmail)}</a></td></tr>
+          ${signature.signerCompany ? `<tr><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-family:${monoStack};color:${STEEL};font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Société</td><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-size:14px;color:${INK};text-align:right;">${escapeHtml(signature.signerCompany)}</td></tr>` : ''}
+          ${signature.signerEmailCompta ? `<tr><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-family:${monoStack};color:${STEEL};font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Email compta</td><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-size:14px;color:${INK};text-align:right;">${escapeHtml(signature.signerEmailCompta)}</td></tr>` : ''}
+          ${signature.signerTva ? `<tr><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-family:${monoStack};color:${STEEL};font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">N° TVA</td><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-family:${monoStack};font-size:13px;color:${INK};text-align:right;">${escapeHtml(signature.signerTva)}</td></tr>` : ''}
+          <tr><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-family:${monoStack};color:${STEEL};font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Signé le</td><td style="padding:10px 0;border-bottom:1px solid rgba(10,10,11,0.08);font-family:${monoStack};font-size:13px;color:${INK};text-align:right;">${new Date().toLocaleString('fr-FR')}</td></tr>
+          <tr><td style="padding:10px 0;font-family:${monoStack};color:${STEEL};font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">IP</td><td style="padding:10px 0;font-family:${monoStack};font-size:13px;color:${INK};text-align:right;">${escapeHtml(ip)}</td></tr>
+        </table>
+        <div style="text-align:center;margin-top:28px;">
+          <a href="${escapeHtml(quoteUrl)}" style="display:inline-block;background:${SIGNAL};color:${INK};padding:13px 28px;border-radius:4px;text-decoration:none;font-family:${fontStack};font-weight:600;font-size:14px;letter-spacing:-0.005em;">Voir le devis signé &nbsp;→</a>
+        </div>
+      </td></tr>
+      <tr><td style="padding:18px 32px 22px;border-top:1px solid rgba(10,10,11,0.08);text-align:center;">${wordmark}</td></tr>
+    </table>
+  </td></tr></table>
+</body></html>`
 
       // Email to client (confirmation)
       const clientHtml = `
-        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-          <h2 style="color:${quote.accentColor || '#1A1A6B'};margin:0 0 16px;">Confirmation de signature</h2>
-          <p style="color:#333;font-size:15px;line-height:1.7;">
-            Bonjour ${signature.signerName},
-          </p>
-          <p style="color:#333;font-size:15px;line-height:1.7;">
-            Votre signature du devis <strong>${quote.reference}</strong> a bien ete enregistree.
-            Vous trouverez en piece jointe une copie PDF du devis signe.
-          </p>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="${quoteUrl}" style="display:inline-block;background:${quote.accentColor || '#1A1A6B'};color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Voir le devis</a>
-          </div>
-          <p style="color:#888;font-size:13px;line-height:1.6;">
-            Signe le ${new Date().toLocaleString('fr-FR')}<br>
-            Montant : ${formatAmount(totalTTC)} TTC
-          </p>
-          <hr style="border:none;border-top:1px solid #eee;margin:20px 0;">
-          <p style="color:#888;font-size:13px;">
-            ${quote.senderName} — ${quote.senderCompany}<br>
-            <a href="mailto:${quote.senderEmail}" style="color:${quote.accentColor || '#1A1A6B'};">${quote.senderEmail}</a>
-          </p>
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"></head>
+<body style="margin:0;padding:0;background-color:${PAPER};font-family:${fontStack};color:${INK};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${PAPER};"><tr><td align="center" style="padding:32px 16px;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:${PAPER};border:1px solid rgba(10,10,11,0.08);border-radius:4px;overflow:hidden;">
+      <tr><td style="padding:28px 32px;background-color:${INK};">
+        <span style="font-family:${monoStack};font-size:11px;font-weight:500;color:${SIGNAL};letter-spacing:0.1em;text-transform:uppercase;">// Confirmation de signature</span>
+        <div style="margin-top:8px;font-family:${fontStack};font-size:22px;font-weight:700;color:${PAPER};letter-spacing:-0.02em;line-height:1.2;">
+          Merci <span style="font-family:${serifStack};font-style:italic;font-weight:400;">${escapeHtml(signature.signerName.split(' ')[0])}</span>
         </div>
-      `
+        <div style="margin-top:6px;font-family:${fontStack};font-size:14px;color:${MIST};">Devis ${escapeHtml(quote.reference)} — ${formatAmount(totalTTC)} TTC</div>
+      </td></tr>
+      <tr><td style="padding:28px 32px;">
+        <p style="margin:0 0 14px;font-family:${fontStack};font-size:15px;color:${GRAPHITE};line-height:1.75;">
+          Votre signature du devis <strong style="color:${INK};">${escapeHtml(quote.reference)}</strong> a bien été enregistrée.
+        </p>
+        <p style="margin:0;font-family:${fontStack};font-size:15px;color:${GRAPHITE};line-height:1.75;">
+          Vous trouverez en pièce jointe une copie PDF du devis signé.
+        </p>
+        <div style="text-align:center;margin:28px 0 8px;">
+          <a href="${escapeHtml(quoteUrl)}" style="display:inline-block;background:${SIGNAL};color:${INK};padding:14px 32px;border-radius:4px;text-decoration:none;font-family:${fontStack};font-weight:600;font-size:15px;letter-spacing:-0.005em;">Voir le devis &nbsp;→</a>
+        </div>
+        <p style="font-family:${monoStack};font-size:11px;color:${STEEL};text-align:center;margin:14px 0 0;letter-spacing:0.05em;">Signé le ${new Date().toLocaleString('fr-FR')}</p>
+      </td></tr>
+      <tr><td style="padding:0 32px 24px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${PAPER_SOFT};border-radius:4px;border-left:2px solid ${SIGNAL};">
+          <tr><td style="padding:18px 22px;">
+            <span style="font-family:${monoStack};font-size:11px;color:${SIGNAL};letter-spacing:0.1em;text-transform:uppercase;">// Votre contact</span>
+            <p style="margin:6px 0 0;font-family:${fontStack};font-size:14px;color:${INK};line-height:1.7;">
+              <strong style="font-weight:700;letter-spacing:-0.01em;">${escapeHtml(quote.senderName)}</strong> — ${escapeHtml(quote.senderCompany)}<br>
+              <a href="mailto:${escapeHtml(quote.senderEmail)}" style="color:${INK};text-decoration:underline;text-decoration-color:${SIGNAL};text-underline-offset:3px;">${escapeHtml(quote.senderEmail)}</a>
+            </p>
+          </td></tr>
+        </table>
+      </td></tr>
+      <tr><td style="padding:18px 32px 22px;border-top:1px solid rgba(10,10,11,0.08);text-align:center;">${wordmark}</td></tr>
+    </table>
+  </td></tr></table>
+</body></html>`
 
       // Send both emails in parallel with PDF attachment
       await Promise.allSettled([
