@@ -53,24 +53,26 @@ export const handler: Handler = async (event) => {
   // Test 1: can we read the Contacts DB?
   const dbProbe = await notionFetch(`/databases/${dbId}`)
 
-  // Test 2: try to create one contact page (the very first contact in CRM)
-  const target = sample[0]
-  const createBody = target ? {
-    parent: { database_id: dbId },
-    properties: {
-      'Name': { title: textProp([target.contact.firstName, target.contact.lastName].filter(Boolean).join(' ') || target.contact.email) },
-      'Email': { email: target.contact.email },
-      'First name': { rich_text: textProp(target.contact.firstName || '') },
-      'Last name': { rich_text: textProp(target.contact.lastName || '') },
-      'Source': { select: { name: (target.contact.source || 'Manual').split(',')[0].trim() || 'Manual' } },
-      'Clempo ID': { rich_text: textProp(target.contact.id) },
-      'Notes': { rich_text: textProp(target.contact.notes || '') },
-    },
-  } : null
-
-  const createProbe = createBody
-    ? await notionFetch('/pages', { method: 'POST', body: JSON.stringify(createBody) })
-    : { ok: false, status: 0, body: 'no contact in CRM' }
+  // Test 2: run Phase B for first 5 contacts that don't yet have a notionPageId
+  const todo = allContacts.filter(s => !s.contact.notionPageId).slice(0, 5)
+  const phaseBResults: Array<{ email: string; result: unknown }> = []
+  for (const t of todo) {
+    const body = {
+      parent: { database_id: dbId },
+      properties: {
+        'Name': { title: textProp([t.contact.firstName, t.contact.lastName].filter(Boolean).join(' ') || t.contact.email) },
+        'Email': { email: t.contact.email },
+        'First name': { rich_text: textProp(t.contact.firstName || '') },
+        'Last name': { rich_text: textProp(t.contact.lastName || '') },
+        'Source': { select: { name: (t.contact.source || 'Manual').split(',')[0].trim() || 'Manual' } },
+        'Clempo ID': { rich_text: textProp(t.contact.id) },
+        'Notes': { rich_text: textProp(t.contact.notes || '') },
+        ...(t.company.notionPageId ? { 'Company': { relation: [{ id: t.company.notionPageId }] } } : {}),
+      },
+    }
+    const r = await notionFetch('/pages', { method: 'POST', body: JSON.stringify(body) })
+    phaseBResults.push({ email: t.contact.email, result: r })
+  }
 
   return {
     statusCode: 200,
@@ -80,12 +82,11 @@ export const handler: Handler = async (event) => {
       counts: {
         companies: data.companies.length,
         contacts: allContacts.length,
-        sampleEmails: sample.map(s => s.contact.email),
-        sampleSources: sample.map(s => s.contact.source),
+        contactsWithNotionId: allContacts.filter(s => s.contact.notionPageId).length,
+        companiesWithNotionId: data.companies.filter(c => c.notionPageId).length,
       },
-      dbProbe,
-      createBody,
-      createProbe,
+      dbProbe: { ok: dbProbe.ok, status: dbProbe.status },
+      phaseBResults,
     }, null, 2),
   }
 }
