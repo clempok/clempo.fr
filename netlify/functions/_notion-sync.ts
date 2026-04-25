@@ -1,3 +1,4 @@
+import { getStore } from '@netlify/blobs'
 import {
   readCrm,
   writeCrm,
@@ -285,6 +286,12 @@ async function getPageTodos(pageId: string): Promise<TodoBlock[]> {
   return todos
 }
 
+function extractPageIdFromUrl(url: string): string | null {
+  // Notion URLs end with the 32-char hex page ID (with or without dashes)
+  const m = url.match(/([a-f0-9]{32}|[a-f0-9-]{36})(?:[?#]|$)/i)
+  return m?.[1]?.replace(/-/g, '') ?? null
+}
+
 async function processMeetings(
   meetingsDbId: string,
   companies: CrmCompany[],
@@ -307,6 +314,11 @@ async function processMeetings(
       page.properties['Title']?.title ||
       []
     const title = titleProp.map((r: NotionRichText) => r.plain_text || '').join('').trim()
+    const sourceUrl = page.properties['Source URL']?.url || undefined
+    const sourcePageId = sourceUrl ? extractPageIdFromUrl(sourceUrl) : null
+    // For mirror rows, todos live in the original meeting note page; otherwise
+    // (manually-created Meetings rows) they live in the row itself.
+    const contentPageId = sourcePageId || page.id
     let notionCompanyId: string | undefined =
       page.properties['Company']?.relation?.[0]?.id
 
@@ -334,7 +346,7 @@ async function processMeetings(
     const company = companies.find(c => c.notionPageId === notionCompanyId)
     if (!company) continue
 
-    const todos = await getPageTodos(page.id)
+    const todos = await getPageTodos(contentPageId)
     const toExtract = todos.filter(t => !t.checked)
 
     if (toExtract.length > 0) {
@@ -351,7 +363,7 @@ async function processMeetings(
             id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             title: todo.text.slice(0, 140),
             dueDate,
-            description: `Extrait de la réunion Notion « ${title} »${page.url ? `\n${page.url}` : ''}`,
+            description: `Extrait de la réunion Notion « ${title} »${sourceUrl ? `\n${sourceUrl}` : ''}`,
             done: false,
             createdAt: now,
             updatedAt: now,
@@ -377,6 +389,138 @@ async function processMeetings(
   }
 
   return { scanned, linked, tasksCreated, synced }
+}
+
+// --- Native meeting notes auto-mirror ---
+
+const SITE_ID = '266ec893-0de7-4f86-9559-e80fa4a1e3d7'
+
+function getMeetingStateStore() {
+  const token = process.env.NETLIFY_BLOBS_TOKEN || process.env.NETLIFY_API_TOKEN
+  const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID || SITE_ID
+  if (token) return getStore({ name: 'crm', siteID, token })
+  return getStore({ name: 'crm' })
+}
+
+type MeetingScanState = {
+  lastScanAt: string
+  // url -> 'meeting' (already mirrored or known to be a meeting note)
+  //      | 'other' (known to NOT be a meeting note — skip block fetch)
+  checked: Record<string, 'meeting' | 'other'>
+}
+
+async function getMeetingScanState(): Promise<MeetingScanState> {
+  const store = getMeetingStateStore()
+  const raw = (await store.get('notion_meeting_state', { type: 'json' })) as Partial<MeetingScanState> | null
+  return {
+    lastScanAt: raw?.lastScanAt || new Date(Date.now() - 90 * 86400_000).toISOString(),
+    checked: raw?.checked || {},
+  }
+}
+
+async function saveMeetingScanState(state: MeetingScanState): Promise<void> {
+  const store = getMeetingStateStore()
+  await store.setJSON('notion_meeting_state', state)
+}
+
+async function getMirroredSourceUrls(meetingsDbId: string): Promise<Set<string>> {
+  const set = new Set<string>()
+  const pages = await listAllPages(meetingsDbId)
+  for (const p of pages) {
+    const url = p.properties['Source URL']?.url
+    if (url) set.add(url)
+  }
+  return set
+}
+
+/**
+ * Scans Notion for native meeting notes (pages that contain a `meeting_notes`
+ * block) updated since the last scan, and creates a mirror row in the Meetings
+ * DB for each one not already mirrored. Phase C then processes these rows.
+ */
+async function scanAndMirrorMeetings(
+  meetingsDbId: string,
+  overBudget: () => boolean,
+): Promise<{ scanned: number; mirrored: number; lastScanAt: string }> {
+  const state = await getMeetingScanState()
+  const newScanAt = new Date().toISOString()
+  const mirroredUrls = await getMirroredSourceUrls(meetingsDbId)
+
+  let scanned = 0
+  let mirrored = 0
+  let cursor: string | undefined
+  let stop = false
+
+  do {
+    if (overBudget()) break
+    const body: Record<string, unknown> = {
+      filter: { value: 'page', property: 'object' },
+      page_size: 50,
+      sort: { timestamp: 'last_edited_time', direction: 'descending' },
+    }
+    if (cursor) body.start_cursor = cursor
+    const res = await notionFetch('/search', { method: 'POST', body: JSON.stringify(body) })
+
+    for (const page of res.results) {
+      if (overBudget()) { stop = true; break }
+      const lastEdited: string = page.last_edited_time
+      const pageUrl: string = page.url
+
+      // Search returns desc by last_edited_time. Once we cross the cursor,
+      // every subsequent page is older and irrelevant.
+      if (lastEdited <= state.lastScanAt) { stop = true; break }
+
+      // Skip already-mirrored, and skip pages we've previously confirmed as non-meetings
+      if (mirroredUrls.has(pageUrl)) continue
+      const cached = state.checked[pageUrl]
+      if (cached === 'other') continue
+
+      scanned++
+
+      let isMeeting = cached === 'meeting'
+      if (!isMeeting) {
+        try {
+          const blocks = await notionFetch(`/blocks/${page.id}/children?page_size=10`)
+          isMeeting = (blocks.results as { type?: string }[]).some(b =>
+            b.type === 'meeting_notes' || b.type === 'ai_meeting_notes'
+          )
+          state.checked[pageUrl] = isMeeting ? 'meeting' : 'other'
+        } catch {
+          continue
+        }
+      }
+      if (!isMeeting) continue
+
+      const titleArr = page.properties?.title?.title || page.properties?.Name?.title || []
+      const rawTitle = titleArr.map((r: NotionRichText) => r.plain_text || r.text?.content || '').join('').trim()
+      const cleanTitle = rawTitle.replace(/\s*@[^@]*$/, '').trim() || rawTitle || '(Réunion sans titre)'
+      const meetingDate: string = page.created_time
+
+      try {
+        await notionFetch('/pages', {
+          method: 'POST',
+          body: JSON.stringify({
+            parent: { database_id: meetingsDbId },
+            properties: {
+              'Name': { title: textProp(cleanTitle) },
+              'Source URL': { url: pageUrl },
+              'Meeting Date': { date: { start: meetingDate } },
+            },
+          }),
+        })
+        mirroredUrls.add(pageUrl)
+        mirrored++
+      } catch (err) {
+        console.warn('mirror meeting failed', pageUrl, err)
+      }
+    }
+
+    cursor = res.has_more && !stop ? res.next_cursor : undefined
+  } while (cursor)
+
+  state.lastScanAt = newScanAt
+  await saveMeetingScanState(state)
+  return { scanned, mirrored, lastScanAt: newScanAt }
 }
 
 // --- Public entry point ---
@@ -508,6 +652,19 @@ export async function runSync(opts: { budgetMs?: number } = {}): Promise<Record<
     result.contactsUpdated = contactsUpdated
     result.contactsRemaining = missingContacts.length - contactsPushed
     result.contactsStaleRemaining = staleContacts.length - contactsUpdated
+
+    // Phase D: scan native Notion meeting notes and mirror them into Meetings DB.
+    // Done before Phase C so newly-mirrored rows get processed in the same run.
+    if (!overBudget() && result.contactsRemaining === 0 && result.companiesRemaining === 0) {
+      try {
+        const stats = await scanAndMirrorMeetings(DB_MEETINGS, overBudget)
+        result.meetingsScanned = stats.scanned
+        result.meetingsMirrored = stats.mirrored
+      } catch (err) {
+        console.error('scanAndMirrorMeetings failed', err)
+        result.meetingsScanError = String(err)
+      }
+    }
 
     // Phase C: process meeting notes (only if budget remains and backfill is done)
     if (!overBudget() && result.contactsRemaining === 0 && result.companiesRemaining === 0) {
