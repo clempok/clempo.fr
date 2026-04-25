@@ -34,6 +34,9 @@ export type CrmContact = {
   updatedAt: string
   /** Notion page ID in the Contacts mirror DB, filled by notion-sync. */
   notionPageId?: string
+  /** ISO timestamp of the last successful push to Notion. Compared against
+   *  updatedAt to detect records that need re-patching. */
+  notionSyncedAt?: string
 }
 
 export type CrmTask = {
@@ -68,6 +71,9 @@ export type CrmCompany = {
   statusHistory?: CrmStatusHistoryEntry[]
   /** Notion page ID in the Companies mirror DB, filled by notion-sync. */
   notionPageId?: string
+  /** ISO timestamp of the last successful push to Notion. Compared against
+   *  updatedAt to detect records that need re-patching. */
+  notionSyncedAt?: string
 }
 
 export type CrmData = {

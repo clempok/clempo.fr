@@ -418,7 +418,10 @@ export async function runSync(opts: { budgetMs?: number } = {}): Promise<Record<
       (n, c) => n + c.contacts.filter(x => x.notionPageId).length, 0,
     )
 
-    // Phase A: create missing companies first; if all created, patch updates with remaining budget
+    const isStale = (updatedAt: string, syncedAt?: string) =>
+      !syncedAt || new Date(updatedAt).getTime() > new Date(syncedAt).getTime()
+
+    // Phase A1: create missing companies
     const missingCompanies = data.companies.filter(c => !c.notionPageId)
     let companiesPushed = 0
     let mutated = false
@@ -427,17 +430,37 @@ export async function runSync(opts: { budgetMs?: number } = {}): Promise<Record<
       try {
         const pageId = await upsertCompanyPage(DB_COMPANIES, company)
         company.notionPageId = pageId
+        company.notionSyncedAt = new Date().toISOString()
         mutated = true
         companiesPushed++
       } catch (err) {
         console.warn('upsert company failed', company.id, err)
       }
     }
+
+    // Phase A2: re-patch companies whose updatedAt > notionSyncedAt
+    const staleCompanies = data.companies.filter(
+      c => c.notionPageId && isStale(c.updatedAt, c.notionSyncedAt),
+    )
+    let companiesUpdated = 0
+    for (const company of staleCompanies) {
+      if (overBudget()) break
+      try {
+        await upsertCompanyPage(DB_COMPANIES, company)
+        company.notionSyncedAt = new Date().toISOString()
+        mutated = true
+        companiesUpdated++
+      } catch (err) {
+        console.warn('patch company failed', company.id, err)
+      }
+    }
     if (mutated) await writeCrm(data)
     result.companiesPushed = companiesPushed
+    result.companiesUpdated = companiesUpdated
     result.companiesRemaining = missingCompanies.length - companiesPushed
+    result.companiesStaleRemaining = staleCompanies.length - companiesUpdated
 
-    // Phase B: create missing contacts
+    // Phase B1: create missing contacts
     const missingContacts: Array<{ contact: CrmContact; companyPageId: string | undefined }> = []
     for (const company of data.companies) {
       for (const c of company.contacts) {
@@ -451,15 +474,40 @@ export async function runSync(opts: { budgetMs?: number } = {}): Promise<Record<
       try {
         const pageId = await upsertContactPage(DB_CONTACTS, contact, companyPageId)
         contact.notionPageId = pageId
+        contact.notionSyncedAt = new Date().toISOString()
         mutated = true
         contactsPushed++
       } catch (err) {
         console.warn('upsert contact failed', contact.email, err)
       }
     }
+
+    // Phase B2: re-patch contacts whose updatedAt > notionSyncedAt
+    const staleContacts: Array<{ contact: CrmContact; companyPageId: string | undefined }> = []
+    for (const company of data.companies) {
+      for (const c of company.contacts) {
+        if (c.notionPageId && isStale(c.updatedAt, c.notionSyncedAt)) {
+          staleContacts.push({ contact: c, companyPageId: company.notionPageId })
+        }
+      }
+    }
+    let contactsUpdated = 0
+    for (const { contact, companyPageId } of staleContacts) {
+      if (overBudget()) break
+      try {
+        await upsertContactPage(DB_CONTACTS, contact, companyPageId)
+        contact.notionSyncedAt = new Date().toISOString()
+        mutated = true
+        contactsUpdated++
+      } catch (err) {
+        console.warn('patch contact failed', contact.email, err)
+      }
+    }
     if (mutated) await writeCrm(data)
     result.contactsPushed = contactsPushed
+    result.contactsUpdated = contactsUpdated
     result.contactsRemaining = missingContacts.length - contactsPushed
+    result.contactsStaleRemaining = staleContacts.length - contactsUpdated
 
     // Phase C: process meeting notes (only if budget remains and backfill is done)
     if (!overBudget() && result.contactsRemaining === 0 && result.companiesRemaining === 0) {
