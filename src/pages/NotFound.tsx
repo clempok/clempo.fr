@@ -1,9 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-
-const ACCENT = '#1A1A6B'
-const MUTED = '#71717A'
-const TEXT = '#0A0A0A'
+import Wordmark from '../components/Wordmark'
 
 export default function NotFound() {
   useEffect(() => {
@@ -14,48 +11,74 @@ export default function NotFound() {
   }, [])
 
   return (
-    <div style={{ paddingTop: '5rem', background: '#fff', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '40rem', margin: '0 auto', padding: '8rem 4vw', textAlign: 'center' }}>
-        <p style={{ fontSize: '5rem', fontWeight: 700, color: ACCENT, lineHeight: 1, marginBottom: '1rem', fontFamily: "'Space Grotesk', sans-serif" }}>
-          404
+    <div style={{
+      paddingTop: '5rem',
+      background: 'var(--paper)',
+      color: 'var(--ink)',
+      fontFamily: 'var(--font-sans)',
+      minHeight: '100vh',
+    }}>
+      <div style={{ maxWidth: '40rem', margin: '0 auto', padding: '8rem 6vw' }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.72rem',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: 'var(--signal)',
+          fontWeight: 500,
+        }}>
+          // ERROR · 404
+        </span>
+        <p style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: 'clamp(4rem, 10vw, 7rem)',
+          fontWeight: 700,
+          color: 'var(--ink)',
+          lineHeight: 1,
+          letterSpacing: '-0.04em',
+          marginTop: '1rem',
+          marginBottom: '1.5rem',
+        }}>
+          404<span style={{ color: 'var(--signal)' }}>.</span>
         </p>
         <h1 style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontSize: 'clamp(1.5rem, 3vw, 2rem)',
-          fontWeight: 700, color: TEXT, marginBottom: '1rem',
+          fontFamily: 'var(--font-sans)',
+          fontSize: 'clamp(1.5rem, 3vw, 2.2rem)',
+          fontWeight: 700,
+          letterSpacing: '-0.025em',
+          color: 'var(--ink)',
+          marginBottom: '1rem',
         }}>
           Page introuvable
         </h1>
-        <p style={{ color: MUTED, fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '2.5rem' }}>
+        <p style={{
+          color: 'var(--graphite)',
+          fontSize: '1rem',
+          lineHeight: 1.6,
+          marginBottom: '2.5rem',
+          maxWidth: '42ch',
+        }}>
           Cette page n'existe pas ou a été déplacée. Voici quelques liens utiles :
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
-          <Link to="/" style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-            backgroundColor: ACCENT, color: '#fff',
-            padding: '0.75rem 1.75rem', borderRadius: '100px',
-            fontSize: '0.9375rem', fontWeight: 600, textDecoration: 'none',
-            transition: 'all 0.2s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#2D2D8A'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = ACCENT; e.currentTarget.style.transform = '' }}
-          >
-            Retour à l'accueil
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Link to="/" className="cb-btn cb-btn--primary">
+            Retour à l'accueil <span className="cb-arrow">→</span>
           </Link>
-          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
-            <Link to="/articles" style={{ color: ACCENT, fontSize: '0.9375rem', fontWeight: 500, textDecoration: 'none' }}
-              onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-              onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-            >
-              Articles
-            </Link>
-            <Link to="/#accompagnements" style={{ color: ACCENT, fontSize: '0.9375rem', fontWeight: 500, textDecoration: 'none' }}
-              onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-              onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-            >
-              Services
-            </Link>
-          </div>
+          <Link to="/articles" className="cb-btn cb-btn--ghost">
+            Articles
+          </Link>
+        </div>
+
+        <div style={{
+          marginTop: '5rem',
+          paddingTop: '2rem',
+          borderTop: '1px solid rgba(10,10,11,0.08)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <Wordmark size="0.85rem" />
+          <span className="cb-page-marker">— 404 / ∞</span>
         </div>
       </div>
     </div>

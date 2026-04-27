@@ -2,12 +2,13 @@ import { useState, useMemo, useEffect } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { Calendar, Clock, ChevronLeft, ChevronRight, Check, User, Mail, MessageSquare, ArrowLeft, AlertCircle } from 'lucide-react'
 
-const ACCENT = '#1A1A6B'
-const ACCENT_HOVER = '#2D2D8A'
-const BORDER = 'rgba(0,0,0,0.06)'
-const MUTED = '#71717A'
-const TEXT = '#0A0A0A'
-const BG_OFF = '#F8F8F6'
+// ── Brand Book 2026 — Ink / Paper / Signal ──
+const ACCENT = '#0A0A0B'              // Ink (primary CTA)
+const ACCENT_HOVER = '#16181D'        // Ink soft (hover)
+const BORDER = 'rgba(10,10,11,0.08)'
+const MUTED = '#6B6F7A'               // Steel
+const TEXT = '#0A0A0B'                // Ink
+const BG_OFF = '#F4F4F2'              // Paper soft
 const SLOT_DURATION = 30 // minutes
 
 type Step = 'select' | 'form' | 'confirmed' | 'error'
@@ -308,7 +309,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
     width: '100%',
     background: 'rgba(0,0,0,0.03)',
     border: `1px solid ${BORDER}`,
-    borderRadius: '12px',
+    borderRadius: '4px',
     padding: '0.9rem 1rem',
     color: TEXT,
     fontFamily: "'Inter', sans-serif",
@@ -324,17 +325,15 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <span style={{
             display: 'inline-block',
-            padding: '0.35rem 1rem',
-            background: 'rgba(26,26,107,0.07)',
-            borderRadius: '100px',
-            fontSize: '0.7rem',
-            fontWeight: 600,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.72rem',
+            fontWeight: 500,
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
-            color: ACCENT,
+            color: '#00D68F',
             marginBottom: '1.5rem',
           }}>
-            {t.badge}
+            // {t.badge}
           </span>
           {/* Heading — on Home embed, pair a small avatar next to the title
               so the CTA feels personal. Standalone /booking keeps a plain h1
@@ -364,7 +363,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                 }}
               />
               <h1 style={{
-                fontFamily: "'Space Grotesk', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: 'clamp(1.6rem, 3.2vw, 2.3rem)',
                 fontWeight: 700,
                 letterSpacing: '-0.03em',
@@ -377,7 +376,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
             </div>
           ) : (
             <h1 style={{
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
               fontWeight: 700,
               letterSpacing: '-0.03em',
@@ -411,9 +410,9 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
               {industryBadges.map((label, i) => (
                 <span key={i} style={{
                   padding: '0.4rem 0.85rem',
-                  background: 'rgba(26,26,107,0.07)',
+                  background: 'rgba(0,214,143,0.12)',
                   color: ACCENT,
-                  borderRadius: '100px',
+                  borderRadius: '4px',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   letterSpacing: '0.01em',
@@ -435,7 +434,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                   background: '#fff',
                   border: `1px solid ${BORDER}`,
                   color: TEXT,
-                  borderRadius: '100px',
+                  borderRadius: '4px',
                   fontSize: '0.75rem',
                   fontWeight: 500,
                   whiteSpace: 'nowrap',
@@ -452,7 +451,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
         <div style={{
           background: '#fff',
           border: `1px solid ${BORDER}`,
-          borderRadius: '24px',
+          borderRadius: '6px',
           overflow: 'hidden',
           boxShadow: '0 4px 24px rgba(0,0,0,0.04)',
         }}>
@@ -473,7 +472,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     width: '36px', height: '36px',
-                    borderRadius: '10px',
+                    borderRadius: '4px',
                     border: `1px solid ${BORDER}`,
                     background: '#fff',
                     color: canGoPrev ? TEXT : '#ddd',
@@ -484,7 +483,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                   <ChevronLeft size={18} />
                 </button>
                 <span style={{
-                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontFamily: "'Inter', sans-serif",
                   fontSize: '1.05rem',
                   fontWeight: 600,
                   color: TEXT,
@@ -496,7 +495,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     width: '36px', height: '36px',
-                    borderRadius: '10px',
+                    borderRadius: '4px',
                     border: `1px solid ${BORDER}`,
                     background: '#fff',
                     color: TEXT,
@@ -532,9 +531,9 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                         alignItems: 'center',
                         gap: '4px',
                         padding: '0.65rem 0.25rem',
-                        borderRadius: '12px',
+                        borderRadius: '4px',
                         border: isSelected ? `2px solid ${ACCENT}` : `1px solid ${BORDER}`,
-                        background: isSelected ? 'rgba(26,26,107,0.07)' : hasSlots ? '#fff' : BG_OFF,
+                        background: isSelected ? 'rgba(0,214,143,0.12)' : hasSlots ? '#fff' : BG_OFF,
                         cursor: hasSlots && !isPast ? 'pointer' : 'default',
                         opacity: isPast || !hasSlots ? 0.35 : 1,
                         transition: 'all 0.2s',
@@ -601,20 +600,20 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                           onClick={() => handleSlotClick(slot)}
                           style={{
                             padding: '0.7rem 0.5rem',
-                            borderRadius: '10px',
+                            borderRadius: '4px',
                             border: isSelected ? `2px solid ${ACCENT}` : `1px solid ${BORDER}`,
                             background: isSelected ? ACCENT : '#fff',
                             color: isSelected ? '#fff' : TEXT,
                             fontSize: '0.85rem',
                             fontWeight: 500,
-                            fontFamily: "'Space Grotesk', sans-serif",
+                            fontFamily: "'Inter', sans-serif",
                             cursor: 'pointer',
                             transition: 'all 0.15s',
                           }}
                           onMouseEnter={e => {
                             if (!isSelected) {
                               e.currentTarget.style.borderColor = ACCENT
-                              e.currentTarget.style.background = 'rgba(26,26,107,0.04)'
+                              e.currentTarget.style.background = 'rgba(0,214,143,0.08)'
                             }
                           }}
                           onMouseLeave={e => {
@@ -653,7 +652,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                     background: ACCENT,
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '14px',
+                    borderRadius: '4px',
                     fontSize: '0.9rem',
                     fontWeight: 600,
                     fontFamily: "'Inter', sans-serif",
@@ -696,7 +695,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
               {/* Recap */}
               <div style={{
                 background: BG_OFF,
-                borderRadius: '14px',
+                borderRadius: '4px',
                 padding: '1.25rem',
                 marginBottom: '2rem',
                 display: 'flex',
@@ -720,7 +719,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                     color: MUTED,
                     background: 'rgba(0,0,0,0.04)',
                     padding: '0.2rem 0.6rem',
-                    borderRadius: '100px',
+                    borderRadius: '4px',
                   }}>
                     {t.duration}
                   </span>
@@ -732,7 +731,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
 
               {/* Form */}
               <h3 style={{
-                fontFamily: "'Space Grotesk', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: '1.1rem',
                 fontWeight: 600,
                 color: TEXT,
@@ -814,7 +813,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                     background: ACCENT,
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '14px',
+                    borderRadius: '4px',
                     fontSize: '0.9rem',
                     fontWeight: 600,
                     fontFamily: "'Inter', sans-serif",
@@ -845,7 +844,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
               <div style={{
                 width: '56px', height: '56px',
                 borderRadius: '50%',
-                background: 'rgba(26,26,107,0.08)',
+                background: 'rgba(0,214,143,0.15)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -855,7 +854,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
               </div>
 
               <h2 style={{
-                fontFamily: "'Space Grotesk', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: '1.5rem',
                 fontWeight: 700,
                 color: TEXT,
@@ -866,7 +865,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
 
               <div style={{
                 background: BG_OFF,
-                borderRadius: '14px',
+                borderRadius: '4px',
                 padding: '1.25rem',
                 width: '100%',
                 maxWidth: '360px',
@@ -894,7 +893,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                   background: 'transparent',
                   color: ACCENT,
                   border: `1px solid ${ACCENT}`,
-                  borderRadius: '100px',
+                  borderRadius: '4px',
                   fontSize: '0.8rem',
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -937,7 +936,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
               </div>
 
               <h2 style={{
-                fontFamily: "'Space Grotesk', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: '1.5rem',
                 fontWeight: 700,
                 color: TEXT,
@@ -954,7 +953,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                 <div style={{
                   background: 'rgba(220,38,38,0.05)',
                   border: '1px solid rgba(220,38,38,0.15)',
-                  borderRadius: '10px',
+                  borderRadius: '4px',
                   padding: '0.75rem 1rem',
                   fontSize: '0.75rem',
                   color: '#991B1B',
@@ -975,7 +974,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                     background: ACCENT,
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '100px',
+                    borderRadius: '4px',
                     fontSize: '0.85rem',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -995,7 +994,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                     background: 'transparent',
                     color: ACCENT,
                     border: `1px solid ${ACCENT}`,
-                    borderRadius: '100px',
+                    borderRadius: '4px',
                     fontSize: '0.8rem',
                     fontWeight: 500,
                     cursor: 'pointer',
@@ -1048,7 +1047,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
           />
           <div style={{ flex: '1 1 220px', minWidth: 0 }}>
             <div style={{
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: '1.15rem',
               fontWeight: 700,
               color: TEXT,
@@ -1110,7 +1109,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '1rem',
-                fontFamily: "'Space Grotesk', sans-serif",
+                fontFamily: "'Inter', sans-serif",
                 fontSize: '0.88rem',
                 fontWeight: 600,
                 color: TEXT,

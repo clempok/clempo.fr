@@ -18,10 +18,9 @@ import { bookingUrl } from '../lib/cta'
  * Dismissal is sticky for 7 days.
  */
 
-const ACCENT = '#1A1A6B'
-const TEXT = '#0A0A0A'
-const MUTED = '#71717A'
-const BORDER = 'rgba(0,0,0,0.08)'
+const TEXT = 'var(--ink)'
+const MUTED = 'var(--steel)'
+const BORDER = 'rgba(10,10,11,0.15)'
 
 const PHOTO_URL =
   'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6913248fb7d48a3e5503c26d/48d8d0835_nano-banana-2025-11-11T10-55-151.png'
@@ -209,8 +208,9 @@ export default function ReturnVisitorPopup() {
         style={{
           position: 'relative',
           width: '100%', maxWidth: '520px',
-          background: '#fff',
-          borderRadius: '24px',
+          background: 'var(--paper)',
+          border: '1px solid var(--ink)',
+          borderRadius: 'var(--cb-radius)',
           boxShadow: '0 40px 100px rgba(0,0,0,0.25)',
           overflow: 'hidden',
           animation: 'rvp-rise 0.4s cubic-bezier(0.22,1,0.36,1)',
@@ -240,20 +240,22 @@ export default function ReturnVisitorPopup() {
             alt="Clément Pouget-Osmont"
             loading="lazy"
             style={{
-              width: '96px', height: '96px', borderRadius: '50%',
+              width: '96px', height: '96px', borderRadius: 'var(--cb-radius)',
               objectFit: 'cover', margin: '0 auto 1.25rem',
-              border: `3px solid ${BORDER}`,
-              boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+              border: `2px solid ${BORDER}`,
+              filter: 'grayscale(1) contrast(1.05)',
+              background: 'var(--ink)',
             }}
           />
           <p style={{
-            fontSize: '0.68rem', letterSpacing: '0.25em', textTransform: 'uppercase',
-            color: ACCENT, fontWeight: 600, marginBottom: '0.75rem',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase',
+            color: 'var(--signal-deep)', fontWeight: 500, marginBottom: '0.9rem',
           }}>
-            {c.eyebrow}
+            // {c.eyebrow}
           </p>
           <h2 id="rvp-title" style={{
-            fontFamily: "'Space Grotesk', sans-serif",
+            fontFamily: 'var(--font-sans)',
             fontSize: 'clamp(1.3rem, 3vw, 1.55rem)',
             fontWeight: 700, letterSpacing: '-0.025em', color: TEXT,
             lineHeight: 1.25, marginBottom: '0.9rem',
@@ -261,7 +263,7 @@ export default function ReturnVisitorPopup() {
             {c.title}
           </h2>
           <p style={{
-            fontSize: '0.95rem', lineHeight: 1.6, color: MUTED, fontWeight: 400,
+            fontSize: '0.95rem', lineHeight: 1.6, color: 'var(--graphite)', fontWeight: 400,
             marginBottom: '1.75rem',
           }}>
             {c.sub}
@@ -270,18 +272,10 @@ export default function ReturnVisitorPopup() {
           <a
             href={bookingUrl(src)}
             onClick={() => { try { localStorage.setItem(DISMISSED_KEY, todayISO()) } catch { /* ignore */ } }}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-              padding: '0.95rem 2rem', background: ACCENT, color: '#fff',
-              textDecoration: 'none', borderRadius: '100px',
-              fontSize: '0.95rem', fontWeight: 600, letterSpacing: '-0.01em',
-              boxShadow: '0 10px 30px rgba(26,26,107,0.28)',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = '#2D2D8A'; el.style.transform = 'translateY(-2px)' }}
-            onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = ACCENT; el.style.transform = '' }}
+            className="cb-btn cb-btn--primary"
+            style={{ fontSize: '0.9rem', padding: '0.9rem 1.6rem' }}
           >
-            📅 {c.cta} →
+            {c.cta} <span className="cb-arrow">→</span>
           </a>
 
           <div style={{ marginTop: '1rem' }}>

@@ -5,11 +5,13 @@ import { useLang } from '../contexts/LangContext'
 import SEO from '../components/SEO'
 import { bookingUrl } from '../lib/cta'
 
-const ACCENT = '#1A1A6B'
-const BORDER = 'rgba(0,0,0,0.06)'
-const MUTED = '#71717A'
-const TEXT = '#0A0A0A'
-const BG_OFF = '#F8F8F6'
+// ── Brand Book 2026 — Ink / Paper / Signal ──
+const ACCENT = '#0A0A0B'              // Ink (primary)
+const SIGNAL = '#00D68F'              // Signal Green
+const BORDER = 'rgba(10,10,11,0.08)'
+const MUTED = '#6B6F7A'               // Steel
+const TEXT = '#0A0A0B'                // Ink
+const BG_OFF = '#F4F4F2'              // Paper soft
 
 function useReveal() {
   const ref = useRef<HTMLDivElement>(null)
@@ -162,11 +164,11 @@ export default function TransitionCMO() {
       <main style={{ paddingTop: '6rem' }}>
         {/* ── HERO ── */}
         <section style={{ padding: '4rem 4vw 6rem', maxWidth: '1100px', margin: '0 auto' }}>
-          <p style={{ fontSize: '0.68rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: ACCENT, marginBottom: '1.25rem', fontWeight: 500 }}>
-            {isFr ? 'CMO de transition · Santé' : 'Interim CMO · Healthcare'}
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: SIGNAL, marginBottom: '1.25rem', fontWeight: 500 }}>
+            // {isFr ? 'CMO de transition · Santé' : 'Interim CMO · Healthcare'}
           </p>
           <h1 style={{
-            fontFamily: "'Space Grotesk', sans-serif",
+            fontFamily: "'Inter', sans-serif",
             fontSize: 'clamp(2rem, 4.5vw, 3.6rem)',
             fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.1,
             color: TEXT, marginBottom: '1.5rem',
@@ -185,11 +187,11 @@ export default function TransitionCMO() {
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
               padding: '1.1rem 2.4rem', background: ACCENT, color: '#fff',
-              textDecoration: 'none', borderRadius: '100px',
+              textDecoration: 'none', borderRadius: '4px',
               fontSize: '0.95rem', fontWeight: 600, letterSpacing: '-0.01em',
-              transition: 'all 0.3s', boxShadow: '0 8px 30px rgba(26,26,107,0.18)',
+              transition: 'all 0.3s', boxShadow: '0 8px 30px rgba(10,10,11,0.18)',
             }}
-            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = '#2D2D8A'; el.style.transform = 'translateY(-2px)' }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = '#16181D'; el.style.transform = 'translateY(-2px)' }}
             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = ACCENT; el.style.transform = '' }}
           >
             📅 {ctaLabel} →
@@ -200,7 +202,7 @@ export default function TransitionCMO() {
         <section style={{ padding: '0 4vw 6rem', maxWidth: '1200px', margin: '0 auto' }}>
           <div ref={revealTriggers} className="reveal">
             <h2 style={{
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 'clamp(1.6rem, 3vw, 2.4rem)',
               fontWeight: 700, letterSpacing: '-0.025em', color: TEXT,
               marginBottom: '3rem', textAlign: 'center',
@@ -212,17 +214,17 @@ export default function TransitionCMO() {
                 const Icon = tr.icon
                 return (
                   <div key={i} style={{
-                    background: BG_OFF, borderRadius: '24px', padding: '2.2rem',
+                    background: BG_OFF, borderRadius: '6px', padding: '2.2rem',
                     border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', gap: '1rem',
                   }}>
                     <div style={{
-                      width: '48px', height: '48px', borderRadius: '12px',
-                      background: 'rgba(26,26,107,0.08)', color: ACCENT,
+                      width: '48px', height: '48px', borderRadius: '4px',
+                      background: 'rgba(0,214,143,0.12)', color: ACCENT,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       <Icon size={22} strokeWidth={1.8} />
                     </div>
-                    <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '1.15rem', fontWeight: 700, color: TEXT, letterSpacing: '-0.02em' }}>
+                    <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '1.15rem', fontWeight: 700, color: TEXT, letterSpacing: '-0.02em' }}>
                       {tr.title}
                     </h3>
                     <p style={{ fontSize: '0.92rem', lineHeight: 1.7, color: MUTED, fontWeight: 300 }}>
@@ -246,7 +248,7 @@ export default function TransitionCMO() {
         <section style={{ padding: '0 4vw 6rem', maxWidth: '1200px', margin: '0 auto' }}>
           <div ref={revealWeek1} className="reveal">
             <h2 style={{
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 'clamp(1.6rem, 3vw, 2.4rem)',
               fontWeight: 700, letterSpacing: '-0.025em', color: TEXT,
               marginBottom: '1rem', textAlign: 'center',
@@ -261,7 +263,7 @@ export default function TransitionCMO() {
                 const Icon = w.icon
                 return (
                   <div key={i} style={{
-                    padding: '1.75rem', border: `1px solid ${BORDER}`, borderRadius: '16px',
+                    padding: '1.75rem', border: `1px solid ${BORDER}`, borderRadius: '4px',
                     background: '#fff', display: 'flex', gap: '1rem', alignItems: 'flex-start',
                   }}>
                     <div style={{ flexShrink: 0, color: ACCENT, marginTop: '2px' }}>
@@ -282,14 +284,14 @@ export default function TransitionCMO() {
         <section style={{ padding: '0 4vw 6rem', maxWidth: '1100px', margin: '0 auto' }}>
           <div ref={revealTable} className="reveal">
             <h2 style={{
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 'clamp(1.6rem, 3vw, 2.4rem)',
               fontWeight: 700, letterSpacing: '-0.025em', color: TEXT,
               marginBottom: '3rem', textAlign: 'center',
             }}>
               {isFr ? 'Cabinet conseil, intérim générique, moi' : 'Consulting firm, generic interim, me'}
             </h2>
-            <div style={{ overflowX: 'auto', border: `1px solid ${BORDER}`, borderRadius: '16px' }}>
+            <div style={{ overflowX: 'auto', border: `1px solid ${BORDER}`, borderRadius: '4px' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', minWidth: '720px' }}>
                 <thead>
                   <tr style={{ background: BG_OFF }}>
@@ -305,7 +307,7 @@ export default function TransitionCMO() {
                       <td style={{ ...tdStyle, fontWeight: 600, color: TEXT }}>{r.label}</td>
                       <td style={tdStyle}>{r.cabinet}</td>
                       <td style={tdStyle}>{r.generic}</td>
-                      <td style={{ ...tdStyle, color: TEXT, fontWeight: 500, background: 'rgba(26,26,107,0.04)' }}>{r.me}</td>
+                      <td style={{ ...tdStyle, color: TEXT, fontWeight: 500, background: 'rgba(0,214,143,0.08)' }}>{r.me}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -325,7 +327,7 @@ export default function TransitionCMO() {
         <section style={{ padding: '0 4vw 6rem', maxWidth: '1100px', margin: '0 auto' }}>
           <div ref={revealCases} className="reveal">
             <h2 style={{
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 'clamp(1.6rem, 3vw, 2.4rem)',
               fontWeight: 700, letterSpacing: '-0.025em', color: TEXT,
               marginBottom: '1rem', textAlign: 'center',
@@ -338,24 +340,24 @@ export default function TransitionCMO() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
               {cases.map((cs, i) => (
                 <div key={i} style={{
-                  background: BG_OFF, borderRadius: '24px', padding: '2.2rem',
+                  background: BG_OFF, borderRadius: '6px', padding: '2.2rem',
                   border: `1px solid ${BORDER}`,
                 }}>
                   <span style={{
-                    display: 'inline-flex', padding: '0.35rem 0.9rem', borderRadius: '100px',
-                    background: 'rgba(26,26,107,0.08)', color: ACCENT,
+                    display: 'inline-flex', padding: '0.35rem 0.9rem', borderRadius: '4px',
+                    background: 'rgba(0,214,143,0.12)', color: ACCENT,
                     fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
                     marginBottom: '1rem',
                   }}>
                     {cs.tag}
                   </span>
-                  <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: '1.2rem', fontWeight: 700, color: TEXT, marginBottom: '1rem', letterSpacing: '-0.02em' }}>
+                  <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: '1.2rem', fontWeight: 700, color: TEXT, marginBottom: '1rem', letterSpacing: '-0.02em' }}>
                     {cs.title}
                   </h3>
                   <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     {cs.bullets.map((b, j) => (
                       <li key={j} style={{ fontSize: '0.9rem', lineHeight: 1.65, color: MUTED, fontWeight: 300, paddingLeft: '1rem', position: 'relative' }}>
-                        <span style={{ position: 'absolute', left: 0, color: ACCENT, fontWeight: 700 }}>·</span>
+                        <span style={{ position: 'absolute', left: 0, color: SIGNAL, fontWeight: 700 }}>—</span>
                         {b}
                       </li>
                     ))}
@@ -370,7 +372,7 @@ export default function TransitionCMO() {
         <section style={{ padding: '0 4vw 6rem', maxWidth: '900px', margin: '0 auto' }}>
           <div ref={revealFaq} className="reveal">
             <h2 style={{
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 'clamp(1.6rem, 3vw, 2.4rem)',
               fontWeight: 700, letterSpacing: '-0.025em', color: TEXT,
               marginBottom: '3rem', textAlign: 'center',
@@ -380,7 +382,7 @@ export default function TransitionCMO() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {faq.map((item, i) => (
                 <details key={i} style={{
-                  border: `1px solid ${BORDER}`, borderRadius: '16px',
+                  border: `1px solid ${BORDER}`, borderRadius: '4px',
                   padding: '1.25rem 1.5rem', background: '#fff',
                 }}>
                   <summary style={{ cursor: 'pointer', fontWeight: 600, color: TEXT, fontSize: '0.98rem', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -399,11 +401,11 @@ export default function TransitionCMO() {
         {/* Inline CTA #3 (final) */}
         <section style={{ padding: '0 4vw 8rem', maxWidth: '900px', margin: '0 auto' }}>
           <div style={{
-            background: ACCENT, color: '#fff', borderRadius: '24px',
+            background: ACCENT, color: '#fff', borderRadius: '6px',
             padding: 'clamp(2.5rem, 5vw, 4rem)', textAlign: 'center',
           }}>
             <h2 style={{
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: "'Inter', sans-serif",
               fontSize: 'clamp(1.5rem, 3vw, 2.2rem)',
               fontWeight: 700, letterSpacing: '-0.02em', marginBottom: '1rem',
             }}>
@@ -419,7 +421,7 @@ export default function TransitionCMO() {
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
                 padding: '1.1rem 2.4rem', background: '#fff', color: ACCENT,
-                textDecoration: 'none', borderRadius: '100px',
+                textDecoration: 'none', borderRadius: '4px',
                 fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.01em',
                 transition: 'transform 0.3s',
               }}
@@ -438,9 +440,9 @@ export default function TransitionCMO() {
           style={{
             position: 'fixed', right: '1.5rem', bottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))',
             zIndex: 40, background: ACCENT, color: '#fff',
-            padding: '0.9rem 1.5rem', borderRadius: '100px',
+            padding: '0.9rem 1.5rem', borderRadius: '4px',
             textDecoration: 'none', fontWeight: 600, fontSize: '0.88rem',
-            boxShadow: '0 12px 40px rgba(26,26,107,0.3)',
+            boxShadow: '0 12px 40px rgba(10,10,11,0.25)',
             display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
             transition: 'transform 0.2s',
           }}
@@ -469,7 +471,7 @@ const tdStyle: React.CSSProperties = {
 const inlineCtaStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
   padding: '1rem 2.2rem', background: ACCENT, color: '#fff',
-  textDecoration: 'none', borderRadius: '100px',
+  textDecoration: 'none', borderRadius: '4px',
   fontSize: '0.9rem', fontWeight: 600, letterSpacing: '-0.01em',
-  boxShadow: '0 8px 30px rgba(26,26,107,0.18)',
+  boxShadow: '0 8px 30px rgba(10,10,11,0.18)',
 }
