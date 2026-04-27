@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 
 const REPO = 'clempok/clempo.fr'
 const FILE_PATH = 'public/content.json'
-const ACCENT = '#1A1A6B'
+const ACCENT = '#0A0A0B'  // Ink — Brand Book 2026
 const AUTH_KEY = 'clempo_admin_pw'
 
 const sectionLabels: Record<string, string> = {
@@ -185,6 +185,8 @@ type CrmContact = {
   notes: string
   createdAt: string
   updatedAt: string
+  linkedIn?: string
+  notionPageId?: string
 }
 
 type CrmTask = {
@@ -212,6 +214,7 @@ type CrmCompany = {
   createdAt: string
   updatedAt: string
   statusHistory?: CrmStatusHistoryEntry[]
+  notionPageId?: string
 }
 
 const STATUS_COLORS: Record<CrmStatus, { bg: string; fg: string }> = {
@@ -710,7 +713,7 @@ function AnalyticsView({ password }: { password: string }) {
         <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#555', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Visites par jour
         </h3>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '140px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '160px' }}>
           {stats.visitsByDay.map(v => {
             const h = (v.count / maxVisits) * 100
             return (
@@ -719,12 +722,27 @@ function AnalyticsView({ password }: { password: string }) {
                 title={`${v.date}: ${v.count} visites`}
                 style={{
                   flex: 1,
-                  height: `${Math.max(2, h)}%`,
-                  background: v.count > 0 ? ACCENT : '#e5e5e5',
-                  borderRadius: '3px 3px 0 0',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  gap: '2px',
                   cursor: 'default',
                 }}
-              />
+              >
+                <span style={{ fontSize: '0.6rem', color: v.count > 0 ? '#555' : '#ccc', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                  {v.count > 0 ? v.count : ''}
+                </span>
+                <div
+                  style={{
+                    width: '100%',
+                    height: `${Math.max(2, h)}%`,
+                    background: v.count > 0 ? ACCENT : '#e5e5e5',
+                    borderRadius: '3px 3px 0 0',
+                  }}
+                />
+              </div>
             )
           })}
         </div>
@@ -1593,13 +1611,17 @@ function CrmView({ password }: { password: string }) {
   }
 
   const updateTaskDesc = async (companyId: string, taskId: string, description: string) => {
+    setCompanies(prev => prev?.map(co => co.id === companyId
+      ? { ...co, tasks: (co.tasks || []).map(t => t.id === taskId ? { ...t, description } : t) }
+      : co,
+    ) || null)
     try {
       const res = await fetch('/.netlify/functions/admin-crm', {
         method: 'POST', headers: authHeaders,
         body: JSON.stringify({ action: 'update-task', companyId, taskId, fields: { description } }),
       })
       if (!res.ok) throw new Error(await res.text())
-    } catch (err) { alert(`Erreur : ${String(err)}`) }
+    } catch (err) { alert(`Erreur : ${String(err)}`); refresh() }
   }
 
   const deleteTask = async (companyId: string, taskId: string) => {
@@ -1773,8 +1795,20 @@ function CrmView({ password }: { password: string }) {
                 >
                   <div>
                     <div style={{ fontWeight: 700, color: '#111', fontSize: '0.85rem' }}>{co.name}</div>
-                    <div style={{ color: '#999', fontSize: '0.7rem', marginTop: '2px' }}>
-                      {co.contacts.length} contact{co.contacts.length > 1 ? 's' : ''}
+                    <div style={{ color: '#999', fontSize: '0.7rem', marginTop: '2px', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <span>{co.contacts.length} contact{co.contacts.length > 1 ? 's' : ''}</span>
+                      {co.notionPageId && (
+                        <a
+                          href={`https://www.notion.so/${co.notionPageId.replace(/-/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          style={{ color: ACCENT, textDecoration: 'none', fontWeight: 600 }}
+                          title="Voir dans Notion"
+                        >
+                          ↗ Notion
+                        </a>
+                      )}
                     </div>
                   </div>
                   <div style={{ color: '#999', fontSize: '0.7rem' }}>
@@ -2467,12 +2501,23 @@ const QUOTE_SECTIONS = [
 type QuoteSectionKey = typeof QUOTE_SECTIONS[number]['key']
 
 const QUOTE_ACCENT_PRESETS = [
-  { label: 'Clempo', value: '#1A1A6B' },
-  { label: 'Odoo', value: '#875A7B' },
-  { label: 'Vert', value: '#16a34a' },
-  { label: 'Bleu', value: '#2563eb' },
-  { label: 'Rouge', value: '#dc2626' },
+  { label: 'Clempo (Ink)', value: '#0A0A0B' },
+  { label: 'Signal', value: '#00D68F' },
 ]
+
+// ── Brand Book 2026 — devis preview tokens ──
+const Q_INK = '#0A0A0B'
+const Q_PAPER = '#EDEBE4'
+const Q_PAPER_SOFT = '#F4F4F2'
+const Q_GRAPHITE = '#2A2D35'
+const Q_STEEL = '#6B6F7A'
+const Q_MIST = '#B8BCC4'
+const Q_SIGNAL = '#00D68F'
+const Q_BORDER = 'rgba(10,10,11,0.08)'
+const Q_BORDER_PAPER = 'rgba(237,235,228,0.18)'
+const Q_FT = "'Inter', sans-serif"
+const Q_FM = "'JetBrains Mono', ui-monospace, monospace"
+const Q_FS = "'Instrument Serif', Georgia, serif"
 
 const UNIT_OPTIONS = ['jours', 'heures', 'mois', 'forfait']
 
@@ -2510,7 +2555,7 @@ function makeInitialForm() {
     emailContent: '',
     notes: '',
     paymentTerms: '',
-    accentColor: '#1A1A6B',
+    accentColor: '#0A0A0B',
     globalDiscount: 0,
   }
 }
@@ -2939,13 +2984,18 @@ function QuotesView({ password }: { password: string }) {
           {QUOTE_ACCENT_PRESETS.map(c => (
             <button key={c.value} onClick={() => setForm(f => ({ ...f, accentColor: c.value }))}
               style={{
-                padding: '0.3rem 0.7rem', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
-                background: c.value, color: '#fff', border: form.accentColor === c.value ? '2px solid #000' : '2px solid transparent',
+                padding: '0.4rem 0.85rem', borderRadius: 4, fontSize: '0.72rem', fontWeight: 500, cursor: 'pointer',
+                fontFamily: Q_FT,
+                background: c.value, color: c.value === Q_SIGNAL ? Q_INK : Q_PAPER,
+                border: form.accentColor === c.value ? `2px solid ${Q_SIGNAL}` : '2px solid transparent',
               }}>
               {c.label}
             </button>
           ))}
         </div>
+        <p style={{ fontSize: '0.7rem', color: '#999', marginTop: '0.4rem', lineHeight: 1.5 }}>
+          Le devis public utilise <strong>Ink</strong> par défaut (charte Brand Book 2026). La couleur sert d'accent dans certaines variantes.
+        </p>
       </div>
     </>
   )
@@ -3094,118 +3144,151 @@ function QuotesView({ password }: { password: string }) {
             </div>
           </div>
 
-          {/* Right: live preview */}
+          {/* Right: live preview — Brand Book 2026 */}
           <div style={{ flex: 1, position: 'sticky', top: '1rem', alignSelf: 'flex-start', minWidth: 280 }}>
-            <p style={{ fontSize: '0.7rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-              Apercu du devis
+            <p style={{ fontFamily: Q_FM, fontSize: '0.7rem', fontWeight: 500, color: Q_SIGNAL, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>
+              // Aperçu du devis
             </p>
             <div style={{
-              background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
-              padding: '1.5rem', boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+              background: Q_PAPER, borderRadius: 4, border: `1px solid ${Q_BORDER}`,
+              overflow: 'hidden', fontFamily: Q_FT, color: Q_INK,
             }}>
-              {/* Header */}
-              <div style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: '1rem', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <span style={{ fontWeight: 700, fontSize: '1rem', color: '#111' }}>Devis {form.reference}</span>
-                    {form.offerTitle && (
-                      <span style={{ display: 'block', fontSize: '0.82rem', color: form.accentColor, fontWeight: 600, marginTop: '0.15rem' }}>
-                        {form.offerTitle}
-                      </span>
-                    )}
-                    <span style={{ display: 'block', fontSize: '0.8rem', color: '#999', marginTop: '0.15rem' }}>
-                      Pour {form.clientCompany || form.clientName || '...'}
+              {/* Hero band — Ink + dot matrix */}
+              <div style={{
+                background: Q_INK, padding: '1.25rem 1.25rem 1.1rem',
+                position: 'relative', overflow: 'hidden',
+              }}>
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  backgroundImage: `radial-gradient(circle, ${Q_BORDER_PAPER} 1px, transparent 1px)`,
+                  backgroundSize: '18px 18px',
+                }} />
+                <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                  <span style={{ fontFamily: Q_FM, fontSize: '0.65rem', color: Q_SIGNAL, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    // Devis {form.reference}
+                  </span>
+                  {form.validUntil && (
+                    <span style={{ fontFamily: Q_FM, fontSize: '0.62rem', color: Q_MIST, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                      Valable {new Date(form.validUntil).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
                     </span>
+                  )}
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ fontFamily: Q_FM, fontSize: '0.62rem', color: Q_SIGNAL, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    // Pour
+                  </span>
+                  <div style={{ fontWeight: 700, fontSize: '1.05rem', color: Q_PAPER, letterSpacing: '-0.02em', marginTop: '0.1rem' }}>
+                    {form.clientCompany || form.clientName || '—'}
                   </div>
-                  <div style={{ background: form.accentColor + '15', border: `1px solid ${form.accentColor}30`, borderRadius: 8, padding: '0.5rem 0.75rem', textAlign: 'right' }}>
-                    <span style={{ fontSize: '1.15rem', fontWeight: 700, color: form.accentColor }}>{fmtEur(totalTTC)}</span>
-                    <span style={{ display: 'block', fontSize: '0.65rem', color: '#999' }}>TTC</span>
-                  </div>
+                  {form.offerTitle && (
+                    <div style={{ marginTop: '0.5rem', color: Q_MIST, fontSize: '0.82rem', lineHeight: 1.4 }}>
+                      <span style={{ fontFamily: Q_FS, fontStyle: 'italic', color: Q_PAPER }}>{form.offerTitle.split(' ')[0]}</span>
+                      {form.offerTitle.includes(' ') && ' ' + form.offerTitle.split(' ').slice(1).join(' ')}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Lines preview table */}
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                <thead>
-                  <tr style={{ background: form.accentColor }}>
-                    <th style={{ padding: '0.5rem 0.6rem', color: '#fff', fontWeight: 600, textAlign: 'left', fontSize: '0.7rem' }}>Description</th>
-                    <th style={{ padding: '0.5rem 0.6rem', color: '#fff', fontWeight: 600, textAlign: 'right', fontSize: '0.7rem' }}>Qte</th>
-                    <th style={{ padding: '0.5rem 0.6rem', color: '#fff', fontWeight: 600, textAlign: 'right', fontSize: '0.7rem' }}>Unite</th>
-                    <th style={{ padding: '0.5rem 0.6rem', color: '#fff', fontWeight: 600, textAlign: 'right', fontSize: '0.7rem' }}>P.U.</th>
-                    <th style={{ padding: '0.5rem 0.6rem', color: '#fff', fontWeight: 600, textAlign: 'right', fontSize: '0.7rem' }}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((l, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '0.5rem 0.6rem', color: '#333' }}>{l.description || '\u2014'}</td>
-                      <td style={{ padding: '0.5rem 0.6rem', color: '#333', textAlign: 'right' }}>{l.quantity}</td>
-                      <td style={{ padding: '0.5rem 0.6rem', color: '#999', textAlign: 'right', fontSize: '0.72rem' }}>{l.unit}</td>
-                      <td style={{ padding: '0.5rem 0.6rem', color: '#333', textAlign: 'right' }}>{fmtEur(l.unitPrice)}</td>
-                      <td style={{ padding: '0.5rem 0.6rem', color: '#333', textAlign: 'right', fontWeight: 600 }}>{fmtEur(computeLineTotal(l))}</td>
+              {/* Body */}
+              <div style={{ padding: '1.25rem' }}>
+                {/* Lines preview table */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr>
+                      {['Description', 'Qté', 'Unité', 'P.U.', 'Total'].map((h, i) => (
+                        <th key={i} style={{
+                          padding: '0.55rem 0.4rem', color: Q_STEEL,
+                          fontFamily: Q_FM, fontWeight: 500, fontSize: '0.62rem',
+                          textTransform: 'uppercase', letterSpacing: '0.08em',
+                          textAlign: i === 0 ? 'left' : 'right',
+                          borderBottom: `1px solid ${Q_BORDER}`,
+                        }}>
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={4} style={{ padding: '0.4rem 0.6rem', textAlign: 'right', color: '#999', fontSize: '0.78rem' }}>Total HT</td>
-                    <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right', fontWeight: 600 }}>{fmtEur(afterGlobalDiscount)}</td>
-                  </tr>
-                  <tr>
-                    <td colSpan={4} style={{ padding: '0.4rem 0.6rem', textAlign: 'right', color: '#999', fontSize: '0.78rem' }}>TVA</td>
-                    <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>{fmtEur(totalTVA)}</td>
-                  </tr>
-                  <tr style={{ background: '#f8f8f6' }}>
-                    <td colSpan={4} style={{ padding: '0.6rem', textAlign: 'right', fontWeight: 700, fontSize: '0.9rem' }}>Total TTC</td>
-                    <td style={{ padding: '0.6rem', textAlign: 'right', fontWeight: 700, color: form.accentColor, fontSize: '0.95rem' }}>{fmtEur(totalTTC)}</td>
-                  </tr>
-                </tfoot>
-              </table>
+                  </thead>
+                  <tbody>
+                    {lines.map((l, i) => (
+                      <tr key={i} style={{ borderBottom: i < lines.length - 1 ? `1px solid ${Q_BORDER}` : 'none' }}>
+                        <td style={{ padding: '0.6rem 0.4rem', color: Q_INK, fontWeight: 600 }}>{l.description || '\u2014'}</td>
+                        <td style={{ padding: '0.6rem 0.4rem', fontFamily: Q_FM, color: Q_INK, textAlign: 'right' }}>{l.quantity}</td>
+                        <td style={{ padding: '0.6rem 0.4rem', color: Q_STEEL, textAlign: 'right', fontSize: '0.72rem' }}>{l.unit}</td>
+                        <td style={{ padding: '0.6rem 0.4rem', fontFamily: Q_FM, color: Q_INK, textAlign: 'right' }}>{fmtEur(l.unitPrice)}</td>
+                        <td style={{ padding: '0.6rem 0.4rem', fontFamily: Q_FM, color: Q_INK, textAlign: 'right', fontWeight: 600 }}>{fmtEur(computeLineTotal(l))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={4} style={{ padding: '0.5rem 0.4rem', textAlign: 'right', color: Q_STEEL, fontSize: '0.74rem' }}>Sous-total HT</td>
+                      <td style={{ padding: '0.5rem 0.4rem', textAlign: 'right', fontFamily: Q_FM, color: Q_INK, fontWeight: 600 }}>{fmtEur(afterGlobalDiscount)}</td>
+                    </tr>
+                    <tr>
+                      <td colSpan={4} style={{ padding: '0.5rem 0.4rem', textAlign: 'right', color: Q_STEEL, fontSize: '0.74rem' }}>TVA</td>
+                      <td style={{ padding: '0.5rem 0.4rem', textAlign: 'right', fontFamily: Q_FM, color: Q_INK }}>{fmtEur(totalTVA)}</td>
+                    </tr>
+                    <tr style={{ borderTop: `1px solid ${Q_BORDER}` }}>
+                      <td colSpan={4} style={{ padding: '0.65rem 0.4rem', textAlign: 'right', fontFamily: Q_FM, fontSize: '0.65rem', color: Q_STEEL, letterSpacing: '0.1em', textTransform: 'uppercase' }}>// Total TTC</td>
+                      <td style={{ padding: '0.65rem 0.4rem', textAlign: 'right', fontWeight: 700, color: Q_INK, fontSize: '1rem', letterSpacing: '-0.02em' }}>{fmtEur(totalTTC)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
 
-              {(form.notes || form.paymentTerms) && (
-                <div style={{ marginTop: '1rem', background: '#f9f9f9', borderRadius: 8, padding: '0.75rem', borderLeft: `3px solid ${form.accentColor}`, fontSize: '0.8rem', color: '#666' }}>
-                  {form.paymentTerms && <div style={{ marginBottom: form.notes ? '0.4rem' : 0 }}>{form.paymentTerms}</div>}
-                  {form.notes && <div>{form.notes}</div>}
-                </div>
-              )}
+                {(form.notes || form.paymentTerms) && (
+                  <div style={{
+                    marginTop: '1rem', background: Q_PAPER_SOFT, borderRadius: 4,
+                    padding: '0.75rem 1rem', borderLeft: `2px solid ${Q_SIGNAL}`,
+                    fontSize: '0.78rem', color: Q_GRAPHITE, lineHeight: 1.6,
+                  }}>
+                    {form.paymentTerms && <div style={{ marginBottom: form.notes ? '0.5rem' : 0 }}>{form.paymentTerms}</div>}
+                    {form.notes && <div>{form.notes}</div>}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Email preview */}
-            <p style={{ fontSize: '0.7rem', fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1.25rem', marginBottom: '0.75rem' }}>
-              Apercu de l'email
+            {/* Email preview — Brand Book 2026 */}
+            <p style={{ fontFamily: Q_FM, fontSize: '0.7rem', fontWeight: 500, color: Q_SIGNAL, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '1.25rem', marginBottom: '0.75rem' }}>
+              // Aperçu de l'email
             </p>
             <div style={{
-              background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
-              padding: '1.25rem', boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+              background: Q_PAPER, borderRadius: 4, border: `1px solid ${Q_BORDER}`,
+              overflow: 'hidden', fontFamily: Q_FT, color: Q_INK,
             }}>
-              <div style={{ background: '#fafafa', borderRadius: 8, padding: '1rem', borderBottom: '1px solid #eee', marginBottom: '1rem' }}>
-                <span style={{
-                  display: 'inline-block', background: form.accentColor, color: '#fff',
-                  padding: '0.5rem 1.25rem', borderRadius: 6, fontWeight: 700, fontSize: '0.8rem',
-                }}>
-                  Voir le Devis
-                </span>
-                <div style={{ marginTop: '0.75rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111' }}>
-                    {form.reference} — {form.clientCompany || form.clientName || '...'}
+              {/* Email header — ink */}
+              <div style={{ background: Q_INK, padding: '1.1rem 1.25rem', position: 'relative', overflow: 'hidden' }}>
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  backgroundImage: `radial-gradient(circle, ${Q_BORDER_PAPER} 1px, transparent 1px)`,
+                  backgroundSize: '18px 18px',
+                }} />
+                <div style={{ position: 'relative' }}>
+                  <span style={{ fontFamily: Q_FM, fontSize: '0.62rem', color: Q_SIGNAL, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    // Devis {form.reference}
                   </span>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: Q_PAPER, marginTop: '0.25rem', letterSpacing: '-0.01em' }}>
+                    {form.clientCompany || form.clientName || '...'} — {fmtEur(totalTTC)} TTC
+                  </div>
                   {form.offerTitle && (
-                    <span style={{ display: 'block', fontSize: '0.78rem', color: form.accentColor, fontWeight: 600 }}>{form.offerTitle}</span>
+                    <div style={{ fontSize: '0.78rem', color: Q_MIST, marginTop: '0.2rem' }}>{form.offerTitle}</div>
                   )}
-                  <br />
-                  <span style={{ fontSize: '0.82rem', color: '#666' }}>{fmtEur(totalTTC)} TTC</span>
                 </div>
               </div>
-              <div style={{ fontSize: '0.82rem', color: '#333', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                {form.emailContent || <span style={{ color: '#ccc', fontStyle: 'italic' }}>Contenu de l'email...</span>}
-              </div>
-              <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
-                <span style={{
-                  display: 'inline-block', background: form.accentColor, color: '#fff',
-                  padding: '0.6rem 1.5rem', borderRadius: 8, fontWeight: 700, fontSize: '0.82rem',
-                }}>
-                  Consulter le devis en ligne
-                </span>
+              <div style={{ padding: '1.1rem 1.25rem' }}>
+                <div style={{ fontSize: '0.82rem', color: Q_GRAPHITE, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                  {form.emailContent || <span style={{ color: Q_MIST, fontStyle: 'italic' }}>Contenu de l'email...</span>}
+                </div>
+                <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    background: Q_SIGNAL, color: Q_INK,
+                    padding: '0.65rem 1.5rem', borderRadius: 4, fontWeight: 600, fontSize: '0.82rem',
+                    fontFamily: Q_FT,
+                  }}>
+                    Consulter le devis en ligne <span aria-hidden>→</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>

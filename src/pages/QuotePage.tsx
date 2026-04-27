@@ -3,14 +3,21 @@ import { useParams } from 'react-router-dom'
 
 /* ───────────────────────── Constants ───────────────────────── */
 
-const DEFAULT_ACCENT = '#1A1A6B'
-const BG = '#FAF8F3'
-const CARD = '#FFFFFF'
-const TEXT = '#0A0A0A'
-const MUTED = '#71717A'
-const BORDER = 'rgba(0,0,0,0.06)'
-const FT = "'Space Grotesk', sans-serif"
+// ── Brand Book 2026 — ClearSharpHealthcare ──
+const DEFAULT_ACCENT = '#0A0A0B'      // Ink
+const BG = '#EDEBE4'                  // Paper
+const CARD = '#F4F4F2'                // Paper soft
+const TEXT = '#0A0A0B'                // Ink
+const GRAPHITE = '#2A2D35'
+const MUTED = '#6B6F7A'               // Steel
+const MIST = '#B8BCC4'
+const SIGNAL = '#00D68F'              // Signal green — accent dot/line
+const BORDER = 'rgba(10,10,11,0.08)'
+const BORDER_PAPER = 'rgba(237,235,228,0.12)'
+const FT = "'Inter', sans-serif"
 const FB = "'Inter', sans-serif"
+const FM = "'JetBrains Mono', ui-monospace, monospace"
+const FS = "'Instrument Serif', Georgia, serif"
 
 const CLIENTS = [
   'Doctolib', 'Kiro', 'Santé Académie', 'Cherry Biotech', 'Neok',
@@ -76,16 +83,20 @@ export default function QuotePage() {
     document.body.style.cursor = 'auto'
     const s = document.createElement('style')
     s.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Dancing+Script:wght@400;700&display=swap');
       *, a, button { cursor: auto !important; }
       a, button { cursor: pointer !important; }
       @keyframes spin { to { transform: rotate(360deg) } }
-      @keyframes fadeUp { from { opacity: 0; transform: translateY(24px) } to { opacity: 1; transform: translateY(0) } }
+      @keyframes fadeUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
       .q-fade { animation: fadeUp 0.6s ease-out both; }
-      .q-fade-1 { animation-delay: 0.1s; }
-      .q-fade-2 { animation-delay: 0.2s; }
-      .q-fade-3 { animation-delay: 0.3s; }
-      .q-fade-4 { animation-delay: 0.4s; }
+      .q-fade-1 { animation-delay: 0.08s; }
+      .q-fade-2 { animation-delay: 0.16s; }
+      .q-fade-3 { animation-delay: 0.24s; }
+      .q-fade-4 { animation-delay: 0.32s; }
+      .q-eyebrow { font-family: ${FM}; font-weight: 500; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
+      .q-wordmark { font-family: ${FT}; font-weight: 700; letter-spacing: -0.05em; text-transform: lowercase; display: inline-flex; align-items: baseline; }
+      .q-wordmark::after { content: ''; display: inline-block; width: 0.22em; height: 0.22em; border-radius: 50%; background: ${SIGNAL}; margin-left: 0.02em; transform: translateY(-0.02em); }
+      .q-dotmatrix { background-image: radial-gradient(circle, rgba(237,235,228,0.18) 1px, transparent 1px); background-size: 24px 24px; }
     `
     document.head.appendChild(s)
     return () => { document.head.removeChild(s) }
@@ -95,8 +106,8 @@ export default function QuotePage() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: BG, fontFamily: FB }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 44, height: 44, border: `3px solid ${DEFAULT_ACCENT}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1.25rem' }} />
-          <p style={{ color: MUTED, fontSize: '0.9rem' }}>Chargement du devis...</p>
+          <div style={{ width: 36, height: 36, border: `2px solid ${BORDER}`, borderTopColor: SIGNAL, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1.25rem' }} />
+          <p style={{ fontFamily: FM, color: MUTED, fontSize: '0.78rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>// Chargement du devis</p>
         </div>
       </div>
     )
@@ -106,10 +117,19 @@ export default function QuotePage() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: BG, fontFamily: FB }}>
         <div style={{ textAlign: 'center', maxWidth: 440, padding: '2rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.2 }}>404</div>
-          <h1 style={{ fontFamily: FT, fontSize: '1.5rem', fontWeight: 700, color: TEXT }}>Devis introuvable</h1>
-          <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0.5rem 0 1.5rem' }}>Ce devis n'existe pas ou a expiré.</p>
-          <a href="https://www.clempo.fr" style={{ color: DEFAULT_ACCENT, fontWeight: 600, textDecoration: 'none' }}>Retour au site</a>
+          <div style={{ fontFamily: FM, fontSize: '0.78rem', color: SIGNAL, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '1rem' }}>// 404</div>
+          <h1 style={{ fontFamily: FT, fontSize: '2rem', fontWeight: 700, color: TEXT, letterSpacing: '-0.03em', margin: 0 }}>
+            Devis <span style={{ fontFamily: FS, fontStyle: 'italic', fontWeight: 400 }}>introuvable</span>
+          </h1>
+          <p style={{ color: MUTED, fontSize: '0.95rem', lineHeight: 1.6, margin: '0.85rem 0 1.75rem' }}>Ce devis n'existe pas ou a expiré.</p>
+          <a href="https://www.clempo.fr" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+            background: TEXT, color: BG, padding: '0.85rem 1.5rem',
+            borderRadius: 4, fontWeight: 500, fontSize: '0.9rem',
+            textDecoration: 'none', fontFamily: FT,
+          }}>
+            Retour au site <span aria-hidden>→</span>
+          </a>
         </div>
       </div>
     )
@@ -140,17 +160,15 @@ export default function QuotePage() {
     <div style={{ background: BG, minHeight: '100vh', fontFamily: FB, color: TEXT }}>
 
       {/* ═══════════════════════════════════════════════════════
-          HERO — Photo + Présentation + Expertise + Clients
+          HERO — Ink flat bg + dot matrix, mono eyebrows
           ═══════════════════════════════════════════════════════ */}
       <div style={{
-        background: `linear-gradient(135deg, ${accent} 0%, ${accent}dd 50%, ${accent}bb 100%)`,
+        background: DEFAULT_ACCENT,
         position: 'relative', overflow: 'hidden',
       }}>
-        {/* Subtle pattern overlay */}
-        <div style={{
-          position: 'absolute', inset: 0, opacity: 0.04,
-          backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-          backgroundSize: '32px 32px',
+        {/* Dot matrix pattern (brand book signature) */}
+        <div className="q-dotmatrix" style={{
+          position: 'absolute', inset: 0,
         }} />
 
         <div style={{
@@ -162,16 +180,11 @@ export default function QuotePage() {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             marginBottom: '2.5rem', flexWrap: 'wrap', gap: '0.5rem',
           }}>
-            <div style={{
-              background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
-              padding: '0.5rem 1rem', borderRadius: 8,
-              fontSize: '0.78rem', fontWeight: 600, color: 'rgba(255,255,255,0.9)',
-              letterSpacing: '0.05em',
-            }}>
-              DEVIS N° {quote.reference}
+            <div className="q-eyebrow" style={{ color: SIGNAL }}>
+              // Devis n° {quote.reference}
             </div>
             {quote.validUntil && (
-              <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)' }}>
+              <div className="q-eyebrow" style={{ color: MIST }}>
                 Valable jusqu'au {fmtDate(quote.validUntil)}
               </div>
             )}
@@ -188,50 +201,50 @@ export default function QuotePage() {
                 src={photo}
                 alt={quote.senderName}
                 style={{
-                  width: 140, height: 140, borderRadius: 20, objectFit: 'cover',
-                  border: '4px solid rgba(255,255,255,0.25)',
-                  boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
+                  width: 140, height: 140, borderRadius: 4, objectFit: 'cover',
+                  border: `1px solid ${BORDER_PAPER}`,
                 }}
               />
             </div>
 
             {/* Text */}
             <div style={{ flex: 1, minWidth: 280 }}>
-              <div style={{
-                fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase',
-                letterSpacing: '0.12em', color: 'rgba(255,255,255,0.6)', marginBottom: '0.5rem',
-              }}>
-                Votre contact
+              <div className="q-eyebrow" style={{ color: SIGNAL, marginBottom: '0.85rem' }}>
+                // Votre contact
               </div>
               <h1 style={{
-                fontFamily: FT, fontSize: '1.8rem', fontWeight: 700,
-                color: '#fff', margin: '0 0 0.35rem', lineHeight: 1.2,
+                fontFamily: FT, fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', fontWeight: 700,
+                letterSpacing: '-0.03em',
+                color: BG, margin: '0 0 0.35rem', lineHeight: 1.15,
               }}>
                 {quote.senderName}
               </h1>
               <p style={{
-                fontSize: '1rem', color: 'rgba(255,255,255,0.8)',
-                margin: '0 0 1rem', lineHeight: 1.5,
+                fontSize: '1rem', color: MIST,
+                margin: '0 0 1.25rem', lineHeight: 1.5,
               }}>
-                Healthcare Marketing Director — {quote.senderCompany}
+                <span style={{ fontFamily: FS, fontStyle: 'italic', color: BG }}>Healthcare</span>{' '}
+                Marketing Director — {quote.senderCompany}
               </p>
 
               {/* Contact pills */}
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <a href={`mailto:${quote.senderEmail}`} style={{
-                  background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
-                  padding: '0.4rem 0.85rem', borderRadius: 20,
-                  fontSize: '0.8rem', color: '#fff', textDecoration: 'none',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  background: 'transparent',
+                  padding: '0.5rem 0.95rem', borderRadius: 4,
+                  fontSize: '0.8rem', color: BG, textDecoration: 'none',
+                  border: `1px solid ${BORDER_PAPER}`,
+                  fontFamily: FM, fontWeight: 500,
                 }}>
                   {quote.senderEmail}
                 </a>
                 {quote.senderPhone && (
                   <span style={{
-                    background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
-                    padding: '0.4rem 0.85rem', borderRadius: 20,
-                    fontSize: '0.8rem', color: '#fff',
-                    border: '1px solid rgba(255,255,255,0.2)',
+                    background: 'transparent',
+                    padding: '0.5rem 0.95rem', borderRadius: 4,
+                    fontSize: '0.8rem', color: BG,
+                    border: `1px solid ${BORDER_PAPER}`,
+                    fontFamily: FM, fontWeight: 500,
                   }}>
                     {quote.senderPhone}
                   </span>
@@ -245,10 +258,10 @@ export default function QuotePage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
               {EXPERTISES.map(e => (
                 <span key={e} style={{
-                  background: 'rgba(255,255,255,0.12)',
-                  padding: '0.35rem 0.8rem', borderRadius: 20,
-                  fontSize: '0.75rem', fontWeight: 500, color: 'rgba(255,255,255,0.85)',
-                  border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'rgba(0,214,143,0.10)',
+                  padding: '0.4rem 0.85rem', borderRadius: 4,
+                  fontSize: '0.75rem', fontWeight: 500, color: SIGNAL,
+                  letterSpacing: '0.01em',
                 }}>
                   {e}
                 </span>
@@ -257,17 +270,18 @@ export default function QuotePage() {
           </div>
 
           {/* Client logos */}
-          <div className="q-fade q-fade-3" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.12)' }}>
-            <div style={{
-              fontSize: '0.65rem', fontWeight: 600, textTransform: 'uppercase',
-              letterSpacing: '0.1em', color: 'rgba(255,255,255,0.45)', marginBottom: '0.75rem',
-            }}>
-              Ils m'ont fait confiance
+          <div className="q-fade q-fade-3" style={{
+            marginTop: '2rem', paddingTop: '1.75rem',
+            borderTop: `1px solid ${BORDER_PAPER}`,
+          }}>
+            <div className="q-eyebrow" style={{ color: MIST, marginBottom: '0.85rem' }}>
+              // Ils m'ont fait confiance
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.1rem', alignItems: 'center' }}>
               {CLIENTS.map(c => (
                 <span key={c} style={{
-                  fontSize: '0.82rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)',
+                  fontFamily: FT, fontSize: '0.85rem', fontWeight: 600,
+                  color: BG, letterSpacing: '-0.01em',
                 }}>
                   {c}
                 </span>
@@ -284,71 +298,66 @@ export default function QuotePage() {
 
         {/* ── Client info bar ── */}
         <div className="q-fade q-fade-1" style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem',
-          background: CARD, borderRadius: 16, padding: '1.25rem 2rem',
-          border: `1px solid ${BORDER}`, boxShadow: '0 2px 16px rgba(0,0,0,0.03)',
+          display: 'flex', alignItems: 'center', gap: '1rem',
+          marginBottom: '2.5rem',
+          background: CARD, borderRadius: 4, padding: '1.25rem 1.75rem',
+          border: `1px solid ${BORDER}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {quote.prospectLogo ? (
-              <img src={quote.prospectLogo} alt={quote.companyName}
-                style={{ height: 40, maxWidth: 120, objectFit: 'contain' }} />
-            ) : (
-              <div style={{
-                width: 44, height: 44, borderRadius: 12, background: `${accent}10`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: FT, fontWeight: 700, fontSize: '1.1rem', color: accent,
-              }}>
-                {quote.companyName.charAt(0)}
-              </div>
-            )}
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1rem', color: TEXT }}>{quote.companyName}</div>
-              <div style={{ fontSize: '0.82rem', color: MUTED }}>{quote.clientName}</div>
+          {quote.prospectLogo ? (
+            <img src={quote.prospectLogo} alt={quote.companyName}
+              style={{ height: 40, maxWidth: 120, objectFit: 'contain' }} />
+          ) : (
+            <div style={{
+              width: 44, height: 44, borderRadius: 4, background: TEXT,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: FT, fontWeight: 700, fontSize: '1.1rem', color: BG,
+            }}>
+              {quote.companyName.charAt(0)}
             </div>
-          </div>
-          <div style={{
-            background: `${accent}0a`, border: `1px solid ${accent}20`,
-            borderRadius: 12, padding: '0.65rem 1.25rem', textAlign: 'center',
-          }}>
-            <div style={{ fontFamily: FT, fontWeight: 700, fontSize: '1.35rem', color: accent }}>{fmt(totalTTC)}</div>
-            <div style={{ fontSize: '0.68rem', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total TTC</div>
+          )}
+          <div>
+            <div className="q-eyebrow" style={{ color: SIGNAL, marginBottom: '0.25rem' }}>
+              // Client
+            </div>
+            <div style={{ fontWeight: 700, fontSize: '1rem', color: TEXT, letterSpacing: '-0.01em' }}>{quote.companyName}</div>
+            <div style={{ fontSize: '0.82rem', color: MUTED }}>{quote.clientName}</div>
           </div>
         </div>
 
         {/* ── Offer title ── */}
         {quote.offerTitle && (
           <div className="q-fade q-fade-2" style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <div className="q-eyebrow" style={{ color: SIGNAL, marginBottom: '0.85rem' }}>
+              // L'offre
+            </div>
             <h2 style={{
               fontFamily: FT, fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 700,
-              color: TEXT, margin: 0, lineHeight: 1.15,
+              color: TEXT, margin: 0, lineHeight: 1.15, letterSpacing: '-0.03em',
             }}>
               {quote.offerTitle}
             </h2>
-            <div style={{ width: 48, height: 3, background: accent, borderRadius: 2, margin: '0.85rem auto 0' }} />
+            <div style={{ width: 32, height: 2, background: SIGNAL, margin: '1rem auto 0' }} />
           </div>
         )}
 
         {/* ── Context ── */}
         {quote.context && (
           <div className="q-fade q-fade-2" style={{
-            background: CARD, borderRadius: 20, padding: '2.5rem',
-            border: `1px solid ${BORDER}`, boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+            background: CARD, borderRadius: 4, padding: '2.5rem',
+            border: `1px solid ${BORDER}`,
             marginBottom: '2rem',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 10, background: `${accent}12`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2.5px solid ${accent}` }} />
-              </div>
-              <h3 style={{ fontFamily: FT, fontSize: '1.2rem', fontWeight: 700, color: TEXT, margin: 0 }}>
-                {quote.context.title}
-              </h3>
+            <div className="q-eyebrow" style={{ color: SIGNAL, marginBottom: '0.85rem' }}>
+              // Contexte
             </div>
+            <h3 style={{
+              fontFamily: FT, fontSize: '1.35rem', fontWeight: 700, color: TEXT,
+              margin: '0 0 1.25rem', letterSpacing: '-0.02em',
+            }}>
+              {quote.context.title}
+            </h3>
             <div
-              style={{ fontSize: '0.95rem', lineHeight: 1.8, color: '#444' }}
+              style={{ fontSize: '0.95rem', lineHeight: 1.8, color: GRAPHITE }}
               dangerouslySetInnerHTML={{ __html: quote.context.description }}
             />
           </div>
@@ -362,19 +371,19 @@ export default function QuotePage() {
         {/* ── Presentation / bio ── */}
         {quote.presentation && (
           <div className="q-fade q-fade-3" style={{
-            background: CARD, borderRadius: 20, padding: '2rem 2.5rem',
-            border: `1px solid ${BORDER}`, boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+            background: CARD, borderRadius: 4, padding: '2rem 2.5rem',
+            border: `1px solid ${BORDER}`, borderLeft: `2px solid ${SIGNAL}`,
             marginBottom: '2rem',
             display: 'flex', gap: '1.5rem', alignItems: 'flex-start',
           }}>
             <img src={photo} alt={quote.senderName} style={{
-              width: 56, height: 56, borderRadius: 14, objectFit: 'cover', flexShrink: 0,
+              width: 56, height: 56, borderRadius: 4, objectFit: 'cover', flexShrink: 0,
             }} />
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: TEXT, marginBottom: '0.4rem' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: TEXT, marginBottom: '0.4rem', letterSpacing: '-0.01em' }}>
                 {quote.senderName}
               </div>
-              <p style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.75, margin: 0 }}>
+              <p style={{ fontSize: '0.9rem', color: GRAPHITE, lineHeight: 1.75, margin: 0 }}>
                 {quote.presentation}
               </p>
             </div>
@@ -383,17 +392,24 @@ export default function QuotePage() {
 
         {/* ═══════ VOTRE OFFRE — Products table ═══════ */}
         <div className="q-fade q-fade-3" style={{
-          background: CARD, borderRadius: 20, overflow: 'hidden',
-          border: `1px solid ${BORDER}`, boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+          background: CARD, borderRadius: 4, overflow: 'hidden',
+          border: `1px solid ${BORDER}`,
           marginBottom: '1.5rem',
         }}>
-          {/* Table header band */}
+          {/* Table header band — flat ink */}
           <div style={{
-            background: `linear-gradient(135deg, ${accent}, ${accent}dd)`,
+            background: TEXT,
             padding: '1.25rem 2.5rem',
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
           }}>
-            <h3 style={{ fontFamily: FT, fontSize: '1.15rem', fontWeight: 700, color: '#fff', margin: 0 }}>
-              Votre offre
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%', background: SIGNAL, display: 'inline-block',
+            }} />
+            <h3 style={{
+              fontFamily: FM, fontSize: '0.78rem', fontWeight: 500, color: BG, margin: 0,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+            }}>
+              // Votre offre
             </h3>
           </div>
 
@@ -404,8 +420,8 @@ export default function QuotePage() {
                   {['Description', 'Qté', 'Unité', 'Prix HT', 'TVA', 'Total HT'].map((h, i) => (
                     <th key={i} style={{
                       padding: '1rem 0.75rem 0.75rem',
-                      fontSize: '0.68rem', fontWeight: 700, color: MUTED,
-                      textTransform: 'uppercase', letterSpacing: '0.1em',
+                      fontFamily: FM, fontSize: '0.7rem', fontWeight: 500, color: MUTED,
+                      textTransform: 'uppercase', letterSpacing: '0.08em',
                       textAlign: i === 0 ? 'left' : 'right',
                       borderBottom: `1px solid ${BORDER}`,
                     }}>
@@ -418,7 +434,7 @@ export default function QuotePage() {
                 {linesComputed.map((l, i) => (
                   <tr key={i} style={{ borderBottom: i < linesComputed.length - 1 ? `1px solid ${BORDER}` : 'none' }}>
                     <td style={{ padding: '1.25rem 0.75rem', maxWidth: 380 }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: TEXT }}>{l.description}</div>
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: TEXT, letterSpacing: '-0.01em' }}>{l.description}</div>
                       {l.detail && (
                         <div
                           style={{ fontSize: '0.82rem', color: MUTED, lineHeight: 1.65, marginTop: '0.35rem' }}
@@ -426,19 +442,19 @@ export default function QuotePage() {
                         />
                       )}
                     </td>
-                    <td style={{ padding: '1.25rem 0.75rem', fontSize: '0.9rem', textAlign: 'right', fontWeight: 600 }}>{l.quantity}</td>
+                    <td style={{ padding: '1.25rem 0.75rem', fontFamily: FM, fontSize: '0.85rem', textAlign: 'right', fontWeight: 500, color: TEXT }}>{l.quantity}</td>
                     <td style={{ padding: '1.25rem 0.75rem', fontSize: '0.82rem', color: MUTED, textAlign: 'right' }}>{l.unit || 'forfait'}</td>
-                    <td style={{ padding: '1.25rem 0.75rem', fontSize: '0.9rem', textAlign: 'right' }}>{fmt(l.unitPrice)}</td>
-                    <td style={{ padding: '1.25rem 0.75rem', fontSize: '0.82rem', color: MUTED, textAlign: 'right' }}>{l.tvaRate}%</td>
+                    <td style={{ padding: '1.25rem 0.75rem', fontFamily: FM, fontSize: '0.85rem', textAlign: 'right', color: TEXT }}>{fmt(l.unitPrice)}</td>
+                    <td style={{ padding: '1.25rem 0.75rem', fontFamily: FM, fontSize: '0.8rem', color: MUTED, textAlign: 'right' }}>{l.tvaRate}%</td>
                     <td style={{ padding: '1.25rem 0.75rem', textAlign: 'right' }}>
                       {l.discountRate > 0 ? (
                         <>
-                          <span style={{ textDecoration: 'line-through', color: '#ccc', fontSize: '0.78rem', marginRight: 6 }}>{fmt(l.rawHT)}</span>
-                          <span style={{ fontWeight: 700, color: accent }}>{fmt(l.lineHT)}</span>
-                          <div style={{ fontSize: '0.68rem', color: accent, marginTop: 2 }}>-{l.discountRate}%</div>
+                          <span style={{ textDecoration: 'line-through', color: MIST, fontSize: '0.78rem', marginRight: 6, fontFamily: FM }}>{fmt(l.rawHT)}</span>
+                          <span style={{ fontWeight: 700, color: TEXT, fontFamily: FM }}>{fmt(l.lineHT)}</span>
+                          <div style={{ fontFamily: FM, fontSize: '0.7rem', color: SIGNAL, marginTop: 2, fontWeight: 600 }}>−{l.discountRate}%</div>
                         </>
                       ) : (
-                        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fmt(l.lineHT)}</span>
+                        <span style={{ fontWeight: 700, fontSize: '0.95rem', fontFamily: FM, color: TEXT }}>{fmt(l.lineHT)}</span>
                       )}
                     </td>
                   </tr>
@@ -451,30 +467,30 @@ export default function QuotePage() {
         {/* ═══════ FINANCIAL SUMMARY ═══════ */}
         <div className="q-fade q-fade-4" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
           <div style={{
-            background: CARD, borderRadius: 20, padding: '1.75rem 2.25rem', minWidth: 340,
-            border: `1px solid ${BORDER}`, boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+            background: CARD, borderRadius: 4, padding: '1.75rem 2.25rem', minWidth: 340,
+            border: `1px solid ${BORDER}`,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', fontSize: '0.9rem' }}>
               <span style={{ color: MUTED }}>Sous-total HT</span>
-              <span style={{ fontWeight: 600 }}>{fmt(subtotalHT)}</span>
+              <span style={{ fontWeight: 600, fontFamily: FM, color: TEXT }}>{fmt(subtotalHT)}</span>
             </div>
             {gd > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', fontSize: '0.9rem' }}>
-                <span style={{ color: accent }}>Remise globale ({gd}%)</span>
-                <span style={{ fontWeight: 600, color: accent }}>-{fmt(gdAmount)}</span>
+                <span style={{ color: SIGNAL, fontFamily: FM, fontWeight: 500 }}>Remise globale ({gd}%)</span>
+                <span style={{ fontWeight: 600, color: SIGNAL, fontFamily: FM }}>−{fmt(gdAmount)}</span>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', fontSize: '0.9rem' }}>
               <span style={{ color: MUTED }}>TVA</span>
-              <span style={{ fontWeight: 600 }}>{fmt(totalTVA)}</span>
+              <span style={{ fontWeight: 600, fontFamily: FM, color: TEXT }}>{fmt(totalTVA)}</span>
             </div>
             <div style={{ height: 1, background: BORDER, margin: '0.75rem 0' }} />
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
               padding: '0.5rem 0',
             }}>
-              <span style={{ fontFamily: FT, fontWeight: 700, fontSize: '1rem' }}>TOTAL TTC</span>
-              <span style={{ fontFamily: FT, fontWeight: 800, fontSize: '1.75rem', color: accent }}>{fmt(totalTTC)}</span>
+              <span className="q-eyebrow" style={{ color: MUTED }}>// Total TTC</span>
+              <span style={{ fontFamily: FT, fontWeight: 700, fontSize: '1.75rem', color: TEXT, letterSpacing: '-0.03em' }}>{fmt(totalTTC)}</span>
             </div>
           </div>
         </div>
@@ -482,14 +498,14 @@ export default function QuotePage() {
         {/* ═══════ PAYMENT TERMS ═══════ */}
         {quote.paymentTerms && (
           <div style={{
-            background: CARD, borderRadius: 20, padding: '1.75rem 2.25rem',
-            border: `1px solid ${BORDER}`, boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+            background: CARD, borderRadius: 4, padding: '1.75rem 2.25rem',
+            border: `1px solid ${BORDER}`,
             marginBottom: '1.5rem',
           }}>
-            <h3 style={{ fontFamily: FT, fontSize: '1rem', fontWeight: 700, margin: '0 0 0.65rem' }}>
-              Conditions de paiement
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap' }}>
+            <div className="q-eyebrow" style={{ color: SIGNAL, marginBottom: '0.65rem' }}>
+              // Conditions de paiement
+            </div>
+            <p style={{ fontSize: '0.9rem', color: GRAPHITE, lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap' }}>
               {quote.paymentTerms}
             </p>
           </div>
@@ -498,11 +514,11 @@ export default function QuotePage() {
         {/* ═══════ NOTES ═══════ */}
         {quote.notes && (
           <div style={{
-            background: CARD, borderRadius: 20, padding: '1.75rem 2.25rem',
-            border: `1px solid ${BORDER}`, borderLeft: `4px solid ${accent}`,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.03)', marginBottom: '2rem',
+            background: CARD, borderRadius: 4, padding: '1.75rem 2.25rem',
+            border: `1px solid ${BORDER}`, borderLeft: `2px solid ${SIGNAL}`,
+            marginBottom: '2rem',
           }}>
-            <p style={{ fontSize: '0.9rem', color: '#555', lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap' }}>
+            <p style={{ fontSize: '0.9rem', color: GRAPHITE, lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap' }}>
               {quote.notes}
             </p>
           </div>
@@ -513,49 +529,70 @@ export default function QuotePage() {
 
         {/* ═══════ CTA SECTION ═══════ */}
         <div style={{
-          background: `linear-gradient(135deg, ${accent}08, ${accent}04)`,
-          borderRadius: 24, padding: '2.5rem',
-          border: `1px solid ${accent}15`,
+          background: TEXT, color: BG,
+          borderRadius: 4, padding: '2.75rem 2.5rem',
           textAlign: 'center', marginBottom: '2rem',
+          position: 'relative', overflow: 'hidden',
         }}>
-          <h3 style={{ fontFamily: FT, fontSize: '1.3rem', fontWeight: 700, color: TEXT, margin: '0 0 0.5rem' }}>
-            Des questions sur ce devis ?
-          </h3>
-          <p style={{ fontSize: '0.9rem', color: MUTED, margin: '0 0 1.5rem', lineHeight: 1.6 }}>
-            Planifions un échange pour en discuter ensemble.
-          </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <a
-              href="https://app.lemcal.com/@clementpougetosmont/30minutes"
-              target="_blank" rel="noopener noreferrer"
-              style={{
-                display: 'inline-block', background: accent, color: '#fff',
-                padding: '0.85rem 2rem', borderRadius: 12, textDecoration: 'none',
-                fontWeight: 700, fontSize: '0.9rem',
-                boxShadow: `0 4px 16px ${accent}40`,
-              }}
-            >
-              Prendre rendez-vous
-            </a>
-            <a
-              href={`mailto:${quote.senderEmail}?subject=Re: Devis ${encodeURIComponent(quote.reference)}`}
-              style={{
-                display: 'inline-block', background: CARD, color: accent,
-                padding: '0.85rem 2rem', borderRadius: 12, textDecoration: 'none',
-                fontWeight: 700, fontSize: '0.9rem',
-                border: `2px solid ${accent}25`,
-              }}
-            >
-              Répondre par email
-            </a>
+          <div className="q-dotmatrix" style={{ position: 'absolute', inset: 0 }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div className="q-eyebrow" style={{ color: SIGNAL, marginBottom: '0.85rem' }}>
+              // Une question ?
+            </div>
+            <h3 style={{
+              fontFamily: FT, fontSize: '1.5rem', fontWeight: 700, color: BG,
+              margin: '0 0 0.65rem', letterSpacing: '-0.02em',
+            }}>
+              On en discute <span style={{ fontFamily: FS, fontStyle: 'italic', fontWeight: 400 }}>ensemble</span> ?
+            </h3>
+            <p style={{ fontSize: '0.95rem', color: MIST, margin: '0 0 1.75rem', lineHeight: 1.6 }}>
+              30 minutes pour répondre à toutes vos questions sur ce devis.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <a
+                href="https://www.clempo.fr/booking"
+                target="_blank" rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.55rem',
+                  background: SIGNAL, color: TEXT,
+                  padding: '0.9rem 1.6rem', borderRadius: 4, textDecoration: 'none',
+                  fontWeight: 600, fontSize: '0.9rem', fontFamily: FT,
+                }}
+              >
+                Prendre rendez-vous <span aria-hidden>→</span>
+              </a>
+              <a
+                href={`mailto:${quote.senderEmail}?subject=Re: Devis ${encodeURIComponent(quote.reference)}`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.55rem',
+                  background: 'transparent', color: BG,
+                  padding: '0.9rem 1.6rem', borderRadius: 4, textDecoration: 'none',
+                  fontWeight: 500, fontSize: '0.9rem', fontFamily: FT,
+                  border: `1px solid ${BORDER_PAPER}`,
+                }}
+              >
+                Répondre par email
+              </a>
+            </div>
           </div>
         </div>
 
         {/* ═══════ FOOTER ═══════ */}
-        <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#bbb', paddingBottom: '2rem' }}>
-          &copy; {new Date().getFullYear()} {quote.senderCompany} &middot;{' '}
-          <a href="https://www.clempo.fr" style={{ color: '#bbb', textDecoration: 'none' }}>www.clempo.fr</a>
-        </p>
+        <div style={{
+          textAlign: 'center', paddingBottom: '2rem',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem',
+        }}>
+          <a
+            href="https://www.clempo.fr"
+            className="q-wordmark"
+            style={{ color: TEXT, fontSize: '1rem', textDecoration: 'none' }}
+          >
+            clempo
+          </a>
+          <p style={{ fontFamily: FM, fontSize: '0.7rem', color: MUTED, letterSpacing: '0.05em', margin: 0 }}>
+            © {new Date().getFullYear()} {quote.senderCompany} — www.clempo.fr
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -569,23 +606,27 @@ export default function QuotePage() {
    ARGUMENTS TABS — Qwoty-style click-to-reveal
    ═══════════════════════════════════════════════════════════════ */
 
-function ArgumentsTabs({ arguments: args, accent }: {
+function ArgumentsTabs({ arguments: args }: {
   arguments: { title: string; description: string }[]; accent: string
 }) {
   const [active, setActive] = useState(0)
   return (
     <div className="q-fade q-fade-3" style={{
-      background: CARD, borderRadius: 20, overflow: 'hidden',
-      border: `1px solid ${BORDER}`, boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+      background: CARD, borderRadius: 4, overflow: 'hidden',
+      border: `1px solid ${BORDER}`,
       marginBottom: '2rem',
     }}>
       {/* Section title */}
-      <div style={{ padding: '2rem 2.5rem 0' }}>
+      <div style={{ padding: '2rem 2.5rem 0', textAlign: 'center' }}>
+        <div className="q-eyebrow" style={{ color: SIGNAL, marginBottom: '0.85rem' }}>
+          // Pourquoi moi
+        </div>
         <h3 style={{
-          fontFamily: FT, fontSize: 'clamp(1.2rem, 3vw, 1.6rem)', fontWeight: 700,
-          color: TEXT, margin: '0 0 1.5rem', textAlign: 'center',
+          fontFamily: FT, fontSize: 'clamp(1.3rem, 3vw, 1.7rem)', fontWeight: 700,
+          color: TEXT, margin: '0 0 1.75rem', letterSpacing: '-0.02em',
         }}>
-          3 raisons de collaborer ensemble
+          3 raisons de collaborer{' '}
+          <span style={{ fontFamily: FS, fontStyle: 'italic', fontWeight: 400 }}>ensemble</span>
         </h3>
       </div>
 
@@ -596,12 +637,13 @@ function ArgumentsTabs({ arguments: args, accent }: {
       }}>
         {args.map((arg, i) => (
           <button key={i} onClick={() => setActive(i)} style={{
-            padding: '0.6rem 1.25rem', borderRadius: 10, border: 'none',
-            background: active === i ? accent : '#f4f4f2',
-            color: active === i ? '#fff' : MUTED,
-            fontFamily: FT, fontWeight: 600, fontSize: '0.85rem',
-            cursor: 'pointer', transition: 'all 0.25s',
-            boxShadow: active === i ? `0 4px 12px ${accent}30` : 'none',
+            padding: '0.65rem 1.25rem', borderRadius: 4,
+            border: `1px solid ${active === i ? TEXT : BORDER}`,
+            background: active === i ? TEXT : 'transparent',
+            color: active === i ? BG : TEXT,
+            fontFamily: FT, fontWeight: 500, fontSize: '0.85rem',
+            cursor: 'pointer', transition: 'all 0.2s',
+            letterSpacing: '-0.005em',
           }}>
             {arg.title}
           </button>
@@ -614,7 +656,7 @@ function ArgumentsTabs({ arguments: args, accent }: {
           animation: 'fadeUp 0.35s ease-out both',
         }}>
           <p style={{
-            fontSize: '0.95rem', color: '#444', lineHeight: 1.8, margin: 0,
+            fontSize: '0.95rem', color: GRAPHITE, lineHeight: 1.8, margin: 0,
           }}>
             {args[active].description}
           </p>
@@ -628,7 +670,7 @@ function ArgumentsTabs({ arguments: args, accent }: {
    SIGNATURE SECTION — Billing form, CGV, Draw/Type signature
    ═══════════════════════════════════════════════════════════════ */
 
-function SignatureSection({ quote, accent, company, id, onSigned }: {
+function SignatureSection({ quote, company, id, onSigned }: {
   quote: QuoteData; accent: string; company: string; id: string
   onSigned: (sig: QuoteSignature) => void
 }) {
@@ -787,29 +829,33 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
   if (quote.signature) {
     return (
       <div style={{
-        background: '#f0fdf4', borderRadius: 20, padding: '2.5rem',
-        border: '1px solid #bbf7d0', marginBottom: '2rem', textAlign: 'center',
+        background: CARD, borderRadius: 4, padding: '2.5rem',
+        border: `1px solid ${BORDER}`, borderLeft: `2px solid ${SIGNAL}`,
+        marginBottom: '2rem', textAlign: 'center',
       }}>
         <div style={{
-          width: 56, height: 56, borderRadius: '50%', background: '#16a34a',
+          width: 48, height: 48, borderRadius: '50%', background: SIGNAL,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 1rem',
         }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h3 style={{ fontFamily: FT, fontSize: '1.3rem', fontWeight: 700, color: '#15803d', margin: '0 0 0.5rem' }}>
-          Devis signé
+        <div className="q-eyebrow" style={{ color: SIGNAL, marginBottom: '0.5rem' }}>
+          // Devis signé
+        </div>
+        <h3 style={{ fontFamily: FT, fontSize: '1.4rem', fontWeight: 700, color: TEXT, margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>
+          Merci <span style={{ fontFamily: FS, fontStyle: 'italic', fontWeight: 400 }}>{quote.signature.signerName.split(' ')[0]}</span>
         </h3>
-        <p style={{ fontSize: '0.9rem', color: '#166534', margin: '0 0 1rem', lineHeight: 1.6 }}>
-          Ce devis a été signé par <strong>{quote.signature.signerName}</strong> le{' '}
+        <p style={{ fontSize: '0.9rem', color: GRAPHITE, margin: '0 0 1.25rem', lineHeight: 1.6 }}>
+          Devis signé le{' '}
           {new Date(quote.signature.signedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}.
         </p>
         {quote.signature.image && (
           <div style={{
-            background: '#fff', borderRadius: 12, padding: '1rem',
-            display: 'inline-block', border: '1px solid #dcfce7',
+            background: '#fff', borderRadius: 4, padding: '1rem',
+            display: 'inline-block', border: `1px solid ${BORDER}`,
           }}>
             <img src={quote.signature.image} alt="Signature" style={{ maxWidth: 240, height: 'auto' }} />
           </div>
@@ -819,40 +865,45 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '0.7rem 1rem', borderRadius: 10,
+    width: '100%', padding: '0.75rem 1rem', borderRadius: 4,
     border: `1px solid ${BORDER}`, fontSize: '0.9rem', fontFamily: FB,
     outline: 'none', transition: 'border-color 0.2s',
-    background: '#fff',
+    background: '#fff', color: TEXT,
   }
   const labelStyle: React.CSSProperties = {
-    display: 'block', fontSize: '0.78rem', fontWeight: 600,
-    color: MUTED, marginBottom: '0.35rem',
+    display: 'block', fontSize: '0.78rem', fontWeight: 500,
+    color: MUTED, marginBottom: '0.4rem',
+    fontFamily: FB,
   }
 
   return (
     <div style={{
-      background: CARD, borderRadius: 20, overflow: 'hidden',
-      border: `1px solid ${BORDER}`, boxShadow: '0 4px 24px rgba(0,0,0,0.03)',
+      background: CARD, borderRadius: 4, overflow: 'hidden',
+      border: `1px solid ${BORDER}`,
       marginBottom: '2rem',
     }}>
-      {/* Header */}
+      {/* Header — flat ink */}
       <div style={{
-        background: `linear-gradient(135deg, ${accent}, ${accent}dd)`,
+        background: TEXT,
         padding: '1.25rem 2.5rem',
+        display: 'flex', alignItems: 'center', gap: '0.75rem',
       }}>
-        <h3 style={{ fontFamily: FT, fontSize: '1.15rem', fontWeight: 700, color: '#fff', margin: 0 }}>
-          Signer ce devis
+        <span style={{
+          width: 6, height: 6, borderRadius: '50%', background: SIGNAL, display: 'inline-block',
+        }} />
+        <h3 style={{
+          fontFamily: FM, fontSize: '0.78rem', fontWeight: 500, color: BG, margin: 0,
+          letterSpacing: '0.1em', textTransform: 'uppercase',
+        }}>
+          // Signer ce devis
         </h3>
       </div>
 
       <div style={{ padding: '2rem 2.5rem' }}>
         {/* Billing info form */}
         <div style={{ marginBottom: '2rem' }}>
-          <div style={{
-            fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase',
-            letterSpacing: '0.1em', color: MUTED, marginBottom: '1rem',
-          }}>
-            Informations de facturation
+          <div className="q-eyebrow" style={{ color: SIGNAL, marginBottom: '1rem' }}>
+            // Informations de facturation
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
@@ -910,23 +961,25 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
 
         {/* CGV acceptance */}
         <div style={{
-          background: '#fafaf8', borderRadius: 12, padding: '1.25rem',
+          background: '#fff', borderRadius: 4, padding: '1.25rem',
           border: `1px solid ${BORDER}`, marginBottom: '2rem',
         }}>
           <label style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', cursor: 'pointer' }}>
             <input
               type="checkbox" checked={cgvAccepted}
               onChange={e => setCgvAccepted(e.target.checked)}
-              style={{ marginTop: 3, width: 18, height: 18, accentColor: accent, cursor: 'pointer' }}
+              style={{ marginTop: 3, width: 18, height: 18, accentColor: SIGNAL, cursor: 'pointer' }}
             />
-            <span style={{ fontSize: '0.88rem', color: '#444', lineHeight: 1.6 }}>
+            <span style={{ fontSize: '0.88rem', color: GRAPHITE, lineHeight: 1.6 }}>
               J'accepte les{' '}
               <button
                 onClick={(e) => { e.preventDefault(); setShowCgv(!showCgv) }}
                 style={{
-                  background: 'none', border: 'none', color: accent,
-                  textDecoration: 'underline', cursor: 'pointer', fontSize: '0.88rem',
-                  fontFamily: FB, padding: 0,
+                  background: 'none', border: 'none', color: TEXT,
+                  textDecoration: 'underline', textDecorationColor: SIGNAL,
+                  textDecorationThickness: 2, textUnderlineOffset: 3,
+                  cursor: 'pointer', fontSize: '0.88rem',
+                  fontFamily: FB, fontWeight: 600, padding: 0,
                 }}
               >
                 conditions générales de vente
@@ -936,10 +989,10 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
           </label>
           {showCgv && (
             <div style={{
-              marginTop: '1rem', padding: '1.25rem', background: '#fff',
-              borderRadius: 10, border: `1px solid ${BORDER}`,
+              marginTop: '1rem', padding: '1.25rem', background: CARD,
+              borderRadius: 4, border: `1px solid ${BORDER}`,
               maxHeight: 300, overflowY: 'auto',
-              fontSize: '0.82rem', color: '#555', lineHeight: 1.7,
+              fontSize: '0.82rem', color: GRAPHITE, lineHeight: 1.7,
             }}
               dangerouslySetInnerHTML={{ __html: quote.cgvText || '<p>Les conditions générales de vente sont disponibles sur demande.</p>' }}
             />
@@ -950,23 +1003,20 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
         <div style={{ marginBottom: '1.5rem' }}>
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            marginBottom: '1rem',
+            marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem',
           }}>
-            <div style={{
-              fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase',
-              letterSpacing: '0.1em', color: MUTED,
-            }}>
-              Votre signature
+            <div className="q-eyebrow" style={{ color: SIGNAL }}>
+              // Votre signature
             </div>
-            <div style={{ display: 'flex', gap: '0.25rem', background: '#f4f4f2', borderRadius: 8, padding: 3 }}>
+            <div style={{ display: 'flex', gap: 3, background: BG, borderRadius: 4, padding: 3, border: `1px solid ${BORDER}` }}>
               {(['drawn', 'typed'] as const).map(m => (
                 <button key={m} onClick={() => setMode(m)} style={{
-                  padding: '0.4rem 1rem', borderRadius: 6, border: 'none',
-                  fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+                  padding: '0.4rem 1rem', borderRadius: 4, border: 'none',
+                  fontSize: '0.78rem', fontWeight: 500, cursor: 'pointer',
                   fontFamily: FB,
-                  background: mode === m ? '#fff' : 'transparent',
-                  color: mode === m ? TEXT : MUTED,
-                  boxShadow: mode === m ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                  background: mode === m ? TEXT : 'transparent',
+                  color: mode === m ? BG : MUTED,
+                  transition: 'all 0.2s',
                 }}>
                   {m === 'drawn' ? 'Dessiner' : 'Saisir'}
                 </button>
@@ -982,16 +1032,16 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
                 onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
                 onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw}
                 style={{
-                  width: '100%', height: 120, borderRadius: 12,
-                  border: `2px dashed ${BORDER}`, background: '#fff',
+                  width: '100%', height: 120, borderRadius: 4,
+                  border: `1px dashed ${MUTED}`, background: '#fff',
                   cursor: 'crosshair', touchAction: 'none',
                 }}
               />
               <button onClick={clearCanvas} style={{
                 position: 'absolute', top: 8, right: 8,
-                background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: 6,
-                padding: '0.3rem 0.6rem', fontSize: '0.72rem', color: MUTED,
-                cursor: 'pointer', fontFamily: FB,
+                background: BG, border: `1px solid ${BORDER}`, borderRadius: 4,
+                padding: '0.3rem 0.65rem', fontSize: '0.72rem', color: MUTED,
+                cursor: 'pointer', fontFamily: FM, letterSpacing: '0.05em',
               }}>
                 Effacer
               </button>
@@ -1005,10 +1055,10 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
               />
               {typedName && (
                 <div style={{
-                  background: '#fff', borderRadius: 12, padding: '1.5rem',
-                  border: `2px dashed ${BORDER}`, textAlign: 'center',
+                  background: '#fff', borderRadius: 4, padding: '1.5rem',
+                  border: `1px dashed ${MUTED}`, textAlign: 'center',
                   fontFamily: '"Dancing Script", "Brush Script MT", cursive',
-                  fontSize: '2.5rem', fontStyle: 'italic', color: '#111',
+                  fontSize: '2.5rem', fontStyle: 'italic', color: TEXT,
                 }}>
                   {typedName}
                 </div>
@@ -1020,11 +1070,13 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
         {/* Error message */}
         {error && (
           <div style={{
-            background: '#fef2f2', borderRadius: 10, padding: '0.75rem 1rem',
-            fontSize: '0.85rem', color: '#dc2626', marginBottom: '1rem',
-            border: '1px solid #fecaca',
+            background: '#fff', borderRadius: 4, padding: '0.75rem 1rem',
+            fontSize: '0.85rem', color: TEXT, marginBottom: '1rem',
+            border: `1px solid ${BORDER}`, borderLeft: '2px solid #DC2626',
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
           }}>
-            {error}
+            <span style={{ fontFamily: FM, fontSize: '0.7rem', color: '#DC2626', letterSpacing: '0.08em' }}>// ERREUR —</span>
+            <span>{error}</span>
           </div>
         )}
 
@@ -1032,19 +1084,21 @@ function SignatureSection({ quote, accent, company, id, onSigned }: {
         <button
           onClick={handleSubmit} disabled={submitting}
           style={{
-            width: '100%', padding: '1rem', borderRadius: 12, border: 'none',
-            background: submitting ? '#aaa' : accent, color: '#fff',
-            fontFamily: FT, fontWeight: 700, fontSize: '1rem', cursor: submitting ? 'not-allowed' : 'pointer',
-            boxShadow: submitting ? 'none' : `0 4px 16px ${accent}40`,
+            width: '100%', padding: '1rem', borderRadius: 4, border: 'none',
+            background: submitting ? MUTED : TEXT, color: BG,
+            fontFamily: FT, fontWeight: 600, fontSize: '0.95rem',
+            letterSpacing: '-0.005em',
+            cursor: submitting ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.55rem',
           }}
         >
-          {submitting ? 'Signature en cours...' : 'Signer et valider le devis'}
+          {submitting ? 'Signature en cours…' : <>Signer et valider le devis <span aria-hidden>→</span></>}
         </button>
 
-        <p style={{ fontSize: '0.72rem', color: '#aaa', textAlign: 'center', marginTop: '0.75rem', lineHeight: 1.5 }}>
-          En signant, vous acceptez le devis {quote.reference} pour un montant total indiqué ci-dessus.
-          Votre signature, adresse IP et horodatage seront enregistrés.
+        <p style={{ fontFamily: FM, fontSize: '0.7rem', color: MUTED, textAlign: 'center', marginTop: '0.85rem', lineHeight: 1.6, letterSpacing: '0.02em' }}>
+          En signant, vous acceptez le devis {quote.reference}.
+          Signature, IP et horodatage enregistrés.
         </p>
       </div>
     </div>
