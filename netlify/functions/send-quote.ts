@@ -150,8 +150,23 @@ const handler: Handler = async (event) => {
       return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) }
     }
 
-    const quoteId = crypto.randomUUID()
-    const companySlug = slugify(data.clientCompany || data.clientName || 'client')
+    // Parse CC emails (comma-separated string OR array)
+    const parseCc = (raw: unknown): string[] => {
+      if (!raw) return []
+      const arr = Array.isArray(raw)
+        ? raw
+        : String(raw).split(/[,;\n]/)
+      return arr.map(s => String(s).trim()).filter(Boolean)
+    }
+    const ccEmails = parseCc(data.clientCcEmails)
+
+    // Existing-id mode: update an existing quote and resend the email
+    const existingId: string | undefined = data.existingId
+    const quotesData = await loadQuotes()
+    const existing = existingId ? quotesData.quotes.find(q => q.id === existingId) : null
+
+    const quoteId = existing?.id || crypto.randomUUID()
+    const companySlug = existing?.companySlug || slugify(data.clientCompany || data.clientName || 'client')
     const quoteUrl = `https://www.clempo.fr/devis/${companySlug}/${quoteId}`
 
     const html = buildEmail(data, quoteUrl)
@@ -160,41 +175,74 @@ const handler: Handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ html, quoteUrl }) }
     }
 
-    // Save quote to store
+    // Save / update quote in store
     const now = new Date().toISOString()
-    const quote: Quote = {
-      id: quoteId,
-      reference: data.reference,
-      companySlug,
-      companyName: data.clientCompany || data.clientName,
-      clientName: data.clientName,
-      clientEmail: data.clientEmail,
-      prospectLogo: data.prospectLogo || undefined,
-      date: data.date,
-      dueDate: data.dueDate,
-      validUntil: data.validUntil || data.dueDate,
-      offerTitle: data.offerTitle || undefined,
-      context: data.context || undefined,
-      presentation: data.presentation || undefined,
-      arguments: data.arguments || undefined,
-      lines: data.lines,
-      globalDiscount: data.globalDiscount || 0,
-      notes: data.notes,
-      paymentTerms: data.paymentTerms || undefined,
-      emailContent: data.emailContent,
-      status: 'sent',
-      accentColor: data.accentColor || '#0A0A0B',
-      senderName: data.senderName,
-      senderCompany: data.senderCompany,
-      senderEmail: data.senderEmail,
-      senderPhone: data.senderPhone || undefined,
-      senderPhoto: data.senderPhoto || undefined,
-      createdAt: now,
-      sentAt: now,
-    }
 
-    const quotesData = await loadQuotes()
-    quotesData.quotes.push(quote)
+    if (existing) {
+      existing.reference = data.reference
+      existing.companyName = data.clientCompany || data.clientName
+      existing.clientName = data.clientName
+      existing.clientEmail = data.clientEmail
+      existing.clientCcEmails = ccEmails.length ? ccEmails : undefined
+      existing.prospectLogo = data.prospectLogo || undefined
+      existing.date = data.date
+      existing.dueDate = data.dueDate
+      existing.validUntil = data.validUntil || data.dueDate
+      existing.offerTitle = data.offerTitle || undefined
+      existing.context = data.context || undefined
+      existing.presentation = data.presentation || undefined
+      existing.arguments = data.arguments || undefined
+      existing.lines = data.lines
+      existing.globalDiscount = data.globalDiscount || 0
+      existing.notes = data.notes
+      existing.paymentTerms = data.paymentTerms || undefined
+      existing.subject = data.subject || undefined
+      existing.emailContent = data.emailContent
+      existing.accentColor = data.accentColor || '#0A0A0B'
+      existing.senderName = data.senderName
+      existing.senderCompany = data.senderCompany
+      existing.senderEmail = data.senderEmail
+      existing.senderPhone = data.senderPhone || undefined
+      existing.senderPhoto = data.senderPhoto || undefined
+      existing.updatedAt = now
+      existing.resentAt = now
+      // Status: si déjà accepté/refusé/consulté, on garde — sinon on remet sent
+      if (existing.status === 'draft') existing.status = 'sent'
+    } else {
+      const quote: Quote = {
+        id: quoteId,
+        reference: data.reference,
+        companySlug,
+        companyName: data.clientCompany || data.clientName,
+        clientName: data.clientName,
+        clientEmail: data.clientEmail,
+        clientCcEmails: ccEmails.length ? ccEmails : undefined,
+        prospectLogo: data.prospectLogo || undefined,
+        date: data.date,
+        dueDate: data.dueDate,
+        validUntil: data.validUntil || data.dueDate,
+        offerTitle: data.offerTitle || undefined,
+        context: data.context || undefined,
+        presentation: data.presentation || undefined,
+        arguments: data.arguments || undefined,
+        lines: data.lines,
+        globalDiscount: data.globalDiscount || 0,
+        notes: data.notes,
+        paymentTerms: data.paymentTerms || undefined,
+        subject: data.subject || undefined,
+        emailContent: data.emailContent,
+        status: 'sent',
+        accentColor: data.accentColor || '#0A0A0B',
+        senderName: data.senderName,
+        senderCompany: data.senderCompany,
+        senderEmail: data.senderEmail,
+        senderPhone: data.senderPhone || undefined,
+        senderPhoto: data.senderPhoto || undefined,
+        createdAt: now,
+        sentAt: now,
+      }
+      quotesData.quotes.push(quote)
+    }
     await saveQuotes(quotesData)
 
     // Send via Resend
@@ -203,19 +251,23 @@ const handler: Handler = async (event) => {
       return { statusCode: 500, headers, body: JSON.stringify({ error: 'RESEND_API_KEY not set' }) }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resendBody: any = {
+      from: `${data.senderCompany} <noreply@clempo.fr>`,
+      to: [data.clientEmail],
+      reply_to: data.senderEmail,
+      subject: data.subject || `${data.reference} — ${data.senderCompany}`,
+      html,
+    }
+    if (ccEmails.length) resendBody.cc = ccEmails
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: `${data.senderCompany} <noreply@clempo.fr>`,
-        to: [data.clientEmail],
-        reply_to: data.senderEmail,
-        subject: data.subject || `${data.reference} — ${data.senderCompany}`,
-        html,
-      }),
+      body: JSON.stringify(resendBody),
     })
 
     if (!res.ok) {
@@ -228,7 +280,7 @@ const handler: Handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ success: true, emailId: result.id, quoteId, quoteUrl }),
+      body: JSON.stringify({ success: true, emailId: result.id, quoteId, quoteUrl, updated: !!existing }),
     }
   } catch (err) {
     console.error('Function error:', err)

@@ -42,6 +42,7 @@ export type Quote = {
   companyName: string
   clientName: string
   clientEmail: string
+  clientCcEmails?: string[]  // Personnes en copie de l'email
   prospectLogo?: string    // URL du logo prospect
 
   date: string
@@ -62,6 +63,7 @@ export type Quote = {
   notes: string
   paymentTerms?: string    // Conditions de paiement
 
+  subject?: string         // Objet de l'email (persisté pour pouvoir éditer)
   emailContent: string
   status: QuoteStatus
   accentColor: string
@@ -75,7 +77,9 @@ export type Quote = {
   cgvText?: string           // HTML des CGV
 
   createdAt: string
+  updatedAt?: string         // Dernière édition
   sentAt?: string
+  resentAt?: string          // Dernier renvoi par email
   viewedAt?: string
   signature?: QuoteSignature
 }

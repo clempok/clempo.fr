@@ -2435,6 +2435,7 @@ type AdminQuote = {
   companyName: string
   clientName: string
   clientEmail: string
+  clientCcEmails?: string[]
   prospectLogo?: string
   date: string
   dueDate: string
@@ -2447,6 +2448,7 @@ type AdminQuote = {
   globalDiscount?: number
   notes: string
   paymentTerms?: string
+  subject?: string
   emailContent: string
   status: 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected'
   accentColor: string
@@ -2456,7 +2458,9 @@ type AdminQuote = {
   senderPhone?: string
   senderPhoto?: string
   createdAt: string
+  updatedAt?: string
   sentAt?: string
+  resentAt?: string
   viewedAt?: string
 }
 
@@ -2527,8 +2531,6 @@ const DEFAULT_ARGS: QuoteArgument[] = [
   { title: 'Expertise Sante', description: "Plus de 12 ans d'experience dans le marketing sante dont 5 ans chez Doctolib. Je connais les contraintes reglementaires, les cycles de vente longs et les specificites du marche de la sante en France et en Europe." },
   { title: 'Une collaboration facile', description: "Je m'integre rapidement dans vos equipes, je suis autonome et pragmatique. Mon objectif : des resultats concrets et mesurables, pas des presentations PowerPoint." },
 ]
-const emptyArg = (): QuoteArgument => ({ title: '', description: '' })
-
 function makeInitialForm() {
   const today = new Date()
   const due = new Date(today); due.setDate(due.getDate() + 30)
@@ -2542,6 +2544,7 @@ function makeInitialForm() {
     clientName: '',
     clientCompany: '',
     clientEmail: '',
+    clientCcEmails: '',
     prospectLogo: '',
     reference: `DEV/${today.getFullYear()}/${num}`,
     subject: '',
@@ -2572,6 +2575,61 @@ function QuotesView({ password }: { password: string }) {
   const [lines, setLines] = useState<QuoteLine[]>([emptyLine()])
   const [args, setArgs] = useState<QuoteArgument[]>(DEFAULT_ARGS.map(a => ({ ...a })))
   const [sending, setSending] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingRef, setEditingRef] = useState<string>('')
+
+  const resetForm = useCallback(() => {
+    setForm(makeInitialForm())
+    setLines([emptyLine()])
+    setArgs(DEFAULT_ARGS.map(a => ({ ...a })))
+    setEditingId(null)
+    setEditingRef('')
+  }, [])
+
+  const startEdit = useCallback((q: AdminQuote) => {
+    setForm({
+      senderName: q.senderName,
+      senderCompany: q.senderCompany,
+      senderEmail: q.senderEmail,
+      senderPhone: q.senderPhone || '',
+      clientName: q.clientName,
+      clientCompany: q.companyName,
+      clientEmail: q.clientEmail,
+      clientCcEmails: (q.clientCcEmails || []).join(', '),
+      prospectLogo: q.prospectLogo || '',
+      reference: q.reference,
+      subject: q.subject || '',
+      date: q.date,
+      dueDate: q.dueDate,
+      validUntil: q.validUntil || '',
+      offerTitle: q.offerTitle || '',
+      contextTitle: q.context?.title || '',
+      contextDescription: q.context?.description || '',
+      presentation: q.presentation || '',
+      emailContent: q.emailContent || '',
+      notes: q.notes || '',
+      paymentTerms: q.paymentTerms || '',
+      accentColor: q.accentColor || '#0A0A0B',
+      globalDiscount: q.globalDiscount || 0,
+    })
+    setLines((q.lines && q.lines.length ? q.lines : [emptyLine()]).map(l => ({
+      description: l.description || '',
+      detail: l.detail || '',
+      quantity: l.quantity ?? 1,
+      unit: l.unit || 'jours',
+      unitPrice: l.unitPrice ?? 0,
+      tva: l.tva ?? 20,
+      discount: l.discount ?? 0,
+    })))
+    setArgs(q.arguments && q.arguments.length
+      ? q.arguments.map(a => ({ title: a.title || '', description: a.description || '' }))
+      : DEFAULT_ARGS.map(a => ({ ...a })),
+    )
+    setEditingId(q.id)
+    setEditingRef(q.reference)
+    setActiveSection('emetteur')
+    setSubView('new')
+  }, [])
 
   const refresh = useCallback(() => {
     setLoading(true)
@@ -2646,34 +2704,97 @@ function QuotesView({ password }: { password: string }) {
     return fmtEur(afterGD + tva)
   }
 
-  const handleSend = async () => {
+  // mode:
+  //   'send'        -> envoi initial d'un nouveau devis (création)
+  //   'save'        -> sauvegarde des modifications, pas d'email
+  //   'save-resend' -> sauvegarde + renvoi de l'email (avec mention "mis à jour")
+  const handleSubmit = async (mode: 'send' | 'save' | 'save-resend') => {
     if (!form.clientEmail) return showToast('Email du client requis', '#dc2626')
     if (!form.clientName) return showToast('Nom du client requis', '#dc2626')
-    if (!form.emailContent.trim()) return showToast("Contenu de l'email requis", '#dc2626')
+    if (mode !== 'save' && !form.emailContent.trim()) return showToast("Contenu de l'email requis", '#dc2626')
     if (lines.every(l => !l.description)) return showToast('Au moins une ligne requise', '#dc2626')
 
-    if (!confirm(`Envoyer le devis ${form.reference} a ${form.clientEmail} ?`)) return
+    const ccList = form.clientCcEmails
+      .split(/[,;\n]/).map(s => s.trim()).filter(Boolean)
+
+    const confirmMsg =
+      mode === 'send'        ? `Envoyer le devis ${form.reference} a ${form.clientEmail}${ccList.length ? ` (+ ${ccList.length} en copie)` : ''} ?`
+      : mode === 'save'      ? `Enregistrer les modifications du devis ${editingRef} (sans renvoyer d'email) ?`
+      :                        `Renvoyer le devis ${editingRef} mis a jour a ${form.clientEmail}${ccList.length ? ` (+ ${ccList.length} en copie)` : ''} ?`
+    if (!confirm(confirmMsg)) return
 
     setSending(true)
     try {
       const payload = {
         ...form,
+        clientCcEmails: ccList,
         lines,
         arguments: args.filter(a => a.title.trim()),
         context: form.contextTitle ? { title: form.contextTitle, description: form.contextDescription } : undefined,
       }
-      const res = await fetch('/.netlify/functions/send-quote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: password, data: payload }),
-      })
-      const result = await res.json()
+
+      let res: Response
+      let result: { error?: string; quoteUrl?: string; ok?: boolean }
+
+      if (mode === 'save') {
+        // Patch en place via admin-quotes — pas d'email
+        res = await fetch('/.netlify/functions/admin-quotes', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update',
+            id: editingId,
+            patch: {
+              reference: payload.reference,
+              companyName: payload.clientCompany || payload.clientName,
+              clientName: payload.clientName,
+              clientEmail: payload.clientEmail,
+              clientCcEmails: ccList.length ? ccList : undefined,
+              prospectLogo: payload.prospectLogo || undefined,
+              date: payload.date,
+              dueDate: payload.dueDate,
+              validUntil: payload.validUntil || payload.dueDate,
+              offerTitle: payload.offerTitle || undefined,
+              context: payload.context,
+              presentation: payload.presentation || undefined,
+              arguments: payload.arguments,
+              lines: payload.lines,
+              globalDiscount: payload.globalDiscount || 0,
+              notes: payload.notes,
+              paymentTerms: payload.paymentTerms || undefined,
+              subject: payload.subject || undefined,
+              emailContent: payload.emailContent,
+              accentColor: payload.accentColor || '#0A0A0B',
+              senderName: payload.senderName,
+              senderCompany: payload.senderCompany,
+              senderEmail: payload.senderEmail,
+              senderPhone: payload.senderPhone || undefined,
+            },
+          }),
+        })
+        result = await res.json()
+      } else {
+        // 'send' (création) ou 'save-resend' (update + resend)
+        res = await fetch('/.netlify/functions/send-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: password,
+            data: { ...payload, existingId: mode === 'save-resend' ? editingId : undefined },
+          }),
+        })
+        result = await res.json()
+      }
+
       if (!res.ok) throw new Error(result.error || `HTTP ${res.status}`)
-      showToast(`Devis envoye ! URL : ${result.quoteUrl}`, '#16a34a')
+
+      const successMsg =
+        mode === 'send'        ? `Devis envoye ! URL : ${result.quoteUrl}`
+        : mode === 'save'      ? `Devis ${editingRef} mis a jour (sans renvoi d'email).`
+        :                        `Devis ${editingRef} mis a jour et renvoye. URL : ${result.quoteUrl}`
+      showToast(successMsg, '#16a34a')
       refresh()
-      setForm(makeInitialForm())
-      setLines([emptyLine()])
-      setArgs([emptyArg(), emptyArg(), emptyArg()])
+      resetForm()
       setSubView('history')
     } catch (e) {
       showToast(`Erreur : ${(e as Error).message}`, '#dc2626')
@@ -2745,6 +2866,15 @@ function QuotesView({ password }: { password: string }) {
       <div style={{ marginBottom: '0.5rem' }}>
         <label style={qLabel}>Email</label>
         <input style={qInput} type="email" value={form.clientEmail} onChange={e => setForm(f => ({ ...f, clientEmail: e.target.value }))} placeholder="jean@acme.fr" />
+      </div>
+      <div style={{ marginBottom: '0.5rem' }}>
+        <label style={qLabel}>En copie (CC) — optionnel</label>
+        <input style={qInput} type="text" value={form.clientCcEmails}
+          onChange={e => setForm(f => ({ ...f, clientCcEmails: e.target.value }))}
+          placeholder="cfo@acme.fr, assistante@acme.fr" />
+        <p style={{ fontSize: '0.7rem', color: '#999', marginTop: '0.25rem' }}>
+          Plusieurs emails séparés par des virgules. Ils recevront la même copie de l'email.
+        </p>
       </div>
       <div style={{ marginBottom: '0.5rem' }}>
         <label style={qLabel}>Logo prospect (optionnel)</label>
@@ -3039,16 +3169,26 @@ function QuotesView({ password }: { password: string }) {
             Historique ({quotes.length})
           </button>
           <button
-            onClick={() => { setSubView('new'); setActiveSection('emetteur') }}
+            onClick={() => { resetForm(); setSubView('new'); setActiveSection('emetteur') }}
             style={{
               padding: '0.5rem 1rem', borderRadius: 8, border: 'none',
-              background: subView === 'new' ? ACCENT : '#f4f4f5',
-              color: subView === 'new' ? '#fff' : '#555',
+              background: subView === 'new' && !editingId ? ACCENT : '#f4f4f5',
+              color: subView === 'new' && !editingId ? '#fff' : '#555',
               fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
             }}
           >
             + Nouveau devis
           </button>
+          {editingId && subView === 'new' && (
+            <span style={{
+              padding: '0.5rem 0.85rem', borderRadius: 8,
+              background: '#fef3c7', color: '#92400e',
+              fontSize: '0.78rem', fontWeight: 600,
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+            }}>
+              ✎ Modification de {editingRef}
+            </span>
+          )}
         </div>
         {subView === 'history' && (
           <button onClick={refresh} style={{
@@ -3119,9 +3259,34 @@ function QuotesView({ password }: { password: string }) {
                 >
                   Suivant
                 </button>
+              ) : editingId ? (
+                <>
+                  <button
+                    onClick={() => handleSubmit('save')}
+                    disabled={sending}
+                    style={{
+                      padding: '0.75rem 1rem', borderRadius: 10, border: '1px solid #16a34a',
+                      background: '#fff', color: '#16a34a', fontSize: '0.82rem', fontWeight: 600,
+                      cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.6 : 1,
+                    }}
+                  >
+                    {sending ? '...' : 'Enregistrer'}
+                  </button>
+                  <button
+                    onClick={() => handleSubmit('save-resend')}
+                    disabled={sending}
+                    style={{
+                      flex: 1, padding: '0.75rem', borderRadius: 10, border: 'none',
+                      background: '#16a34a', color: '#fff', fontSize: '0.85rem', fontWeight: 600,
+                      cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.6 : 1,
+                    }}
+                  >
+                    {sending ? 'Envoi en cours...' : 'Enregistrer + renvoyer l\'email'}
+                  </button>
+                </>
               ) : (
                 <button
-                  onClick={handleSend}
+                  onClick={() => handleSubmit('send')}
                   disabled={sending}
                   style={{
                     flex: 1, padding: '0.75rem', borderRadius: 10, border: 'none',
@@ -3133,7 +3298,7 @@ function QuotesView({ password }: { password: string }) {
                 </button>
               )}
               <button
-                onClick={() => setSubView('history')}
+                onClick={() => { resetForm(); setSubView('history') }}
                 style={{
                   padding: '0.55rem 1rem', borderRadius: 8, border: '1px solid #e0e0e0',
                   background: '#fff', color: '#555', fontSize: '0.8rem', cursor: 'pointer', marginLeft: 'auto',
@@ -3357,6 +3522,10 @@ function QuotesView({ password }: { password: string }) {
                         style={{ padding: '0.3rem 0.6rem', borderRadius: 6, background: '#f4f4f5', border: '1px solid #e0e0e0', fontSize: '0.75rem', textDecoration: 'none', color: '#333' }}>
                         Voir
                       </a>
+                      <button onClick={() => startEdit(q)} title="Modifier"
+                        style={{ padding: '0.3rem 0.6rem', borderRadius: 6, background: '#fff', border: `1px solid ${ACCENT}`, fontSize: '0.75rem', cursor: 'pointer', color: ACCENT, fontWeight: 600 }}>
+                        Modifier
+                      </button>
                       <select value={q.status} onChange={e => updateStatus(q.id, e.target.value)}
                         style={{ padding: '0.3rem 0.5rem', borderRadius: 6, border: '1px solid #e0e0e0', fontSize: '0.75rem', background: '#fff', cursor: 'pointer' }}>
                         {Object.entries(QUOTE_STATUS_LABELS).map(([k, v]) => (

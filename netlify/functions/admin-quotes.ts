@@ -39,6 +39,33 @@ const handler: Handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) }
     }
 
+    // Update — patch en place sans renvoi d'email
+    if (action === 'update') {
+      const { id, patch } = body as { id: string; patch: Partial<Quote>; action: string }
+      const quote = data.quotes.find(q => q.id === id)
+      if (!quote) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Quote not found' }) }
+
+      // Champs éditables — on protège id, companySlug, createdAt, sentAt, viewedAt, signature
+      const editableKeys: (keyof Quote)[] = [
+        'reference', 'companyName', 'clientName', 'clientEmail', 'clientCcEmails',
+        'prospectLogo', 'date', 'dueDate', 'validUntil',
+        'offerTitle', 'context', 'presentation', 'arguments',
+        'lines', 'globalDiscount', 'notes', 'paymentTerms',
+        'subject', 'emailContent', 'accentColor',
+        'senderName', 'senderCompany', 'senderEmail', 'senderPhone', 'senderPhoto',
+        'cgvText',
+      ]
+      for (const k of editableKeys) {
+        if (k in patch) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ;(quote as any)[k] = (patch as any)[k]
+        }
+      }
+      quote.updatedAt = new Date().toISOString()
+      await saveQuotes(data)
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true, quote }) }
+    }
+
     // Delete
     if (action === 'delete') {
       const { id } = body
