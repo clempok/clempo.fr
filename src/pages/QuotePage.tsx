@@ -71,7 +71,9 @@ export default function QuotePage() {
 
   useEffect(() => {
     if (!company || !id) return
-    fetch(`/.netlify/functions/get-quote?company=${encodeURIComponent(company)}&ref=${encodeURIComponent(id)}`)
+    const isAdmin = typeof window !== 'undefined' && localStorage.getItem('clempo_admin_authed') === '1'
+    const adminParam = isAdmin ? '&admin=1' : ''
+    fetch(`/.netlify/functions/get-quote?company=${encodeURIComponent(company)}&ref=${encodeURIComponent(id)}${adminParam}`)
       .then(r => { if (!r.ok) throw new Error('Devis introuvable'); return r.json() })
       .then(d => setQuote(d))
       .catch(e => setError(e.message))

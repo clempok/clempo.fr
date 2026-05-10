@@ -80,7 +80,9 @@ export type Quote = {
   updatedAt?: string         // Dernière édition
   sentAt?: string
   resentAt?: string          // Dernier renvoi par email
-  viewedAt?: string
+  viewedAt?: string          // Première consultation (hors admin)
+  lastViewedAt?: string      // Dernière consultation (hors admin)
+  viewCount?: number         // Nombre de consultations (hors admin)
   signature?: QuoteSignature
 }
 

@@ -10,6 +10,7 @@ const handler: Handler = async (event) => {
 
   const company = event.queryStringParameters?.company
   const ref = event.queryStringParameters?.ref
+  const isAdmin = event.queryStringParameters?.admin === '1'
 
   if (!company || !ref) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing company or ref' }) }
@@ -24,10 +25,15 @@ const handler: Handler = async (event) => {
     return { statusCode: 404, headers, body: JSON.stringify({ error: 'Quote not found' }) }
   }
 
-  // Mark as viewed if first time
-  if (quote.status === 'sent' && !quote.viewedAt) {
-    quote.viewedAt = new Date().toISOString()
-    quote.status = 'viewed'
+  // Track view (skip self-visits flagged as admin)
+  if (!isAdmin) {
+    const now = new Date().toISOString()
+    quote.viewCount = (quote.viewCount || 0) + 1
+    quote.lastViewedAt = now
+    if (quote.status === 'sent' && !quote.viewedAt) {
+      quote.viewedAt = now
+      quote.status = 'viewed'
+    }
     await saveQuotes(data)
   }
 

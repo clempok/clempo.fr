@@ -232,6 +232,11 @@ export default function Admin() {
   const [authError, setAuthError] = useState('')
   const [view, setView] = useState<'analytics' | 'crm' | 'quotes' | 'cms' | 'seo'>('analytics')
 
+  // Mark this browser as "admin" so quote views from here are not counted
+  useEffect(() => {
+    if (password) localStorage.setItem('clempo_admin_authed', '1')
+  }, [password])
+
   // Restore native cursor on /admin (body has `cursor: none` globally)
   useEffect(() => {
     const prevBody = document.body.style.cursor
@@ -262,6 +267,7 @@ export default function Admin() {
         return
       }
       sessionStorage.setItem(AUTH_KEY, authInput)
+      localStorage.setItem('clempo_admin_authed', '1')
       setPassword(authInput)
     } catch {
       setAuthError('Erreur réseau')
@@ -2462,6 +2468,8 @@ type AdminQuote = {
   sentAt?: string
   resentAt?: string
   viewedAt?: string
+  lastViewedAt?: string
+  viewCount?: number
 }
 
 type QuoteLine = {
@@ -3513,6 +3521,26 @@ function QuotesView({ password }: { password: string }) {
                     </div>
                     <span style={{ fontWeight: 700, fontSize: '0.95rem', color: ACCENT, minWidth: 100, textAlign: 'right' }}>
                       {fmtAmount(q)}
+                    </span>
+                    <span
+                      title={
+                        q.viewCount
+                          ? `${q.viewCount} consultation${q.viewCount > 1 ? 's' : ''}${q.lastViewedAt ? ` — derniere le ${fmtDate(q.lastViewedAt)}` : ''}`
+                          : 'Aucune consultation (hors visites admin)'
+                      }
+                      style={{
+                        fontSize: '0.72rem',
+                        color: q.viewCount ? '#111' : '#bbb',
+                        fontWeight: q.viewCount ? 600 : 400,
+                        minWidth: 64,
+                        textAlign: 'center',
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
+                        background: q.viewCount ? '#f4f4f5' : 'transparent',
+                        padding: '0.2rem 0.55rem', borderRadius: 6,
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {q.viewCount ? `${q.viewCount} vue${q.viewCount > 1 ? 's' : ''}` : 'non vu'}
                     </span>
                     <span style={{ fontSize: '0.78rem', color: '#999', minWidth: 80 }}>
                       {fmtDate(q.createdAt)}
