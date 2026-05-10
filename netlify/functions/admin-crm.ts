@@ -1,6 +1,7 @@
 import type { Handler } from '@netlify/functions'
 import { checkAuth } from './_analytics'
 import { readCrm, writeCrm, CRM_STATUSES, type CrmStatus, type CrmContact, type CrmCompany, type CrmTask } from './_crm'
+import { buildInputFromContact, submitDropcontactSearch } from './_dropcontact'
 
 const handler: Handler = async (event) => {
   if (!checkAuth(event.headers as Record<string, string | undefined>)) {
@@ -114,7 +115,11 @@ const handler: Handler = async (event) => {
       }
 
       if (action === 'create-contact') {
-        const { companyId, fields } = body as { companyId: string; fields: Partial<CrmContact> }
+        const { companyId, fields, autoEnrich } = body as {
+          companyId: string
+          fields: Partial<CrmContact>
+          autoEnrich?: boolean
+        }
         const company = data.companies.find(c => c.id === companyId)
         if (!company) return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
         if (!fields.email?.trim()) {
@@ -141,8 +146,39 @@ const handler: Handler = async (event) => {
         }
         company.contacts.push(contact)
         company.updatedAt = now
+
+        // Optionally fire a Dropcontact search and stash the request_id.
+        // Used by the linkedin-sync skill so freshly-imported leads get
+        // their email/phone resolved on the next call to
+        // resolve-pending-enrichments.
+        let enrichmentSubmitted = false
+        let enrichmentError: string | undefined
+        if (autoEnrich) {
+          const apiKey = process.env.DROPCONTACT_API_KEY
+          if (!apiKey) {
+            enrichmentError = 'DROPCONTACT_API_KEY not configured'
+          } else {
+            const input = buildInputFromContact(contact, company.name)
+            if (!input) {
+              enrichmentError = 'Insufficient signal for Dropcontact'
+            } else {
+              const submit = await submitDropcontactSearch(apiKey, input)
+              if ('error' in submit) {
+                enrichmentError = submit.error
+              } else {
+                contact.enrichRequestId = submit.requestId
+                contact.enrichSubmittedAt = now
+                enrichmentSubmitted = true
+              }
+            }
+          }
+        }
+
         await writeCrm(data)
-        return { statusCode: 200, body: JSON.stringify({ ok: true, contact }) }
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ ok: true, contact, enrichmentSubmitted, enrichmentError }),
+        }
       }
 
       if (action === 'delete-contact') {
