@@ -251,6 +251,41 @@ const handler: Handler = async (event) => {
         return { statusCode: 200, body: JSON.stringify({ ok: true }) }
       }
 
+      // --- One-shot data ops ---
+
+      if (action === 'backdate-status-transitions') {
+        // Backdate statusHistory entries for a target status (e.g. 'Client') that
+        // fall in [windowStartISO, windowEndISO) — except for company IDs in
+        // `keepIds`. Used to clean up legacy imports that predate the funnel
+        // tracking. Idempotent: re-running has no effect once entries are moved.
+        const { targetStatus, windowStartISO, windowEndISO, backdatedToISO, keepIds } = body as {
+          targetStatus: CrmStatus
+          windowStartISO: string
+          windowEndISO: string
+          backdatedToISO: string
+          keepIds: string[]
+        }
+        if (!CRM_STATUSES.includes(targetStatus)) {
+          return { statusCode: 400, body: JSON.stringify({ error: 'Invalid targetStatus' }) }
+        }
+        const keepSet = new Set(keepIds || [])
+        let modifiedCount = 0
+        const modifiedIds: string[] = []
+        for (const co of data.companies) {
+          if (keepSet.has(co.id)) continue
+          if (!co.statusHistory) continue
+          for (const entry of co.statusHistory) {
+            if (entry.status === targetStatus && entry.at >= windowStartISO && entry.at < windowEndISO) {
+              entry.at = backdatedToISO
+              modifiedCount++
+              if (!modifiedIds.includes(co.id)) modifiedIds.push(co.id)
+            }
+          }
+        }
+        await writeCrm(data)
+        return { statusCode: 200, body: JSON.stringify({ ok: true, modifiedCount, modifiedIds }) }
+      }
+
       // Legacy compat
       if (action === 'update' || action === 'create' || action === 'delete') {
         return { statusCode: 400, body: JSON.stringify({ error: 'Legacy action. Use update-company, update-contact, etc.' }) }

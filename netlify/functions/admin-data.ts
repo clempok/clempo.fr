@@ -56,6 +56,7 @@ const handler: Handler = async (event) => {
           visits_by_src?: Record<string, Record<string, number>>
           visits_by_ref?: Record<string, Record<string, number>>
           linkedin_impressions?: Record<string, number>
+          linkedin_impressions_manual?: Record<string, number>
         } | null) || {}
         const linkedin_impressions = existing.linkedin_impressions || {}
         linkedin_impressions[dateKey] = Math.round(value)
@@ -64,6 +65,74 @@ const handler: Handler = async (event) => {
           statusCode: 200,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ok: true, dateKey, value: Math.round(value) }),
+        }
+      }
+
+      if (action === 'set_linkedin_impressions_manual') {
+        const periodKey = typeof body.periodKey === 'string' ? body.periodKey : ''
+        const valueRaw = body.value
+        // Accept null to delete the manual override
+        const isDelete = valueRaw === null
+        const value = isDelete ? null : Number(valueRaw)
+        if (!/^(week|month):/.test(periodKey)) {
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Invalid periodKey. Expect "week:YYYY-Www" or "month:YYYY-MM"' }),
+          }
+        }
+        if (!isDelete && (!Number.isFinite(value!) || value! < 0)) {
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Invalid value. Expect number>=0 or null to delete' }),
+          }
+        }
+        const existing = ((await store.get('data', { type: 'json' })) as {
+          events?: unknown[]
+          visits?: Record<string, number>
+          visits_by_path?: Record<string, Record<string, number>>
+          visits_by_src?: Record<string, Record<string, number>>
+          visits_by_ref?: Record<string, Record<string, number>>
+          linkedin_impressions?: Record<string, number>
+          linkedin_impressions_manual?: Record<string, number>
+        } | null) || {}
+        const manual = existing.linkedin_impressions_manual || {}
+        if (isDelete) {
+          delete manual[periodKey]
+        } else {
+          manual[periodKey] = Math.round(value!)
+        }
+        await store.setJSON('data', { ...existing, linkedin_impressions_manual: manual })
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ok: true, periodKey, value: isDelete ? null : Math.round(value!) }),
+        }
+      }
+
+      if (action === 'delete_events') {
+        const ids = Array.isArray(body.ids) ? (body.ids as string[]) : []
+        if (ids.length === 0) {
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Provide ids: string[]' }),
+          }
+        }
+        const idSet = new Set(ids)
+        const existing = ((await store.get('data', { type: 'json' })) as {
+          events?: { id: string }[]
+          [k: string]: unknown
+        } | null) || {}
+        const events = Array.isArray(existing.events) ? existing.events : []
+        const before = events.length
+        const kept = events.filter(e => !idSet.has(e.id))
+        await store.setJSON('data', { ...existing, events: kept })
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ok: true, deleted: before - kept.length }),
         }
       }
 
@@ -116,6 +185,7 @@ const handler: Handler = async (event) => {
       visits_by_src?: Record<string, Record<string, number>>
       visits_by_ref?: Record<string, Record<string, number>>
       linkedin_impressions?: Record<string, number>
+      linkedin_impressions_manual?: Record<string, number>
     } | null) || {}
     const events = Array.isArray(data.events) ? (data.events as { ts?: string }[]) : []
     const visits = data.visits || {}
@@ -123,6 +193,7 @@ const handler: Handler = async (event) => {
     const visits_by_src = data.visits_by_src || {}
     const visits_by_ref = data.visits_by_ref || {}
     const linkedin_impressions = data.linkedin_impressions || {}
+    const linkedin_impressions_manual = data.linkedin_impressions_manual || {}
     const sorted = [...events].sort((a, b) => ((a.ts || '') < (b.ts || '') ? 1 : -1))
     return {
       statusCode: 200,
@@ -134,6 +205,7 @@ const handler: Handler = async (event) => {
         visits_by_src,
         visits_by_ref,
         linkedin_impressions,
+        linkedin_impressions_manual,
         ...(debug || testWrite ? { diag } : {}),
       }),
     }

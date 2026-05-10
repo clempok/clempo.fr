@@ -22,6 +22,11 @@ const STATUS_PRIORITY: Record<CrmStatus, number> = {
   'Lost': -1,
 }
 
+export type CrmContactVisit = {
+  ts: string   // ISO
+  path: string // e.g. "/articles/marketing-healthtech"
+}
+
 export type CrmContact = {
   id: string
   email: string
@@ -45,6 +50,10 @@ export type CrmContact = {
   enrichSubmittedAt?: string
   createdAt: string
   updatedAt: string
+  /** Last 50 page visits from clempo.fr when the visitor has the CID cookie. */
+  visits?: CrmContactVisit[]
+  /** ISO timestamp of the last visit-alert email sent for this contact. */
+  lastVisitAlertAt?: string
   /** Notion page ID in the Contacts mirror DB, filled by notion-sync. */
   notionPageId?: string
   /** ISO timestamp of the last successful push to Notion. Compared against

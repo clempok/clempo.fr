@@ -1,16 +1,23 @@
 # Redirections 301 — anciennes URLs encore indexées par Google
-/les-systemes-de-sante-en-europe      /articles/systeme-sante-europe       301
-/le-systeme-de-sante-des-etats-unis   /articles/systeme-sante-etats-unis   301
-/systeme-sante-monde                  /articles                            301
-/systemes-sante-incription            /articles/systeme-sante-europe       301
-/a-propos                             /#about                              301
-/consultant-marketing-sante           /#accompagnements                    301
+/les-systemes-de-sante-en-europe      /articles/systeme-sante-europe                301
+/le-systeme-de-sante-des-etats-unis   /articles/systeme-sante-etats-unis            301
+/systeme-sante-monde                  /articles                                     301
+/systemes-sante-incription            /articles/systeme-sante-europe                301
+/a-propos                             /#about                                       301
+/consultant-marketing-sante           /#accompagnements                             301
+
+# Renommage SEO de la page "Parts de marché logiciels médicaux"
+# (les sous-pages /specialites/:slug ne sont PAS impactées — match exact)
+/specialites                          /parts-de-marche-logiciels-medicaux           301!
 
 # Forcer www (canonical)
 https://clempo.fr/*    https://www.clempo.fr/:splat    301!
 
 # Fichiers statiques tools — pas de SPA fallback
 /tools/*  /tools/:splat  200
+
+# Données spécialités (JSON/CSV/XLSX) — pas de SPA fallback
+/data/*  /data/:splat  200
 
 # SPA fallback — doit rester en dernier
 /* /index.html 200

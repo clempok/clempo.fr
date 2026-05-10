@@ -52,13 +52,15 @@ function setNestedValue(obj: any, path: string, value: any): any {
 
 type LeadEvent = {
   id: string
-  type: 'booking' | 'brochure'
+  type: 'booking' | 'brochure' | 'journalistes' | 'data-download'
   ts: string
   firstName?: string
   lastName?: string
   email?: string
   company?: string
   phone?: string
+  source?: string
+  slug?: string
   date?: string
   hour?: number
   minute?: number
@@ -81,6 +83,10 @@ type AnalyticsResponse = {
   // Rolling 7-day LinkedIn impressions snapshots, keyed by scan date (YYYY-MM-DD).
   // Pushed each morning by the linkedin-sync skill.
   linkedin_impressions?: Record<string, number>
+  // Manually-entered impressions per funnel period. Keyed by `${period}:${key}`
+  // (e.g. "month:2026-04", "week:2026-W19"). Takes precedence over the
+  // rolling-7d snapshot when displaying the funnel.
+  linkedin_impressions_manual?: Record<string, number>
 }
 
 // Friendly labels for referrer keys emitted by normalizeRef() in App.tsx.
@@ -176,6 +182,8 @@ function isoWeekLabel(date: Date): string {
 const CRM_STATUSES = ['Non qualifié', 'Prospect', 'Lead', 'Opportunité', 'Client', 'Lost'] as const
 type CrmStatus = (typeof CRM_STATUSES)[number]
 
+type CrmContactVisit = { ts: string; path: string }
+
 type CrmContact = {
   id: string
   email: string
@@ -192,6 +200,8 @@ type CrmContact = {
   enrichedAt?: string
   enrichmentSource?: string
   notionPageId?: string
+  visits?: CrmContactVisit[]
+  lastVisitAlertAt?: string
 }
 
 type CrmTask = {
@@ -418,6 +428,35 @@ function AnalyticsView({ password }: { password: string }) {
   const [range, setRange] = useState<7 | 30 | 90>(30)
   const [funnelPeriod, setFunnelPeriod] = useState<'week' | 'month'>('week')
   const [diag, setDiag] = useState('')
+  const [editingImpressionsKey, setEditingImpressionsKey] = useState<string | null>(null)
+  const [editingImpressionsValue, setEditingImpressionsValue] = useState('')
+
+  const saveManualImpressions = useCallback(async (periodKey: string, valueRaw: string) => {
+    const trimmed = valueRaw.trim()
+    const isDelete = trimmed === ''
+    const value = isDelete ? null : Number(trimmed.replace(/[\s,]/g, ''))
+    if (!isDelete && (!Number.isFinite(value!) || value! < 0)) return
+    try {
+      const r = await fetch('/.netlify/functions/admin-data', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_linkedin_impressions_manual', periodKey: `${funnelPeriod}:${periodKey}`, value }),
+      })
+      if (!r.ok) throw new Error(await r.text())
+      // Optimistic update without full refresh
+      setData(prev => {
+        if (!prev) return prev
+        const manual = { ...(prev.linkedin_impressions_manual || {}) }
+        const fullKey = `${funnelPeriod}:${periodKey}`
+        if (isDelete) delete manual[fullKey]
+        else manual[fullKey] = Math.round(value!)
+        return { ...prev, linkedin_impressions_manual: manual }
+      })
+    } catch (err) {
+      console.error('saveManualImpressions error:', err)
+      alert(`Échec sauvegarde impressions : ${String(err)}`)
+    }
+  }, [funnelPeriod, password])
 
   const refresh = useCallback(() => {
     setLoading(true)
@@ -502,11 +541,13 @@ function AnalyticsView({ password }: { password: string }) {
     const eventsInRange = data.events.filter(e => e.ts.slice(0, 10) >= startKey)
     const bookings = eventsInRange.filter(e => e.type === 'booking').length
     const brochures = eventsInRange.filter(e => e.type === 'brochure').length
-    const conversions = bookings + brochures
+    const dataDownloads = eventsInRange.filter(e => e.type === 'data-download').length
+    const journalistes = eventsInRange.filter(e => e.type === 'journalistes').length
+    const conversions = bookings + brochures + dataDownloads + journalistes
     const rate = totalVisits > 0 ? (conversions / totalVisits) * 100 : 0
 
     return {
-      visitsByDay, totalVisits, bookings, brochures, conversions, rate,
+      visitsByDay, totalVisits, bookings, brochures, dataDownloads, journalistes, conversions, rate,
       byRef, bySrc, byPath, refTotal, srcTotal, pathTotal,
     }
   }, [data, range])
@@ -546,11 +587,13 @@ function AnalyticsView({ password }: { password: string }) {
       return total
     }
 
-    // LinkedIn impressions are stored as rolling-7-day snapshots keyed by scan
-    // date. For each period, pick the most recent snapshot whose date falls
-    // inside the period — that's the best "impressions as of end-of-period" read.
+    // LinkedIn impressions: prefer manual entry per period (set from the admin
+    // funnel cell) over the rolling-7d snapshot. The snapshot only captures
+    // "impressions over the last 7 days at scan time" so it's only correct for
+    // the in-progress period.
     const linkedinImpressions = data.linkedin_impressions || {}
-    const impressionsFor = (startISO: string, endISO: string): number | null => {
+    const linkedinImpressionsManual = data.linkedin_impressions_manual || {}
+    const snapshotFor = (startISO: string, endISO: string): number | null => {
       const startKey = startISO.slice(0, 10)
       const endKey = endISO.slice(0, 10)
       let bestDate = ''
@@ -563,16 +606,39 @@ function AnalyticsView({ password }: { password: string }) {
       }
       return bestVal
     }
+    const impressionsFor = (periodKey: string, startISO: string, endISO: string): { value: number | null; manual: boolean } => {
+      const fullKey = `${funnelPeriod}:${periodKey}`
+      if (Object.prototype.hasOwnProperty.call(linkedinImpressionsManual, fullKey)) {
+        return { value: linkedinImpressionsManual[fullKey], manual: true }
+      }
+      return { value: snapshotFor(startISO, endISO), manual: false }
+    }
 
-    return periods.map(p => ({
-      key: p.key,
-      label: p.label,
-      impressions: impressionsFor(p.startISO, p.endISO),
-      visits: countVisits(p.startISO, p.endISO),
-      leads: countTransitions('Lead', p.startISO, p.endISO),
-      opportunities: countTransitions('Opportunité', p.startISO, p.endISO),
-      clients: countTransitions('Client', p.startISO, p.endISO),
-    }))
+    return periods.map(p => {
+      const imp = impressionsFor(p.key, p.startISO, p.endISO)
+      const impressions = imp.value
+      const impressionsManual = imp.manual
+      const visits = countVisits(p.startISO, p.endISO)
+      const leads = countTransitions('Lead', p.startISO, p.endISO)
+      const opportunities = countTransitions('Opportunité', p.startISO, p.endISO)
+      const clients = countTransitions('Client', p.startISO, p.endISO)
+      const pct = (num: number, den: number | null): number | null =>
+        den != null && den > 0 ? (num / den) * 100 : null
+      return {
+        key: p.key,
+        label: p.label,
+        impressions,
+        impressionsManual,
+        visits,
+        leads,
+        opportunities,
+        clients,
+        visitsRate: pct(visits, impressions),
+        leadsRate: pct(leads, visits),
+        opportunitiesRate: pct(opportunities, leads),
+        clientsRate: pct(clients, opportunities),
+      }
+    })
   }, [data, crmCompanies, funnelPeriod])
 
   if (loading) return <div style={{ padding: '3rem' }}>Chargement...</div>
@@ -637,10 +703,12 @@ function AnalyticsView({ password }: { password: string }) {
       )}
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
         <StatCard label="Visites" value={stats.totalVisits.toString()} />
         <StatCard label="Rendez-vous" value={stats.bookings.toString()} />
         <StatCard label="Brochures" value={stats.brochures.toString()} />
+        <StatCard label="Data download" value={stats.dataDownloads.toString()} />
+        <StatCard label="Journalistes" value={stats.journalistes.toString()} />
         <StatCard
           label="Taux de conversion"
           value={`${stats.rate.toFixed(1)}%`}
@@ -685,10 +753,10 @@ function AnalyticsView({ password }: { password: string }) {
               <tr style={{ borderBottom: '1px solid #e5e5e5' }}>
                 <th style={{ ...thStyle, background: 'transparent' }}>Période</th>
                 <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }} title="Snapshot LinkedIn « 7 derniers jours » au moment du scan matinal">Impressions LinkedIn</th>
-                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }}>Visites</th>
-                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }}>Nouveaux leads</th>
-                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }}>Nouv. opportunités</th>
-                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }}>Nouveaux clients</th>
+                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }} title="Taux = Visites ÷ Impressions LinkedIn">Visites</th>
+                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }} title="Taux = Leads ÷ Visites">Nouveaux leads</th>
+                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }} title="Taux = Opportunités ÷ Leads">Nouv. opportunités</th>
+                <th style={{ ...thStyle, background: 'transparent', textAlign: 'right' }} title="Taux = Clients ÷ Opportunités">Nouveaux clients</th>
               </tr>
             </thead>
             <tbody>
@@ -700,13 +768,81 @@ function AnalyticsView({ password }: { password: string }) {
                       <span style={{ marginLeft: 8, fontSize: '0.65rem', color: ACCENT, fontWeight: 600 }}>en cours</span>
                     )}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.impressions == null ? '#ccc' : '#111' }}>
-                    {row.impressions == null ? '—' : row.impressions.toLocaleString('fr-FR')}
+                  <td
+                    style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.impressions == null ? '#ccc' : '#111', cursor: 'pointer' }}
+                    title="Cliquer pour saisir la valeur LinkedIn de la période"
+                    onClick={() => {
+                      if (editingImpressionsKey === row.key) return
+                      setEditingImpressionsKey(row.key)
+                      setEditingImpressionsValue(row.impressions != null ? String(row.impressions) : '')
+                    }}
+                  >
+                    {editingImpressionsKey === row.key ? (
+                      <input
+                        autoFocus
+                        type="text"
+                        inputMode="numeric"
+                        value={editingImpressionsValue}
+                        onChange={e => setEditingImpressionsValue(e.target.value)}
+                        onBlur={() => {
+                          saveManualImpressions(row.key, editingImpressionsValue)
+                          setEditingImpressionsKey(null)
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            saveManualImpressions(row.key, editingImpressionsValue)
+                            setEditingImpressionsKey(null)
+                          }
+                          if (e.key === 'Escape') setEditingImpressionsKey(null)
+                        }}
+                        placeholder="ex. 103389"
+                        style={{
+                          width: '90px', padding: '2px 6px', textAlign: 'right',
+                          border: `1px solid ${ACCENT}`, borderRadius: '4px',
+                          fontVariantNumeric: 'tabular-nums', fontSize: '0.8rem',
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <div>{row.impressions == null ? '—' : row.impressions.toLocaleString('fr-FR')}</div>
+                        {row.impressionsManual && (
+                          <div style={{ fontSize: '0.6rem', color: ACCENT, fontWeight: 500 }}>saisi</div>
+                        )}
+                      </>
+                    )}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.visits}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.leads > 0 ? '#111' : '#ccc' }}>{row.leads}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.opportunities > 0 ? '#111' : '#ccc' }}>{row.opportunities}</td>
-                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.clients > 0 ? '#111' : '#ccc', fontWeight: row.clients > 0 ? 600 : 400 }}>{row.clients}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    <div>{row.visits}</div>
+                    {row.visitsRate != null && (
+                      <div style={{ fontSize: '0.65rem', color: '#999', fontWeight: 400 }}>
+                        {row.visitsRate.toFixed(1)}%
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.leads > 0 ? '#111' : '#ccc' }}>
+                    <div>{row.leads}</div>
+                    {row.leadsRate != null && (
+                      <div style={{ fontSize: '0.65rem', color: '#999', fontWeight: 400 }}>
+                        {row.leadsRate.toFixed(1)}%
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.opportunities > 0 ? '#111' : '#ccc' }}>
+                    <div>{row.opportunities}</div>
+                    {row.opportunitiesRate != null && (
+                      <div style={{ fontSize: '0.65rem', color: '#999', fontWeight: 400 }}>
+                        {row.opportunitiesRate.toFixed(0)}%
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.clients > 0 ? '#111' : '#ccc', fontWeight: row.clients > 0 ? 600 : 400 }}>
+                    <div>{row.clients}</div>
+                    {row.clientsRate != null && (
+                      <div style={{ fontSize: '0.65rem', color: '#999', fontWeight: 400 }}>
+                        {row.clientsRate.toFixed(0)}%
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -820,14 +956,31 @@ function AnalyticsView({ password }: { password: string }) {
                 return (
                 <tr key={ev.id} style={{ borderBottom: '1px solid #f4f4f5' }} title={ev.bookingError || ''}>
                   <td style={tdStyle}>
-                    <span style={{
-                      display: 'inline-block', padding: '2px 8px', borderRadius: '6px',
-                      background: ev.type === 'booking' ? '#dbeafe' : '#fef3c7',
-                      color: ev.type === 'booking' ? '#1e40af' : '#92400e',
-                      fontSize: '0.7rem', fontWeight: 600,
-                    }}>
-                      {ev.type === 'booking' ? 'RDV' : 'Brochure'}
-                    </span>
+                    {(() => {
+                      // data-download events carry a `source` like "Data Médecins Généralistes"
+                      // — show that verbatim so each row tells which spécialité was downloaded.
+                      const isData = ev.type === 'data-download'
+                      const isBooking = ev.type === 'booking'
+                      const isJourno = ev.type === 'journalistes'
+                      const bg = isBooking ? '#dbeafe' : isJourno ? '#dcfce7' : isData ? '#ede9fe' : '#fef3c7'
+                      const fg = isBooking ? '#1e40af' : isJourno ? '#166534' : isData ? '#5b21b6' : '#92400e'
+                      const label = isBooking
+                        ? 'RDV'
+                        : isJourno
+                          ? 'Lead journaliste'
+                          : isData
+                            ? (ev.source || (ev.slug ? `Data ${ev.slug}` : 'Data download'))
+                            : 'Brochure'
+                      return (
+                        <span style={{
+                          display: 'inline-block', padding: '2px 8px', borderRadius: '6px',
+                          background: bg, color: fg,
+                          fontSize: '0.7rem', fontWeight: 600,
+                        }}>
+                          {label}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td style={tdStyle}>
                     {ev.type === 'booking' && statusColor ? (
@@ -1991,6 +2144,26 @@ function CrmView({ password }: { password: string }) {
                                   border: `1px solid ${enrichMessage.tone === 'err' ? '#fecaca' : enrichMessage.tone === 'ok' ? '#bbf7d0' : '#e2e8f0'}`,
                                 }}>
                                   {enrichMessage.text}
+                                </div>
+                              )}
+                              {c.visits && c.visits.length > 0 && (
+                                <div style={{ marginTop: '0.6rem' }}>
+                                  <label style={{ ...crmLabelStyle, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    👀 Visites récentes
+                                    <span style={{ background: '#e0f2e9', color: '#166534', borderRadius: '4px', padding: '0.1rem 0.4rem', fontSize: '0.6rem', fontWeight: 700 }}>
+                                      {c.visits.length}
+                                    </span>
+                                  </label>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '120px', overflowY: 'auto' }}>
+                                    {[...c.visits].reverse().map((v, i) => (
+                                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#555', padding: '0.2rem 0.4rem', background: '#fff', borderRadius: '4px', border: '1px solid #eee' }}>
+                                        <span style={{ fontFamily: 'monospace', color: '#0066cc' }}>{v.path}</span>
+                                        <span style={{ color: '#aaa', whiteSpace: 'nowrap', marginLeft: '0.5rem' }}>
+                                          {new Date(v.ts).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', gap: '0.5rem', flexWrap: 'wrap' }}>

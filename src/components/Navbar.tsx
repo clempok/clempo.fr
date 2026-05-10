@@ -55,6 +55,16 @@ export default function Navbar() {
           >
             {t('nav', 'articles')}
           </Link>
+          <Link to="/parts-de-marche-logiciels-medicaux"
+            style={linkStyle(isActive('/parts-de-marche-logiciels-medicaux') || isActive('/specialites'))}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--ink)')}
+            onMouseLeave={e => {
+              if (!isActive('/parts-de-marche-logiciels-medicaux') && !isActive('/specialites'))
+                e.currentTarget.style.color = 'var(--steel)'
+            }}
+          >
+            Data
+          </Link>
         </div>
       </div>
 
@@ -134,6 +144,14 @@ export default function Navbar() {
               letterSpacing: '0.08em', textTransform: 'uppercase',
             }}>
             {t('nav', 'articles')}
+          </Link>
+          <Link to="/parts-de-marche-logiciels-medicaux" onClick={() => setMobileOpen(false)}
+            style={{
+              color: 'var(--ink)', textDecoration: 'none',
+              fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 500,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+            }}>
+            Data
           </Link>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             {(['fr', 'en'] as const).map(l => (

@@ -6,6 +6,7 @@ import { useLang } from '../contexts/LangContext'
 import SEO from '../components/SEO'
 import Eyebrow from '../components/Eyebrow'
 import Wordmark from '../components/Wordmark'
+import JournalistesForm from '../components/JournalistesForm'
 import { bookingUrl } from '../lib/cta'
 
 // ---- Markdown renderer ----
@@ -507,6 +508,13 @@ export default function ArticlePage() {
               <div style={{ maxWidth: '680px' }}>
                 <MarkdownArticle content={article.content} />
               </div>
+
+              {/* Inline ressource — only on marketing articles (slug ≠ systeme-sante-*) */}
+              {!article.slug.startsWith('systeme-sante') && (
+                <div style={{ maxWidth: '680px', marginTop: '3rem' }}>
+                  <JournalistesForm variant="compact" source={`article-${article.slug}`} />
+                </div>
+              )}
 
               {/* Author card */}
               <div style={{

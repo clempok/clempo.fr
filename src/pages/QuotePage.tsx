@@ -676,6 +676,7 @@ function SignatureSection({ quote, company, id, onSigned }: {
   quote: QuoteData; accent: string; company: string; id: string
   onSigned: (sig: QuoteSignature) => void
 }) {
+  const [expanded, setExpanded] = useState(false)
   const [mode, setMode] = useState<'drawn' | 'typed'>('drawn')
   const [typedName, setTypedName] = useState('')
   const [form, setForm] = useState({
@@ -862,6 +863,68 @@ function SignatureSection({ quote, company, id, onSigned }: {
             <img src={quote.signature.image} alt="Signature" style={{ maxWidth: 240, height: 'auto' }} />
           </div>
         )}
+      </div>
+    )
+  }
+
+  // Collapsed state — show big CTA to expand the signature section
+  if (!expanded) {
+    return (
+      <div style={{
+        background: CARD, borderRadius: 4, overflow: 'hidden',
+        border: `1px solid ${BORDER}`,
+        marginBottom: '2rem',
+      }}>
+        <div style={{
+          background: TEXT,
+          padding: '1.25rem 2.5rem',
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%', background: SIGNAL, display: 'inline-block',
+          }} />
+          <h3 style={{
+            fontFamily: FM, fontSize: '0.78rem', fontWeight: 500, color: BG, margin: 0,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+          }}>
+            // Prêt à valider ce devis ?
+          </h3>
+        </div>
+
+        <div style={{ padding: '2.75rem 2.5rem', textAlign: 'center' }}>
+          <h3 style={{
+            fontFamily: FT, fontSize: 'clamp(1.4rem, 3.5vw, 1.85rem)', fontWeight: 700,
+            color: TEXT, margin: '0 0 0.75rem', letterSpacing: '-0.02em', lineHeight: 1.2,
+          }}>
+            Signez ce devis en{' '}
+            <span style={{ fontFamily: FS, fontStyle: 'italic', fontWeight: 400 }}>quelques clics</span>
+          </h3>
+          <p style={{ fontSize: '0.95rem', color: GRAPHITE, margin: '0 0 1.75rem', lineHeight: 1.6 }}>
+            Informations de facturation, conditions générales, signature : tout se passe ici, en moins d'une minute.
+          </p>
+          <button
+            onClick={() => setExpanded(true)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
+              padding: '1.1rem 2.25rem', borderRadius: 4, border: 'none',
+              background: TEXT, color: BG,
+              fontFamily: FT, fontWeight: 600, fontSize: '1rem',
+              letterSpacing: '-0.005em', cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={SIGNAL} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 19l7-7 3 3-7 7-3-3z" />
+              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+              <path d="M2 2l7.586 7.586" />
+              <circle cx="11" cy="11" r="2" />
+            </svg>
+            Signer ce devis <span aria-hidden>→</span>
+          </button>
+          <p style={{ fontFamily: FM, fontSize: '0.7rem', color: MUTED, margin: '1rem 0 0', letterSpacing: '0.02em' }}>
+            // Signature électronique sécurisée — IP & horodatage enregistrés
+          </p>
+        </div>
       </div>
     )
   }

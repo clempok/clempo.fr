@@ -2,13 +2,17 @@ import { getStore } from '@netlify/blobs'
 
 export type LeadEvent = {
   id: string
-  type: 'booking' | 'brochure'
+  type: 'booking' | 'brochure' | 'journalistes' | 'data-download'
   ts: string // ISO
   firstName?: string
   lastName?: string
   email?: string
   company?: string
   phone?: string
+  // data-download: free-form label like "Data Médecins Généralistes"
+  source?: string
+  // data-download: specialty slug (medecins-generalistes, dentistes, …)
+  slug?: string
   // booking-only
   date?: string
   hour?: number
@@ -31,6 +35,10 @@ export type AnalyticsData = {
   visits_by_src?: Record<string, Record<string, number>>
   visits_by_ref?: Record<string, Record<string, number>>
   linkedin_impressions?: Record<string, number>
+  // Manually-entered impressions per funnel period. Keyed by `${period}:${key}`
+  // (e.g. "month:2026-04", "week:2026-W19"). Takes precedence over the
+  // rolling-7d snapshot when displaying the funnel.
+  linkedin_impressions_manual?: Record<string, number>
 }
 
 const EMPTY: AnalyticsData = { events: [], visits: {} }

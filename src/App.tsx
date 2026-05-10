@@ -7,6 +7,8 @@ import Footer from './components/Footer'
 import Background from './components/Background'
 import LiquidCursor from './components/LiquidCursor'
 import ReturnVisitorPopup from './components/ReturnVisitorPopup'
+import JournalistesExitPopup from './components/JournalistesExitPopup'
+import JournalistesStickyPromo from './components/JournalistesStickyPromo'
 import Home from './pages/Home'
 import Articles from './pages/Articles'
 import ArticlePage from './pages/ArticlePage'
@@ -15,6 +17,8 @@ import Admin from './pages/Admin'
 import Booking from './pages/Booking'
 import QuotePage from './pages/QuotePage'
 import TransitionCMO from './pages/TransitionCMO'
+import Specialites from './pages/Specialites'
+import SpecialitePage from './pages/SpecialitePage'
 
 // Normalize a referrer hostname into a short stable label so the admin dashboard
 // can group "www.google.fr", "google.com", "www.google.co.uk" under "google".
@@ -97,6 +101,17 @@ function VisitTracker() {
         .then(r => r.ok ? r.json() : r.text().then(t => Promise.reject(t)))
         .then(d => console.log('[clempo] visit tracked', d))
         .catch(err => console.warn('[clempo] track-visit failed', err))
+
+      // CRM-aware tracking: identify known contacts via the CID cookie
+      const cid = document.cookie.match(/(?:^|;\s*)clempo_cid=([^;]+)/)?.[1]
+      if (cid) {
+        fetch('/.netlify/functions/track-crm-visit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cid, path: location.pathname }),
+          keepalive: true,
+        }).catch(() => { /* silent */ })
+      }
     } catch {
       /* ignore */
     }
@@ -124,9 +139,13 @@ function Shell() {
         <Route path="/booking" element={<Booking />} />
         <Route path="/devis/:company/:id" element={<QuotePage />} />
         <Route path="/transition-cmo" element={<TransitionCMO />} />
+        <Route path="/parts-de-marche-logiciels-medicaux" element={<Specialites />} />
+        <Route path="/specialites/:slug" element={<SpecialitePage />} />
       </Routes>
       {!isAdmin && !isQuote && <Footer />}
       {!isAdmin && !isQuote && <ReturnVisitorPopup />}
+      {!isAdmin && !isQuote && <JournalistesExitPopup />}
+      {!isAdmin && !isQuote && <JournalistesStickyPromo />}
     </div>
   )
 }

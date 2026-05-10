@@ -6,6 +6,9 @@ import { useContent } from '../contexts/ContentContext'
 import SEO from '../components/SEO'
 import Eyebrow from '../components/Eyebrow'
 import Wordmark from '../components/Wordmark'
+import JournalistesForm, { JournalistesNetlifyRegistration } from '../components/JournalistesForm'
+import JournalistesSheetPreview from '../components/JournalistesSheetPreview'
+import { JOURNALISTES_TITLE, JOURNALISTES_SUB } from '../lib/journalistes'
 import { bookingUrl } from '../lib/cta'
 import Booking from './Booking'
 
@@ -53,6 +56,13 @@ export default function Home() {
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
 
+  function setCidCookie(email: string) {
+    try {
+      const cid = btoa(email.toLowerCase().trim())
+      document.cookie = `clempo_cid=${cid}; max-age=${365 * 24 * 3600}; path=/; SameSite=Lax`
+    } catch { /* ignore */ }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSubmitting(true)
     try {
@@ -68,6 +78,7 @@ export default function Home() {
           'phone': formData.phone,
         }).toString(),
       })
+      if (formData.email) setCidCookie(formData.email)
       const link = document.createElement('a')
       link.href = '/CPO-Services-2026.pdf'
       link.download = 'CPO-Services-2026.pdf'
@@ -77,6 +88,7 @@ export default function Home() {
     finally { setSubmitting(false) }
   }
 
+
   const featuredArticles = articles.slice(0, 3)
 
   const revealAbout = useReveal()
@@ -84,6 +96,7 @@ export default function Home() {
   const revealSect = useReveal()
   const revealMedia = useReveal()
   const revealArticles = useReveal()
+  const revealJo = useReveal()
   const revealBrochure = useReveal()
 
   // Form input styling — brand-book flat fields, radius 4px
@@ -1022,6 +1035,105 @@ export default function Home() {
               <span className="cb-page-marker">— 05 / 06</span>
             </div>
           </div>
+        </section>
+
+        {/* ═════════════════════════════════════════════════════ */}
+        {/* JOURNALISTES SANTÉ FORM                                 */}
+        {/* ═════════════════════════════════════════════════════ */}
+        <section id="journalistes" style={{
+          background: 'var(--ink)',
+          color: 'var(--paper)',
+          padding: 'clamp(4rem, 9vw, 7rem) 6vw',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Hidden Netlify form registration so the build picks up the schema */}
+          <JournalistesNetlifyRegistration />
+
+          {/* Subtle dotmatrix accent */}
+          <div className="cb-dotmatrix cb-dotmatrix--signal" aria-hidden style={{
+            position: 'absolute', top: 0, right: 0,
+            width: '38%', height: '60%',
+            opacity: 0.18, pointerEvents: 'none',
+          }} />
+
+          <div
+            ref={revealJo}
+            className="cb-reveal jo-grid"
+            style={{
+              maxWidth: '1180px',
+              margin: '0 auto',
+              position: 'relative',
+            }}
+          >
+            {/* Left col: title + form */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 600,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  color: 'var(--ink)', background: 'var(--signal)',
+                  padding: '0.35rem 0.75rem', borderRadius: '4px',
+                }}>
+                  🎁 Ressource gratuite
+                </span>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 500,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.7)',
+                  padding: '0.35rem 0',
+                }}>
+                  France 🇫🇷 + États-Unis 🇺🇸
+                </span>
+              </div>
+
+              <h2 style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)',
+                fontWeight: 400,
+                color: 'var(--paper)',
+                margin: '0 0 1rem',
+                lineHeight: 1.1,
+                letterSpacing: '-0.01em',
+              }}>
+                {JOURNALISTES_TITLE}
+              </h2>
+              <p style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '1.05rem',
+                color: 'rgba(255,255,255,0.72)',
+                lineHeight: 1.65,
+                margin: '0 0 2.25rem',
+                maxWidth: '520px',
+              }}>
+                {JOURNALISTES_SUB}
+              </p>
+
+              <JournalistesForm variant="modal" theme="dark" source="home" />
+            </div>
+
+            {/* Right col: GSheet preview */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <JournalistesSheetPreview />
+            </div>
+          </div>
+
+          <style>{`
+            .jo-grid {
+              display: grid;
+              grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+              gap: clamp(2rem, 4vw, 4.5rem);
+              align-items: center;
+            }
+            @media (max-width: 880px) {
+              .jo-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+              .jo-grid > div:last-child { order: -1; }
+            }
+          `}</style>
         </section>
 
         {/* ═════════════════════════════════════════════════════ */}

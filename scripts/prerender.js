@@ -24,7 +24,31 @@ const slugs = [
   'contacter-medecins-courrier-postal-1-euro-methode',
 ]
 
-const routes = ['/', '/articles', '/transition-cmo', ...slugs.map(s => `/articles/${s}`)]
+const specialiteSlugs = [
+  'medecins-generalistes',
+  'medecins-specialistes',
+  'dentistes',
+  'infirmiers',
+  'kines',
+  'orthophonistes',
+  'pharmacies',
+  'opticiens',
+  'audioprothesistes',
+  'orthoptistes',
+  'sages-femmes',
+  'pedicures-podologues',
+  'centres-sante',
+  'laboratoires-analyses',
+]
+
+const routes = [
+  '/',
+  '/articles',
+  '/transition-cmo',
+  '/parts-de-marche-logiciels-medicaux',
+  ...slugs.map(s => `/articles/${s}`),
+  ...specialiteSlugs.map(s => `/specialites/${s}`),
+]
 
 async function prerender() {
   const template = fs.readFileSync(path.join(root, 'dist/index.html'), 'utf-8')
@@ -35,9 +59,20 @@ async function prerender() {
   for (const url of routes) {
     console.log(`Pre-rendering: ${url}`)
 
-    const { html } = render(url)
+    const { html, head } = render(url)
 
-    const fullHtml = template.replace('<!--app-html-->', html)
+    let fullHtml = template.replace('<!--app-html-->', html)
+
+    // Inject Helmet head tags into <head>. Strip the static <title>,
+    // <meta name="description">, and <link rel="canonical"> so we don't
+    // end up with duplicates (Google may pick the wrong one).
+    if (head) {
+      fullHtml = fullHtml
+        .replace(/<title>[^<]*<\/title>/, '')
+        .replace(/<meta name="description"[^>]*\/?>/, '')
+        .replace(/<link rel="canonical"[^>]*\/?>/, '')
+        .replace('</head>', `${head}\n</head>`)
+    }
 
     const outDir = url === '/' ? root + '/dist' : root + '/dist' + url
     fs.mkdirSync(outDir, { recursive: true })
