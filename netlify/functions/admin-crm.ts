@@ -105,6 +105,9 @@ const handler: Handler = async (event) => {
         if (fields.source !== undefined) contact.source = fields.source
         if (fields.notes !== undefined) contact.notes = fields.notes
         if (fields.linkedIn !== undefined) contact.linkedIn = fields.linkedIn
+        if (fields.phone !== undefined) contact.phone = fields.phone
+        if (fields.jobTitle !== undefined) contact.jobTitle = fields.jobTitle
+        if (fields.company !== undefined) contact.company = fields.company
         contact.updatedAt = new Date().toISOString()
         await writeCrm(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true, contact }) }

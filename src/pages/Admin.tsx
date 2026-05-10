@@ -186,6 +186,11 @@ type CrmContact = {
   createdAt: string
   updatedAt: string
   linkedIn?: string
+  phone?: string
+  jobTitle?: string
+  company?: string
+  enrichedAt?: string
+  enrichmentSource?: string
   notionPageId?: string
 }
 
@@ -1470,6 +1475,8 @@ function CrmView({ password }: { password: string }) {
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [newTaskDate, setNewTaskDate] = useState('')
   const [newTaskDesc, setNewTaskDesc] = useState('')
+  const [enrichingId, setEnrichingId] = useState<string | null>(null)
+  const [enrichMessage, setEnrichMessage] = useState<{ contactId: string; text: string; tone: 'ok' | 'info' | 'err' } | null>(null)
 
   const authHeaders = useMemo(
     () => ({ Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' }),
@@ -1578,6 +1585,57 @@ function CrmView({ password }: { password: string }) {
       ) || null)
       setAddContactForCo(null)
     } catch (err) { alert(`Erreur : ${String(err)}`) }
+  }
+
+  const enrichContact = async (companyId: string, contactId: string) => {
+    setEnrichingId(contactId)
+    setEnrichMessage(null)
+    try {
+      // First call submits the search; if it stays pending we resume with the
+      // requestId returned in the 202. Up to 3 retries to cover Dropcontact
+      // queue times >7s without exceeding Netlify's function timeout.
+      let requestId: string | undefined
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const res = await fetch('/.netlify/functions/admin-enrich-lead', {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ companyId, contactId, requestId }),
+        })
+        const text = await res.text()
+        const json = (() => { try { return JSON.parse(text) } catch { return null } })()
+
+        if (res.status === 202 && json?.pending && json.requestId) {
+          requestId = json.requestId
+          setEnrichMessage({ contactId, text: 'Recherche Dropcontact en cours…', tone: 'info' })
+          continue
+        }
+
+        if (!res.ok) {
+          throw new Error(json?.error || json?.details || text || `HTTP ${res.status}`)
+        }
+
+        // Success — replace the contact in local state
+        const updated = json.contact as CrmContact
+        setCompanies(prev => prev?.map(co => co.id === companyId
+          ? { ...co, contacts: co.contacts.map(c => c.id === contactId ? updated : c) }
+          : co,
+        ) || null)
+
+        const filled = (json.filled as string[] | undefined) || []
+        if (filled.length === 0) {
+          setEnrichMessage({ contactId, text: 'Aucune donnée nouvelle trouvée.', tone: 'info' })
+        } else {
+          setEnrichMessage({ contactId, text: `Enrichi : ${filled.join(', ')}.`, tone: 'ok' })
+        }
+        return
+      }
+      // Out of retries
+      setEnrichMessage({ contactId, text: 'Recherche encore en cours côté Dropcontact. Réessayez dans quelques instants.', tone: 'info' })
+    } catch (err) {
+      setEnrichMessage({ contactId, text: `Erreur : ${String(err)}`, tone: 'err' })
+    } finally {
+      setEnrichingId(null)
+    }
   }
 
   /* ---- Task actions ---- */
@@ -1903,6 +1961,10 @@ function CrmView({ password }: { password: string }) {
                                 <EditField label="Prénom" value={c.firstName} onSave={v => updateContact(co.id, c.id, { firstName: v })} />
                                 <EditField label="Nom" value={c.lastName} onSave={v => updateContact(co.id, c.id, { lastName: v })} />
                                 <EditField label="Email" value={c.email} onSave={v => updateContact(co.id, c.id, { email: v })} />
+                                <EditField label="Téléphone" value={c.phone || ''} onSave={v => updateContact(co.id, c.id, { phone: v })} />
+                                <EditField label="Poste" value={c.jobTitle || ''} onSave={v => updateContact(co.id, c.id, { jobTitle: v })} />
+                                <EditField label="Entreprise (contact)" value={c.company || ''} onSave={v => updateContact(co.id, c.id, { company: v })} />
+                                <EditField label="LinkedIn" value={c.linkedIn || ''} onSave={v => updateContact(co.id, c.id, { linkedIn: v })} />
                                 <EditField label="Source" value={c.source} onSave={v => updateContact(co.id, c.id, { source: v })} />
                               </div>
                               <div style={{ marginTop: '0.5rem' }}>
@@ -1918,16 +1980,49 @@ function CrmView({ password }: { password: string }) {
                                   style={{ width: '100%', padding: '0.5rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif", resize: 'vertical' }}
                                 />
                               </div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                              {enrichMessage?.contactId === c.id && (
+                                <div style={{
+                                  marginTop: '0.5rem',
+                                  padding: '0.4rem 0.6rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.7rem',
+                                  background: enrichMessage.tone === 'err' ? '#fef2f2' : enrichMessage.tone === 'ok' ? '#f0fdf4' : '#f1f5f9',
+                                  color: enrichMessage.tone === 'err' ? '#b91c1c' : enrichMessage.tone === 'ok' ? '#166534' : '#475569',
+                                  border: `1px solid ${enrichMessage.tone === 'err' ? '#fecaca' : enrichMessage.tone === 'ok' ? '#bbf7d0' : '#e2e8f0'}`,
+                                }}>
+                                  {enrichMessage.text}
+                                </div>
+                              )}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', gap: '0.5rem', flexWrap: 'wrap' }}>
                                 <p style={{ fontSize: '0.6rem', color: '#bbb', margin: 0 }}>
                                   Créé : {new Date(c.createdAt).toLocaleDateString('fr-FR')} · Maj : {new Date(c.updatedAt).toLocaleString('fr-FR')}
+                                  {c.enrichedAt && ` · Enrichi : ${new Date(c.enrichedAt).toLocaleDateString('fr-FR')}`}
                                 </p>
-                                <button
-                                  onClick={() => deleteContact(co.id, c.id)}
-                                  style={{ padding: '0.3rem 0.6rem', border: '1px solid #fecaca', borderRadius: '6px', background: '#fff', color: '#dc2626', fontSize: '0.65rem', cursor: 'pointer' }}
-                                >
-                                  Supprimer
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                  <button
+                                    onClick={() => enrichContact(co.id, c.id)}
+                                    disabled={enrichingId === c.id}
+                                    style={{
+                                      padding: '0.3rem 0.7rem',
+                                      border: `1px solid ${ACCENT}`,
+                                      borderRadius: '6px',
+                                      background: enrichingId === c.id ? '#f4f4f5' : ACCENT,
+                                      color: enrichingId === c.id ? '#999' : '#fff',
+                                      fontSize: '0.65rem',
+                                      fontWeight: 600,
+                                      cursor: enrichingId === c.id ? 'wait' : 'pointer',
+                                    }}
+                                    title="Enrichir email + téléphone via Dropcontact"
+                                  >
+                                    {enrichingId === c.id ? 'Enrichissement…' : 'Enrichir'}
+                                  </button>
+                                  <button
+                                    onClick={() => deleteContact(co.id, c.id)}
+                                    style={{ padding: '0.3rem 0.6rem', border: '1px solid #fecaca', borderRadius: '6px', background: '#fff', color: '#dc2626', fontSize: '0.65rem', cursor: 'pointer' }}
+                                  >
+                                    Supprimer
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )}

@@ -30,6 +30,14 @@ export type CrmContact = {
   source: string
   notes: string
   linkedIn?: string
+  phone?: string
+  jobTitle?: string
+  company?: string
+  /** ISO timestamp of the last successful Dropcontact enrichment, plus the
+   *  request_id for traceability. Lets the UI surface "Enriched on X" and
+   *  rate-limit re-enrichments. */
+  enrichedAt?: string
+  enrichmentSource?: string
   createdAt: string
   updatedAt: string
   /** Notion page ID in the Contacts mirror DB, filled by notion-sync. */
