@@ -25,4 +25,10 @@ dist-ssr
 .netlify/
 
 # Claude Code — local runtime state, worktrees, secrets (never commit)
-.claude/
+# Pattern uses /* (not /) so exceptions below can re-include specific files
+.claude/*
+# Exception: project-wide hook config must sync across devices
+!.claude/settings.json
+
+# Raw data sources used to regenerate public/data/specialites/ — kept local only
+Extract GIE/
