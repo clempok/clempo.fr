@@ -430,6 +430,10 @@ function AnalyticsView({ password }: { password: string }) {
   const [diag, setDiag] = useState('')
   const [editingImpressionsKey, setEditingImpressionsKey] = useState<string | null>(null)
   const [editingImpressionsValue, setEditingImpressionsValue] = useState('')
+  const [liDate, setLiDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [liValue, setLiValue] = useState('')
+  const [liStatus, setLiStatus] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [liSaving, setLiSaving] = useState(false)
 
   const saveManualImpressions = useCallback(async (periodKey: string, valueRaw: string) => {
     const trimmed = valueRaw.trim()
@@ -495,6 +499,36 @@ function AnalyticsView({ password }: { password: string }) {
       if (res.ok) refresh()
     } catch (err) {
       setDiag(`Network error: ${String(err)}`)
+    }
+  }
+
+  const saveLinkedinImpressions = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const val = parseInt(liValue, 10)
+    if (isNaN(val) || val < 0) {
+      setLiStatus({ ok: false, msg: 'Valeur invalide' })
+      return
+    }
+    setLiSaving(true)
+    setLiStatus(null)
+    try {
+      const res = await fetch('/.netlify/functions/admin-data', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_linkedin_impressions', dateKey: liDate, value: val }),
+      })
+      const body = await res.text()
+      if (res.ok) {
+        setLiStatus({ ok: true, msg: `Enregistré : ${val.toLocaleString('fr-FR')} impressions pour le ${liDate}` })
+        setLiValue('')
+        refresh()
+      } else {
+        setLiStatus({ ok: false, msg: `Erreur ${res.status} : ${body.slice(0, 200)}` })
+      }
+    } catch (err) {
+      setLiStatus({ ok: false, msg: `Erreur réseau : ${String(err)}` })
+    } finally {
+      setLiSaving(false)
     }
   }
 
@@ -853,6 +887,62 @@ function AnalyticsView({ password }: { password: string }) {
             Compte les transitions de statut dans le CRM. L'historique avant aujourd'hui n'a pas été tracké — les données passées se limitent au statut actuel à la date de création de l'entreprise.
           </p>
         )}
+
+        {/* Saisie manuelle des impressions LinkedIn */}
+        <form
+          onSubmit={saveLinkedinImpressions}
+          style={{
+            marginTop: '1.25rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid #eee',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', marginRight: '0.25rem' }}>
+            Saisir impressions LinkedIn :
+          </span>
+          <input
+            type="date"
+            value={liDate}
+            onChange={e => setLiDate(e.target.value)}
+            style={{
+              fontSize: '0.75rem', border: '1px solid #ddd', borderRadius: '6px',
+              padding: '0.35rem 0.5rem', outline: 'none', background: '#fff',
+            }}
+          />
+          <input
+            type="number"
+            min="0"
+            step="1"
+            placeholder="ex. 12500"
+            value={liValue}
+            onChange={e => setLiValue(e.target.value)}
+            style={{
+              fontSize: '0.75rem', border: '1px solid #ddd', borderRadius: '6px',
+              padding: '0.35rem 0.5rem', outline: 'none', background: '#fff', width: '110px',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={liSaving || !liValue}
+            style={{
+              fontSize: '0.75rem', fontWeight: 600,
+              padding: '0.35rem 0.9rem', border: 'none', borderRadius: '6px',
+              background: ACCENT, color: '#fff', cursor: liSaving || !liValue ? 'not-allowed' : 'pointer',
+              opacity: liSaving || !liValue ? 0.5 : 1,
+            }}
+          >
+            {liSaving ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+          {liStatus && (
+            <span style={{ fontSize: '0.7rem', color: liStatus.ok ? '#16a34a' : '#dc2626' }}>
+              {liStatus.msg}
+            </span>
+          )}
+        </form>
       </div>
 
       {/* Visits chart */}
