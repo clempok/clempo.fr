@@ -7,7 +7,7 @@ export const translations = {
       articles: 'Articles',
     },
     hero: {
-      title: 'Healthcare Marketing Director.',
+      title: 'Consultant marketing santé freelance · Fractional CMO HealthTech.',
       tagline: 'Product Marketing · Growth Marketing · Revenue Strategy · Team Management',
       cta_chat: 'Prendre rendez-vous',
       cta_more: 'En savoir plus',
@@ -77,7 +77,7 @@ export const translations = {
       articles: 'Articles',
     },
     hero: {
-      title: 'Healthcare Marketing Director.',
+      title: 'Freelance Healthcare Marketing Consultant · Fractional CMO HealthTech.',
       tagline: 'Product Marketing · Growth Marketing · Revenue Strategy · Team Management',
       cta_chat: 'Book a call',
       cta_more: 'Learn more',

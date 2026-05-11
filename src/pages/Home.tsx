@@ -212,17 +212,18 @@ export default function Home() {
                 </span></span>
               </h1>
 
-              {/* Subtitle (kept verbatim from translations) */}
-              <p style={{
+              {/* Subtitle — h2 sémantique pour SEO (mots-clés métier juste sous le h1) */}
+              <h2 style={{
                 fontFamily: 'var(--font-sans)',
                 fontSize: 'clamp(1.1rem, 2vw, 1.5rem)',
                 fontWeight: 500,
                 color: 'var(--ink)',
+                marginTop: 0,
                 marginBottom: '1rem',
                 letterSpacing: '-0.015em',
               }}>
                 {t('hero', 'title')}
-              </p>
+              </h2>
 
               {/* Tagline tags — now in JetBrains Mono */}
               <p style={{
