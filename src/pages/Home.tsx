@@ -358,57 +358,7 @@ export default function Home() {
         </div>
 
         {/* ═════════════════════════════════════════════════════ */}
-        {/* POSITIONING — SEO content (mots-clés métier)            */}
-        {/* ═════════════════════════════════════════════════════ */}
-        <section style={{ padding: 'clamp(4rem, 7vw, 6rem) 6vw 1rem' }}>
-          <div style={{ maxWidth: '780px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <Eyebrow>// 00 — Positionnement</Eyebrow>
-            </div>
-            <h2 style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 'clamp(1.5rem, 2.4vw, 2rem)',
-              fontWeight: 700,
-              letterSpacing: '-0.025em',
-              lineHeight: 1.15,
-              marginTop: 0,
-              marginBottom: '2rem',
-              color: 'var(--ink)',
-            }}>
-              {lang === 'fr'
-                ? 'Marketing santé moderne : IA, Growth & Product Marketing.'
-                : 'Modern healthcare marketing: AI, Growth & Product Marketing.'}
-            </h2>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.25rem',
-              fontFamily: 'var(--font-sans)',
-              fontSize: '1rem',
-              lineHeight: 1.7,
-              color: 'var(--graphite)',
-            }}>
-              {lang === 'fr' ? (
-                <>
-                  <p>Je suis <strong>consultant marketing santé freelance</strong> basé en France, et j'aide les startups, scaleups et grands groupes du secteur à transformer leur stratégie marketing en moteur de croissance. Pendant 5 ans, j'ai dirigé une partie du marketing de <strong>Doctolib</strong> au moment où l'entreprise est passée de scaleup à licorne européenne. Aujourd'hui, j'interviens en <strong>Fractional CMO</strong> ou en advisory pour les équipes <strong>HealthTech, MedTech, BioTech et pharma</strong> qui veulent accélérer sans recruter un CMO senior à temps plein.</p>
-                  <p>Mon approche n'est pas celle d'un marketeur classique. Je combine <strong>IA générative</strong>, <strong>Product Marketing</strong> et <strong>Growth Marketing</strong> pour produire en quelques semaines ce qui mobilisait une équipe entière il y a deux ans : contenus longs sourcés, funnels d'acquisition outillés, scoring de leads, automatisations sur tout le cycle commercial. Une personne bien outillée peut aujourd'hui rivaliser avec un département entier, à condition de maîtriser à la fois les outils et le secteur.</p>
-                  <p>Et c'est là que le marketing santé devient particulier. Il exige une compréhension fine de trois écosystèmes qui ne se parlent pas : les professionnels de santé, les patients, et les payeurs (assurances, hôpitaux, mutuelles). Sans ça, les meilleures campagnes tombent à plat. C'est ce que j'ai construit en 12 ans de go-to-market sur des produits B2B santé, des SaaS médicaux aux dispositifs connectés.</p>
-                  <p>Concrètement, je vous aide à positionner un produit santé sur son marché, à construire un funnel d'acquisition qui parle aux médecins (et qui passe les filtres réglementaires), à recruter et structurer une équipe marketing, ou à auditer ce que vous avez déjà mis en place. Selon votre stade (early stage, scaleup, ETI), l'accompagnement va de quelques jours par mois à un mandat <strong>Part-Time CMO</strong> sur 6 à 12 mois.</p>
-                </>
-              ) : (
-                <>
-                  <p>I'm a <strong>freelance healthcare marketing consultant</strong> based in France, helping startups, scaleups and enterprises in the sector turn marketing into a growth engine. For 5 years I led part of marketing at <strong>Doctolib</strong>, while it scaled from startup to European unicorn. Today I work as a <strong>Fractional CMO</strong> or advisor for <strong>HealthTech, MedTech, BioTech and pharma</strong> teams that need to accelerate without hiring a full-time CMO.</p>
-                  <p>My approach isn't traditional marketing. I combine <strong>generative AI</strong>, <strong>Product Marketing</strong> and <strong>Growth Marketing</strong> to ship in weeks what used to take a full team months: deeply sourced long-form content, instrumented acquisition funnels, lead scoring, full-cycle sales automation. A single well-equipped person can now match a full department, provided they master both the tools and the industry.</p>
-                  <p>And healthcare marketing is its own world. It requires a sharp understanding of three ecosystems that rarely speak to each other: healthcare professionals, patients, and payers (insurers, hospitals, mutuelles). Without that, even the best campaigns fall flat. That's what I've built over 12 years of go-to-market work on B2B healthcare products, from medical SaaS to connected devices.</p>
-                  <p>Concretely, I help you position a healthcare product, build acquisition funnels that speak to physicians (and pass regulatory filters), recruit and structure a marketing team, or audit what you've already deployed. Depending on your stage (early stage, scaleup, large company), the engagement ranges from a few days per month to a <strong>Part-Time CMO</strong> mandate of 6 to 12 months.</p>
-                </>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* ═════════════════════════════════════════════════════ */}
-        {/* ABOUT + BOOKING                                         */}
+        {/* ABOUT + BOOKING — contenu SEO fusionné dans À propos    */}
         {/* ═════════════════════════════════════════════════════ */}
         <section id="about" style={{ padding: '6rem 6vw 4rem' }}>
           <div ref={revealAbout} className="cb-reveal about-booking-row" style={{
@@ -442,19 +392,35 @@ export default function Home() {
                 marginBottom: '1.5rem',
                 color: 'var(--ink)',
               }}>
-                {t('about', 'title')}
+                {lang === 'fr'
+                  ? 'Marketing santé moderne : IA, Growth & Product Marketing.'
+                  : 'Modern healthcare marketing: AI, Growth & Product Marketing.'}
               </h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', marginBottom: '1.75rem' }}>
-                {(['p1','p2','p3'] as const).map(k => (
-                  <p key={k} style={{
-                    fontSize: '0.9rem',
-                    lineHeight: 1.7,
-                    color: 'var(--graphite)',
-                    fontWeight: 400,
-                  }}>
-                    {t('about', k)}
-                  </p>
-                ))}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.9rem',
+                marginBottom: '1.75rem',
+                fontSize: '0.9rem',
+                lineHeight: 1.7,
+                color: 'var(--graphite)',
+                fontWeight: 400,
+              }}>
+                {lang === 'fr' ? (
+                  <>
+                    <p>Je suis <strong>consultant marketing santé freelance</strong> basé en France, et j'aide les startups, scaleups et grands groupes du secteur à transformer leur stratégie marketing en moteur de croissance. Pendant 5 ans, j'ai dirigé une partie du marketing de <strong>Doctolib</strong> au moment où l'entreprise est passée de scaleup à licorne européenne. Aujourd'hui, j'interviens en <strong>Fractional CMO</strong> ou en advisory pour les équipes <strong>HealthTech, MedTech, BioTech et pharma</strong> qui veulent accélérer sans recruter un CMO senior à temps plein.</p>
+                    <p>Mon approche n'est pas celle d'un marketeur classique. Je combine <strong>IA générative</strong>, <strong>Product Marketing</strong> et <strong>Growth Marketing</strong> pour produire en quelques semaines ce qui mobilisait une équipe entière il y a deux ans : contenus longs sourcés, funnels d'acquisition outillés, scoring de leads, automatisations sur tout le cycle commercial. Une personne bien outillée peut aujourd'hui rivaliser avec un département entier, à condition de maîtriser à la fois les outils et le secteur.</p>
+                    <p>Et c'est là que le marketing santé devient particulier. Il exige une compréhension fine de trois écosystèmes qui ne se parlent pas : les professionnels de santé, les patients, et les payeurs (assurances, hôpitaux, mutuelles). Sans ça, les meilleures campagnes tombent à plat. C'est ce que j'ai construit en 12 ans de go-to-market sur des produits B2B santé, des SaaS médicaux aux dispositifs connectés.</p>
+                    <p>Concrètement, je vous aide à positionner un produit santé sur son marché, à construire un funnel d'acquisition qui parle aux médecins (et qui passe les filtres réglementaires), à recruter et structurer une équipe marketing, ou à auditer ce que vous avez déjà mis en place. Selon votre stade (early stage, scaleup, ETI), l'accompagnement va de quelques jours par mois à un mandat <strong>Part-Time CMO</strong> sur 6 à 12 mois.</p>
+                  </>
+                ) : (
+                  <>
+                    <p>I'm a <strong>freelance healthcare marketing consultant</strong> based in France, helping startups, scaleups and enterprises in the sector turn marketing into a growth engine. For 5 years I led part of marketing at <strong>Doctolib</strong>, while it scaled from startup to European unicorn. Today I work as a <strong>Fractional CMO</strong> or advisor for <strong>HealthTech, MedTech, BioTech and pharma</strong> teams that need to accelerate without hiring a full-time CMO.</p>
+                    <p>My approach isn't traditional marketing. I combine <strong>generative AI</strong>, <strong>Product Marketing</strong> and <strong>Growth Marketing</strong> to ship in weeks what used to take a full team months: deeply sourced long-form content, instrumented acquisition funnels, lead scoring, full-cycle sales automation. A single well-equipped person can now match a full department, provided they master both the tools and the industry.</p>
+                    <p>And healthcare marketing is its own world. It requires a sharp understanding of three ecosystems that rarely speak to each other: healthcare professionals, patients, and payers (insurers, hospitals, mutuelles). Without that, even the best campaigns fall flat. That's what I've built over 12 years of go-to-market work on B2B healthcare products, from medical SaaS to connected devices.</p>
+                    <p>Concretely, I help you position a healthcare product, build acquisition funnels that speak to physicians (and pass regulatory filters), recruit and structure a marketing team, or audit what you've already deployed. Depending on your stage (early stage, scaleup, large company), the engagement ranges from a few days per month to a <strong>Part-Time CMO</strong> mandate of 6 to 12 months.</p>
+                  </>
+                )}
               </div>
               <Link
                 to={bookingUrl('home-about')}
