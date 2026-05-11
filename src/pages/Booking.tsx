@@ -362,7 +362,8 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                   boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
                 }}
               />
-              <h1 style={{
+              {/* h2 en mode embedded : le h1 appartient à la page parente (Home) */}
+              <h2 style={{
                 fontFamily: "'Inter', sans-serif",
                 fontSize: 'clamp(1.6rem, 3.2vw, 2.3rem)',
                 fontWeight: 700,
@@ -372,7 +373,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                 margin: 0,
               }}>
                 {t.title}
-              </h1>
+              </h2>
             </div>
           ) : (
             <h1 style={{

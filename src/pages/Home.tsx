@@ -127,8 +127,8 @@ export default function Home() {
     ? 'Clément Pouget-Osmont — Expert Marketing Santé Freelance | HealthTech & MedTech'
     : 'Clément Pouget-Osmont — Freelance Healthcare Marketing Expert | HealthTech & MedTech')
   const homeDesc = seoData?.home_desc || (lang === 'fr'
-    ? 'Directeur marketing santé freelance. J\'accompagne les entreprises healthtech, medtech et pharma dans leur stratégie de croissance. Ex-Doctolib (5 ans), 12 ans d\'expérience.'
-    : 'Freelance healthcare marketing director. I help healthtech, medtech and pharma companies build their brand and scale. Ex-Doctolib (5 years), 12 years of experience.')
+    ? 'Consultant marketing santé freelance · Fractional CMO HealthTech. J\'aide startups, scaleups et grands groupes santé à transformer leur stratégie marketing. Ex-Doctolib, 12 ans d\'expérience.'
+    : 'Freelance healthcare marketing consultant · Fractional CMO HealthTech. I help startups, scaleups and enterprises in healthcare turn marketing into a growth engine. Ex-Doctolib, 12 years.')
 
   return (
     <>
@@ -265,7 +265,7 @@ export default function Home() {
               }}>
                 <img
                   src={PORTRAIT_URL}
-                  alt="Portrait Clément Pouget-Osmont"
+                  alt="Clément Pouget-Osmont, consultant marketing santé freelance et Fractional CMO HealthTech"
                   loading="eager"
                   style={{
                     width: '100%',
@@ -855,19 +855,19 @@ export default function Home() {
               {[
                 {
                   href: 'https://www.youtube.com/watch?v=OR9iH07AHVQ&t',
-                  img: '/media-silicon-carne.jpeg', alt: 'Silicon Carne',
+                  img: '/media-silicon-carne.jpeg', alt: 'Podcast Silicon Carne — IA dans la santé pour les startups, intervention de Clément Pouget-Osmont',
                   badge: 'Podcast',
                   source: 'Silicon Carne', title: t('media', 'sc_title'), cta: t('media', 'watch'),
                 },
                 {
                   href: 'https://www.asianhhm.com/interviews/emerging-marketing-trends-in-the-healthcare-b2b-sector',
-                  img: '/media-asian-hhm.jpeg', alt: 'Asian HHM',
+                  img: '/media-asian-hhm.jpeg', alt: 'Asian Hospital & Healthcare Management — interview tendances marketing santé B2B',
                   badge: 'Interview',
                   source: 'Asian Hospital & Healthcare Management', title: t('media', 'hhm_title'), cta: t('media', 'read'),
                 },
                 {
                   href: 'https://comptasante.fr/ressources/webinaires/developper-votre-patientele-en-12-leviers',
-                  img: '/media-comptasante.jpeg', alt: 'ComptaSanté',
+                  img: '/media-comptasante.jpeg', alt: 'Webinaire ComptaSanté — 12 leviers pour développer la patientèle des pros de santé',
                   badge: 'Webinaire',
                   source: 'ComptaSanté', title: t('media', 'cs_title'), cta: t('media', 'watch'),
                 },
