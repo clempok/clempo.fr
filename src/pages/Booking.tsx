@@ -212,6 +212,18 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
     return getSlotsForDay(selectedDay, busy)
   }, [selectedDay, busy])
 
+  // Auto-sélection du 1er jour dispo : au mount, au changement de semaine,
+  // et après que les busy slots aient été fetchés (le 1er candidat peut
+  // devenir indispo). Évite l'état "calendrier vide en attente d'un clic".
+  useEffect(() => {
+    if (availableDays.length === 0) return
+    const dayInCurrentWeek = selectedDay && weekDays.some(d => isSameDay(d, selectedDay))
+    if (!dayInCurrentWeek) {
+      setSelectedDay(availableDays[0])
+      setSelectedSlot(null)
+    }
+  }, [availableDays, weekDays, selectedDay])
+
   const canGoPrev = weekStart > today
 
   const goNextWeek = () => setWeekStart(addDays(weekStart, 7))
