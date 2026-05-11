@@ -124,8 +124,8 @@ export default function Home() {
   }
 
   const homeTitle = seoData?.home_title || (lang === 'fr'
-    ? 'Clément Pouget-Osmont — Expert Marketing Santé Freelance | HealthTech & MedTech'
-    : 'Clément Pouget-Osmont — Freelance Healthcare Marketing Expert | HealthTech & MedTech')
+    ? 'Consultant Marketing Santé Freelance · Fractional CMO HealthTech | Clempo'
+    : 'Freelance Healthcare Marketing Consultant · Fractional CMO HealthTech | Clempo')
   const homeDesc = seoData?.home_desc || (lang === 'fr'
     ? 'Consultant marketing santé freelance · Fractional CMO HealthTech. J\'aide startups, scaleups et grands groupes santé à transformer leur stratégie marketing. Ex-Doctolib, 12 ans d\'expérience.'
     : 'Freelance healthcare marketing consultant · Fractional CMO HealthTech. I help startups, scaleups and enterprises in healthcare turn marketing into a growth engine. Ex-Doctolib, 12 years.')
