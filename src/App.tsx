@@ -67,11 +67,26 @@ function resolveSessionRef(): string | null {
   return ref || null
 }
 
+function isAutomatedBrowser(): boolean {
+  try {
+    // navigator.webdriver is set to true by Selenium, Playwright, Puppeteer,
+    // headless Chrome, and most automation frameworks (W3C WebDriver spec).
+    if ((navigator as Navigator & { webdriver?: boolean }).webdriver === true) return true
+    const ua = navigator.userAgent || ''
+    // Catch headless browsers, common automation frameworks, and Claude's own
+    // browsing tools (preview, browse, gstack) which advertise themselves in UA.
+    if (/HeadlessChrome|Headless|PhantomJS|puppeteer|playwright|Selenium|Cypress|Claude\/|claude-code|Anthropic|Electron/i.test(ua)) return true
+  } catch { /* ignore */ }
+  return false
+}
+
 function VisitTracker() {
   const location = useLocation()
   useEffect(() => {
-    // Don't count admin visits
+    // Don't count admin visits or automated browsers (Claude debug sessions,
+    // QA bots, monitoring agents) — they polluted the stats on 2026-05-10.
     if (location.pathname.startsWith('/admin')) return
+    if (isAutomatedBrowser()) return
     try {
       const today = new Date().toISOString().slice(0, 10)
       // Dedupe per (day + path + src) so attribution data isn't lost if the

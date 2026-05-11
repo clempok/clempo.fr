@@ -33,13 +33,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
     <link rel="preconnect" href="https://images.unsplash.com" />
 
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-M3C91759RL"></script>
+    <!-- Google Analytics — skipped for automated browsers (Claude debug, headless QA) -->
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-M3C91759RL');
+      (function () {
+        try {
+          var ua = navigator.userAgent || '';
+          var bot = navigator.webdriver === true ||
+            /HeadlessChrome|Headless|PhantomJS|puppeteer|playwright|Selenium|Cypress|Claude\/|claude-code|Anthropic|Electron/i.test(ua);
+          if (bot) return; // do not load gtag for bots
+          var s = document.createElement('script');
+          s.async = true;
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-M3C91759RL';
+          document.head.appendChild(s);
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function () { window.dataLayer.push(arguments); };
+          window.gtag('js', new Date());
+          window.gtag('config', 'G-M3C91759RL');
+        } catch (e) { /* ignore */ }
+      })();
     </script>
   </head>
   <body>

@@ -111,6 +111,94 @@ const handler: Handler = async (event) => {
         }
       }
 
+      if (action === 'set_day_traffic') {
+        // Overwrite a single day's visit stats. Used to scrub bot-inflated
+        // days (e.g. 2026-05-10, where automated debug browsing pushed the
+        // total from ~120 to 959). Pass only the buckets you want to replace.
+        const dateKey = typeof body.dateKey === 'string' ? body.dateKey : ''
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Invalid dateKey. Expect YYYY-MM-DD' }),
+          }
+        }
+        const total = Number(body.total)
+        if (!Number.isFinite(total) || total < 0) {
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Invalid total. Expect number>=0' }),
+          }
+        }
+        const isPositiveIntMap = (v: unknown): v is Record<string, number> =>
+          !!v && typeof v === 'object' && !Array.isArray(v) &&
+          Object.values(v as Record<string, unknown>).every(
+            n => typeof n === 'number' && Number.isFinite(n) && n >= 0,
+          )
+        const byPath = body.by_path
+        const byRef = body.by_ref
+        const bySrc = body.by_src
+        if (byPath !== undefined && !isPositiveIntMap(byPath)) {
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Invalid by_path. Expect { [path]: number>=0 }' }),
+          }
+        }
+        if (byRef !== undefined && !isPositiveIntMap(byRef)) {
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Invalid by_ref. Expect { [ref]: number>=0 }' }),
+          }
+        }
+        if (bySrc !== undefined && !isPositiveIntMap(bySrc)) {
+          return {
+            statusCode: 400,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Invalid by_src. Expect { [src]: number>=0 }' }),
+          }
+        }
+        const existing = ((await store.get('data', { type: 'json' })) as {
+          events?: unknown[]
+          visits?: Record<string, number>
+          visits_by_path?: Record<string, Record<string, number>>
+          visits_by_src?: Record<string, Record<string, number>>
+          visits_by_ref?: Record<string, Record<string, number>>
+          [k: string]: unknown
+        } | null) || {}
+        const visits = { ...(existing.visits || {}) }
+        visits[dateKey] = Math.round(total)
+        const visits_by_path = { ...(existing.visits_by_path || {}) }
+        const visits_by_ref = { ...(existing.visits_by_ref || {}) }
+        const visits_by_src = { ...(existing.visits_by_src || {}) }
+        if (byPath !== undefined) visits_by_path[dateKey] = byPath as Record<string, number>
+        if (byRef !== undefined) visits_by_ref[dateKey] = byRef as Record<string, number>
+        if (bySrc !== undefined) visits_by_src[dateKey] = bySrc as Record<string, number>
+        await store.setJSON('data', {
+          ...existing,
+          visits,
+          visits_by_path,
+          visits_by_ref,
+          visits_by_src,
+        })
+        return {
+          statusCode: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ok: true,
+            dateKey,
+            total: Math.round(total),
+            replaced: {
+              by_path: byPath !== undefined,
+              by_ref: byRef !== undefined,
+              by_src: bySrc !== undefined,
+            },
+          }),
+        }
+      }
+
       if (action === 'delete_events') {
         const ids = Array.isArray(body.ids) ? (body.ids as string[]) : []
         if (ids.length === 0) {
