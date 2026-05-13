@@ -39,14 +39,14 @@ export const specialites: Specialite[] = [
     asOf: 'mars 2026',
     topPlayers: [
       { rank: 1, name: 'Doctolib', editor: 'Doctolib', share: '23,2%', note: 'leader depuis fin 2024' },
-      { rank: 2, name: 'Weda', editor: 'Comunica (groupe Cegedim)', share: '14,0%', note: 'logiciel cloud' },
+      { rank: 2, name: 'Weda', editor: 'Vidal France', share: '14,0%', note: 'logiciel cloud' },
       { rank: 3, name: 'Medistory', editor: 'Prokov Editions', share: '10,1%', note: 'historiquement Mac' },
       { rank: 4, name: 'HelloDoc', editor: 'Imagine Editions', share: '8,1%', note: "leader historique jusqu'en 2023" },
       { rank: 5, name: 'Stellair Integral', editor: 'Olaqin', share: '7,3%' },
     ],
-    marketAnalysis: `<p>Le logiciel le plus utilisé par les médecins généralistes français est <strong>Doctolib</strong>, qui équipe environ <strong>23,2%</strong> des cabinets en mars 2026 (mesuré sur les feuilles de soins électroniques télétransmises au GIE SESAM-Vitale). Doctolib a pris la première place fin 2024 en passant devant <strong>Weda</strong> (édité par Comunica, racheté par Cegedim Santé en 2024) qui détient désormais 14,0% du marché.</p>
+    marketAnalysis: `<p>Le logiciel le plus utilisé par les médecins généralistes français est <strong>Doctolib</strong>, qui équipe environ <strong>23,2%</strong> des cabinets en mars 2026 (mesuré sur les feuilles de soins électroniques télétransmises au GIE SESAM-Vitale). Doctolib a pris la première place fin 2024 en passant devant <strong>Weda</strong> (édité par Vidal France) qui détient désormais 14,0% du marché.</p>
 <p>Le top 5 des logiciels médecin généraliste les plus utilisés en France se complète par <strong>Medistory</strong> (Prokov Editions, 10,1% — l'historique référence Mac), <strong>HelloDoc</strong> (Imagine Editions, 8,1%) et <strong>Stellair Integral</strong> (Olaqin, 7,3%). Ensemble, ces cinq solutions couvrent près de 63% du marché — le reste étant fragmenté entre une vingtaine d'éditeurs (CGM eVitale, Dr Santé, Crossway, Intellio, MonLogicielMedical.com…).</p>
-<p>Côté éditeurs, le marché est dominé par <strong>Cegedim Santé</strong> (Crossway, MonLogicielMedical.com, MEDICLICK, Weda) qui agrège près de 30% des cabinets cumulés, suivi par <strong>Imagine Editions</strong> (HelloDoc + CGM eVitale, ~15%), <strong>Doctolib</strong> (23%) et <strong>Olaqin</strong> (Stellair, 7%). À noter que Doctolib s'est imposé sans rachat — uniquement via une stratégie d'intégration logicielle native à sa plateforme de prise de RDV.</p>`,
+<p>Côté éditeurs, le marché est partagé entre <strong>Doctolib</strong> (23%), <strong>Cegedim Santé</strong> (Crossway, MonLogicielMedical.com, MEDICLICK — ~16% cumulés), <strong>Imagine Editions</strong> (HelloDoc + CGM eVitale, ~15%), <strong>Vidal France</strong> (Weda, 14%) et <strong>Olaqin</strong> (Stellair, 7%). À noter que Doctolib s'est imposé sans rachat — uniquement via une stratégie d'intégration logicielle native à sa plateforme de prise de RDV.</p>`,
     trends: `<p>En 7 ans, le marché du logiciel médecin généraliste a été <strong>complètement bouleversé</strong>. Le leader historique <strong>HelloDoc</strong> est passé de 18,4% à 8,1% (-10 points). Plus spectaculaire encore, <strong>AxiSanté</strong> (CompuGroup Medical) est passé de 16% en 2019 à moins de 0,2% en 2026 — un effondrement total après l'annonce d'arrêt de support en 2024 et la migration des utilisateurs vers d'autres solutions du groupe.</p>
 <p>Les grands gagnants : <strong>Doctolib</strong> (de 0% à 23,2% en 5 ans), <strong>Weda</strong> (de 0% à 14% — porté par son modèle SaaS cloud), <strong>Stellair Integral</strong> d'Olaqin (de 0% à 7,3%) et <strong>CGM eVitale</strong> qui a récupéré une partie des utilisateurs AxiSanté (de 0,1% à 6,8%).</p>
 <p>La tendance de fond est claire : <strong>cloud > on-premise</strong>, <strong>intégration RDV/téléconsultation > logiciel pur</strong>, et <strong>UX moderne > legacy Windows</strong>. Les éditeurs qui n'ont pas migré vers le SaaS dans les délais ont perdu massivement.</p>`,
@@ -429,21 +429,21 @@ export const specialites: Specialite[] = [
     asOf: 'mars 2026',
     topPlayers: [
       { rank: 1, name: 'MaieuticApp', editor: 'FT Labs', share: '23,1%', note: 'spécialisé sage-femme' },
-      { rank: 2, name: 'Weda', editor: 'Comunica (groupe Cegedim)', share: '18,1%', note: 'forte progression' },
+      { rank: 2, name: 'Weda', editor: 'Vidal France', share: '18,1%', note: 'forte progression' },
       { rank: 3, name: 'Medi+4000', editor: 'Cegedim Santé', share: '13,6%' },
       { rank: 4, name: 'Acteur.fr', editor: 'Aatlantide', share: '9,1%', note: 'ex-leader' },
       { rank: 5, name: 'Simply-Vitale', editor: 'Cegedim Santé', share: '8,3%' },
     ],
     marketAnalysis: `<p>Le logiciel sage-femme le plus utilisé en France est <strong>MaieuticApp</strong>, édité par <strong>FT Labs</strong>, avec <strong>23,1%</strong> des télétransmissions en mars 2026. C'est un nouvel entrant 100% spécialisé sage-femme arrivé sur le marché en 2020-2021, qui est devenu leader en moins de 5 ans grâce à une UX adaptée au métier (suivi grossesse, suivi gynéco, échographies).</p>
-<p>Le top 5 est complété par <strong>Weda</strong> (Comunica/groupe Cegedim, 18,1% — forte progression), <strong>Medi+4000</strong> (Cegedim Santé, 13,6%), <strong>Acteur.fr</strong> (Aatlantide, 9,1% — l'ex-leader historique) et <strong>Simply-Vitale</strong> (Cegedim Santé, 8,3%). Ensemble ces 5 solutions couvrent 72% du marché.</p>
-<p>Si on cumule par éditeur, <strong>Cegedim Santé</strong> domine avec ~40% du marché via 3 produits différents (Weda, Medi+4000, Simply-Vitale) — chacun adressant un segment légèrement différent (Weda = cloud moderne, Medi+4000 = polyvalent éprouvé, Simply-Vitale = mobile/SimplyVitale). FT Labs (MaieuticApp) est le seul concurrent majeur indépendant.</p>`,
+<p>Le top 5 est complété par <strong>Weda</strong> (Vidal France, 18,1% — forte progression), <strong>Medi+4000</strong> (Cegedim Santé, 13,6%), <strong>Acteur.fr</strong> (Aatlantide, 9,1% — l'ex-leader historique) et <strong>Simply-Vitale</strong> (Cegedim Santé, 8,3%). Ensemble ces 5 solutions couvrent 72% du marché.</p>
+<p>Si on cumule par éditeur, le marché est partagé entre <strong>Vidal France</strong> (Weda, 18,1% — cloud moderne) et <strong>Cegedim Santé</strong> (~22% via Medi+4000 = polyvalent éprouvé, et Simply-Vitale = mobile). FT Labs (MaieuticApp) reste le seul concurrent majeur 100% spécialisé sage-femme.</p>`,
     trends: `<p>Le marché sage-femme a connu un <strong>renversement spectaculaire</strong> en 7 ans. En 2019, le trio de tête était <strong>Intellio</strong> (Orisha, 21,8%), <strong>Medi+4000</strong> (18,4%) et <strong>Acteur.fr</strong> (18,1%). En 2026, Intellio s'est effondré (-14 points → 7,9%) et Acteur.fr a aussi fortement reculé (-9 points → 9,1%).</p>
 <p>Les grands gagnants : <strong>MaieuticApp</strong> (FT Labs, +23 points en 5 ans — partant de zéro) et <strong>Weda</strong> (+18 points — partant de zéro aussi). Ces deux solutions cloud modernes ont profité de la lassitude des sages-femmes envers les logiciels génériques pour capter le marché avec des fonctionnalités métier dédiées (terme grossesse, suivi prénatal, courrier de naissance).</p>
 <p>La leçon : sur les <strong>petites spécialités libérales</strong> (sage-femme, podologue, orthoptiste), il y a de la place pour des éditeurs verticaux 100% spécialisés. MaieuticApp en est l'illustration parfaite — un logiciel pensé "pour les sages-femmes par des sages-femmes" peut prendre le marché en 4-5 ans face aux mastodontes généralistes.</p>`,
     faq: [
       {
         q: 'Quel est le logiciel sage-femme le plus utilisé en France ?',
-        a: "MaieuticApp (édité par FT Labs) est le logiciel le plus utilisé par les sages-femmes libérales françaises en 2026, avec 23,1% des télétransmissions. Il est suivi par Weda (groupe Cegedim, 18,1%), Medi+4000 (Cegedim, 13,6%), Acteur.fr (9,1%) et Simply-Vitale (8,3%).",
+        a: "MaieuticApp (édité par FT Labs) est le logiciel le plus utilisé par les sages-femmes libérales françaises en 2026, avec 23,1% des télétransmissions. Il est suivi par Weda (Vidal France, 18,1%), Medi+4000 (Cegedim, 13,6%), Acteur.fr (9,1%) et Simply-Vitale (8,3%).",
       },
       {
         q: "Qu'est-ce que MaieuticApp ?",
@@ -451,7 +451,7 @@ export const specialites: Specialite[] = [
       },
       {
         q: 'Doctolib propose-t-il un logiciel pour les sages-femmes ?',
-        a: "Doctolib est utilisé par les sages-femmes pour la prise de RDV mais son module de gestion de cabinet n'a pas (encore) gagné une part de marché significative chez cette spécialité — qui privilégie MaieuticApp et Weda. À noter que Cegedim cumule 40% du marché via ses 3 logiciels (Weda, Medi+4000, Simply-Vitale).",
+        a: "Doctolib est utilisé par les sages-femmes pour la prise de RDV mais son module de gestion de cabinet n'a pas (encore) gagné une part de marché significative chez cette spécialité — qui privilégie MaieuticApp et Weda. Côté éditeurs, Vidal France (Weda) capte 18% du marché, et Cegedim ~22% via ses 2 logiciels (Medi+4000, Simply-Vitale).",
       },
     ],
   },

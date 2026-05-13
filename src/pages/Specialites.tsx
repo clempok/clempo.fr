@@ -16,7 +16,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Quelles sont les parts de marché des éditeurs de logiciels médicaux en France ?',
-    a: "Les parts de marché des éditeurs sont mesurées par le pourcentage de feuilles de soins électroniques (FSE) télétransmises via leur progiciel. En 2026, Cegedim Santé est l'éditeur le plus diversifié (Crossway, Weda, Medi+4000, Maiia, Simply-Vitale, MonLogicielMedical) ; Doctolib domine sur les médecins ; Equasens (LGPI) règne sur les pharmacies ; Imagex (Logos_w) sur les dentistes ; CBA (Agathe YOU) sur les infirmiers ; Epsilog (Vega) sur les kinésithérapeutes ; Cosium sur l'optique et l'audioprothèse.",
+    a: "Les parts de marché des éditeurs sont mesurées par le pourcentage de feuilles de soins électroniques (FSE) télétransmises via leur progiciel. En 2026, Cegedim Santé est l'éditeur le plus diversifié (Crossway, Medi+4000, Maiia, Simply-Vitale, MonLogicielMedical) ; Doctolib domine sur les médecins ; Vidal France (Weda) couvre généralistes et sages-femmes ; Equasens (LGPI) règne sur les pharmacies ; Imagex (Logos_w) sur les dentistes ; CBA (Agathe YOU) sur les infirmiers ; Epsilog (Vega) sur les kinésithérapeutes ; Cosium sur l'optique et l'audioprothèse.",
   },
   {
     q: 'Comment sont calculées les parts de marché des logiciels santé ?',
@@ -32,7 +32,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Quel est le logiciel médecin généraliste n°1 en France ?',
-    a: "Doctolib est le logiciel le plus utilisé par les médecins généralistes français en 2026, avec 23,2 % des FSE télétransmises. Il est suivi par Weda (14,0 %, groupe Cegedim), Medistory (10,1 %), HelloDoc (8,1 %) et Stellair Integral (7,3 %).",
+    a: "Doctolib est le logiciel le plus utilisé par les médecins généralistes français en 2026, avec 23,2 % des FSE télétransmises. Il est suivi par Weda (14,0 %, Vidal France), Medistory (10,1 %), HelloDoc (8,1 %) et Stellair Integral (7,3 %).",
   },
   {
     q: 'Quel est le logiciel pharmacie n°1 en France ?',
@@ -58,7 +58,7 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
   {
     name: 'Cegedim Santé',
     footprint: "Présent sur 8 spécialités sur 14 — l'éditeur le plus diversifié du marché français.",
-    products: 'Crossway, Weda, MonLogicielMedical.com, Medi+4000, Simply-Vitale, Maiia Gestion, MEDICLICK',
+    products: 'Crossway, MonLogicielMedical.com, Medi+4000, Simply-Vitale, Maiia Gestion, MEDICLICK',
   },
   {
     name: 'Doctolib',
