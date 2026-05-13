@@ -78,17 +78,19 @@ export const specialites: Specialite[] = [
     asOf: 'mars 2026',
     topPlayers: [
       { rank: 1, name: 'Logos_w', editor: 'Imagex', share: '45,3%', note: 'leader depuis 2023' },
-      { rank: 2, name: 'Julie', editor: 'Julie Solutions (groupe Henry Schein One)', share: '20,2%', note: 'leader historique' },
+      { rank: 2, name: 'Julie', editor: 'Julie Solutions (groupe Imagex depuis 2026)', share: '20,2%', note: 'leader historique, racheté à Henry Schein One' },
       { rank: 3, name: 'CS Trophy Gestion', editor: 'Carestream Dental', share: '7,1%' },
       { rank: 4, name: 'WeClever Dental', editor: 'Dentalvia-Medilor', share: '5,0%' },
       { rank: 5, name: 'Veasy', editor: 'Visiodent', share: '4,2%', note: 'nouvelle gamme cloud Visiodent' },
     ],
-    marketAnalysis: `<p>Le logiciel dentaire le plus utilisé en France est <strong>Logos_w</strong>, édité par <strong>Imagex</strong>, qui représente <strong>45,3%</strong> des télétransmissions en mars 2026 — soit près d'un cabinet dentaire sur deux. Il a doublé Julie en 2023 et son avance ne cesse de se creuser.</p>
-<p>Le numéro 2 historique reste <strong>Julie</strong> (édité par Julie Solutions, groupe Henry Schein One depuis 2017) avec 20,2% des cabinets — soit 12 points de moins qu'en 2019 (il était alors à 32%). Le top 5 du marché est complété par <strong>CS Trophy Gestion</strong> (Carestream Dental, 7,1%), <strong>WeClever Dental</strong> (Dentalvia-Medilor, 5,0%) et <strong>Veasy</strong> (la nouvelle solution cloud de Visiodent, 4,2%).</p>
-<p>Le marché du logiciel dentaire est l'un des plus concentrés de la santé libérale française : le top 3 capte 72% des cabinets, et le top 5 plus de 82%. C'est aussi un marché où les éditeurs sont historiquement intégrés à la chaîne dentaire (imagerie, fauteuil, gestion) — ce qui crée des coûts de migration élevés et une forte fidélité.</p>`,
-    trends: `<p>La grande inversion du marché s'est jouée entre 2022 et 2024. <strong>Julie</strong>, leader incontesté avec 32% des cabinets en 2019, a perdu près de 12 points en 7 ans. Pendant ce temps, <strong>Logos_w</strong> est passé de 18% à 45,3% — soit +27 points et un doublement de sa base utilisateurs.</p>
-<p>Côté Visiodent, l'historique <strong>Visiodent Ligne 100</strong> (13% en 2019) s'est effondré à 3,8%, partiellement compensé par la migration vers la nouvelle gamme cloud <strong>Veasy</strong> (4,2%). Le groupe a perdu en parts cumulées mais conserve une présence sur le marché.</p>
-<p>La tendance dominante chez les dentistes : <strong>imagerie + gestion intégrées</strong> — les éditeurs qui combinent radiologie 3D, scanner intra-oral et logiciel de gestion (Logos_w, Carestream) gagnent du terrain. Les solutions purement administratives perdent leurs utilisateurs.</p>`,
+    marketAnalysis: `<p>Le logiciel dentaire le plus utilisé en France est <strong>Logos_w</strong>, édité par <strong>Imagex</strong> (Liffré), qui représente <strong>45,3%</strong> des télétransmissions en mars 2026 — soit près d'un cabinet dentaire sur deux. Il a doublé Julie en 2023 et son avance ne cesse de se creuser.</p>
+<p>Le numéro 2 historique reste <strong>Julie</strong> (Julie Solutions, plus de 20 000 utilisateurs revendiqués) avec 20,2% des cabinets — soit 12 points de moins qu'en 2019 (il était alors à 32%). Fait majeur du marché : <strong>Imagex a racheté Julie Solutions à Henry Schein One en 2026</strong>, créant de fait un groupe combiné qui pèse ~65% du parc dentaire français en télétransmission. Le top 5 du marché est complété par <strong>CS Trophy Gestion</strong> (Carestream Dental, 7,1%), <strong>WeClever Dental</strong> (Dentalvia-Medilor, 5,0%) et <strong>Veasy</strong> (la solution cloud de Visiodent, 4,2% — au niveau du groupe Visiodent, ce sont 10 000 dentistes et 500 centres de santé qui sont équipés tous produits confondus).</p>
+<p>Le marché du logiciel dentaire est l'un des plus concentrés de la santé libérale française : le top 3 capte 72% des cabinets, et le top 5 plus de 82%. C'est aussi un marché où les éditeurs sont historiquement intégrés à la chaîne dentaire (imagerie, fauteuil, gestion) — ce qui crée des coûts de migration élevés et une forte fidélité.</p>
+<p>Le marché dentaire français se lit en réalité sur <strong>trois couches</strong> : (1) la gestion de cabinet et de centre, dominée par les éditeurs français historiques (Logos_w, Julie, Veasy, Visiodent, Maevi) ; (2) l'imagerie 2D/3D et la planification (Planmeca Romexis, Carestream CS Imaging, DEXIS DTX Studio, Owandy, QuickVision) ; (3) la CAO/FAO et l'ERP de laboratoire, où dominent des acteurs internationaux (<strong>3Shape</strong>, <strong>exocad</strong>, <strong>Dental Wings</strong>, <strong>Dentsply Sirona inLab</strong>) face à des ERP français (Prothesis, Prothea, Logidents). La donnée GIE SESAM-Vitale n'éclaire que la première couche.</p>`,
+    trends: `<p>La grande inversion du marché s'est jouée entre 2022 et 2024. <strong>Julie</strong>, leader incontesté avec 32% des cabinets en 2019, a perdu près de 12 points en 7 ans. Pendant ce temps, <strong>Logos_w</strong> est passé de 18% à 45,3% — soit +27 points et un doublement de sa base utilisateurs. Avec le rachat de Julie par Imagex en 2026, le marché bascule d'une compétition à deux têtes vers une consolidation explicite : un acteur unique dépasse désormais les 65% du parc de ville.</p>
+<p>Côté Visiodent, l'historique <strong>Visiodent Ligne 100</strong> (13% en 2019) s'est effondré à 3,8%, partiellement compensé par la migration vers la nouvelle gamme cloud <strong>Veasy</strong> (4,2% en télétransmission, 7 000 praticiens et 300 centres équipés au niveau produit). Le groupe a perdu en parts cumulées sur la ville mais s'est repositionné sur le segment <strong>centres et multi-sites</strong>, où il revendique 500 centres équipés tous produits confondus.</p>
+<p>Trois tendances de fond restructurent le marché : <strong>(1) consolidation du LGC</strong> (Imagex + Julie, montée de Veasy sur les centres) ; <strong>(2) imagerie 3D et IA</strong> — Planmeca Romexis, Carestream CS 3D Imaging, DEXIS DTX Studio Clinic (145 000 utilisateurs dans le monde) et l'IA française <strong>Allisone</strong> (CE annoncé) deviennent la norme pour le diagnostic et la pédagogie patient ; <strong>(3) écosystèmes ouverts cabinet-laboratoire</strong> via 3Shape Unite, Medit Link et exocad, qui captent une part croissante des flux numériques (scan intra-oral, CBCT, fichiers STL/DICOM) en parallèle du LGC principal.</p>
+<p>Le cadre réglementaire français (HDS, INS depuis 2021, SESAM-Vitale, ADRi, Addendum 8, Mon espace santé/DMP, MSSanté, vague Ségur en cours) forme une barrière à l'entrée majeure : les nouveaux entrants ne peuvent plus attaquer frontalement le LGC, ils doivent passer par un wedge (cloud multi-sites, IA, intégration labo, conformité documentaire).</p>`,
     faq: [
       {
         q: 'Quel est le logiciel dentaire le plus utilisé en France ?',
@@ -96,11 +98,19 @@ export const specialites: Specialite[] = [
       },
       {
         q: 'Julie est-il toujours utilisé par les dentistes ?',
-        a: "Oui, Julie reste le numéro 2 du marché dentaire français avec 20,2% des cabinets en mars 2026. Mais sa part a fortement reculé depuis 2019 (où il représentait 32% du marché), au profit principalement de Logos_w.",
+        a: "Oui, Julie reste le numéro 2 du marché dentaire français avec 20,2% des cabinets en mars 2026, et plus de 20 000 utilisateurs revendiqués. Sa part a fortement reculé depuis 2019 (où il représentait 32% du marché), au profit principalement de Logos_w. Julie Solutions a été rachetée par Imagex (éditeur de Logos_w) à Henry Schein One en 2026 — les deux produits cohabitent désormais sous le même groupe.",
       },
       {
         q: 'Quels sont les principaux éditeurs de logiciels dentaires en France ?',
-        a: "Les principaux éditeurs sont Imagex (Logos_w), Julie Solutions / Henry Schein One (Julie), Carestream Dental (CS Trophy), Visiodent (Veasy + Ligne 100/500), Dentalvia-Medilor (WeClever) et Trophy Carestream pour l'imagerie.",
+        a: "Sur la gestion de cabinet : Imagex (qui édite désormais Logos_w ET Julie suite au rachat de 2026), Visiodent / Veasy, Carestream Dental (CS Trophy), Dentalvia-Medilor (WeClever) et Maevi Systèmes. Sur l'imagerie 2D/3D : Planmeca (Romexis), Carestream (CS Imaging), DEXIS (DTX Studio), Owandy. Sur la CAO/FAO et le laboratoire : 3Shape, exocad (groupe Align), Dental Wings, Dentsply Sirona (inLab) en international, et Prothesis, Prothea, Logidents côté ERP français.",
+      },
+      {
+        q: "Quelle est la place de Doctolib chez les chirurgiens-dentistes ?",
+        a: "Doctolib n'est pas un logiciel de gestion de cabinet (LGC) dentaire complet : il ne fait ni télétransmission SESAM-Vitale, ni dossier patient dentaire, ni schéma dentaire. Son offre Pro Dentiste (139 € TTC/mois/soignant) couvre l'agenda, l'acquisition patient, la messagerie sécurisée et la coordination — en complément du LGC métier, pas en remplacement.",
+      },
+      {
+        q: "Quelle est la place de la CAO/FAO dentaire en France ?",
+        a: "La CAO/FAO et le scan intra-oral sont dominés par des acteurs internationaux : 3Shape (Copenhague, TRIOS + Dental System + Unite), exocad (Allemagne, filiale Align), Dental Wings (Montréal, bureaux à Lyon) et Dentsply Sirona (inLab). Ces logiciels équipent à la fois les cabinets numérisés et les laboratoires de prothèses, en interopérabilité avec les LGC français via STL/DICOM et des passerelles labo dédiées.",
       },
     ],
   },
