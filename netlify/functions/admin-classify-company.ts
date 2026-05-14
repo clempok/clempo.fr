@@ -6,7 +6,7 @@ import {
   type CompanySize, type CompanyLocation, type CompanySector,
 } from './_crm'
 
-const MODEL = 'claude-haiku-4-5-20251001'
+const DEFAULT_MODEL = 'claude-sonnet-4-6'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 
 type Classification = {
@@ -36,7 +36,8 @@ const handler: Handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}')
-    const { companyId, overwrite } = body as { companyId: string; overwrite?: boolean }
+    const { companyId, overwrite, model } = body as { companyId: string; overwrite?: boolean; model?: string }
+    const modelToUse = typeof model === 'string' && model.length > 0 ? model : DEFAULT_MODEL
     if (!companyId) {
       return { statusCode: 400, body: JSON.stringify({ error: 'companyId required' }) }
     }
@@ -93,7 +94,7 @@ Rules:
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: modelToUse,
         max_tokens: 400,
         system: systemPrompt,
         messages: [{ role: 'user', content: promptUser }],
