@@ -2113,7 +2113,7 @@ function CrmView({ password }: { password: string }) {
       const res = await fetch('/.netlify/functions/admin-nps-trigger', {
         method: 'POST',
         headers: authHeaders,
-        body: JSON.stringify({ companyId, contactId, responseId }),
+        body: JSON.stringify({ companyId, contactId, responseId, action: 'send' }),
       })
       const json = await res.json()
       if (!res.ok || !json.ok) {
@@ -2130,6 +2130,50 @@ function CrmView({ password }: { password: string }) {
                   ...c,
                   npsResponses: c.npsResponses?.map(r => r.id === responseId
                     ? { ...r, askedAt: json.askedAt }
+                    : r,
+                  ),
+                }
+              : c,
+            ),
+          }
+        : co,
+      ) || null)
+    } catch (err) {
+      setNpsTriggerMessage({ responseId, text: `Erreur : ${String(err)}`, tone: 'err' })
+    } finally {
+      setTriggeringNpsId(null)
+    }
+  }
+
+  const resetNps = async (companyId: string, contactId: string, responseId: string) => {
+    if (!window.confirm('Réinitialiser cette entrée NPS ?\n\nLe score, le commentaire et la trace d\'envoi seront effacés. Le contact redeviendra éligible (cron J+1 + campagne backlog).')) return
+    setTriggeringNpsId(responseId)
+    setNpsTriggerMessage(null)
+    try {
+      const res = await fetch('/.netlify/functions/admin-nps-trigger', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ companyId, contactId, responseId, action: 'reset' }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.ok) {
+        throw new Error(json?.error || json?.detail || `HTTP ${res.status}`)
+      }
+      setNpsTriggerMessage({ responseId, text: 'NPS réinitialisé', tone: 'ok' })
+      // Mirror the reset in local state
+      setCompanies(prev => prev?.map(co => co.id === companyId
+        ? {
+            ...co,
+            contacts: co.contacts.map(c => c.id === contactId
+              ? {
+                  ...c,
+                  npsResponses: c.npsResponses?.map(r => r.id === responseId
+                    ? {
+                        id: r.id,
+                        resource: r.resource,
+                        resourceLabel: r.resourceLabel,
+                        downloadedAt: r.downloadedAt,
+                      }
                     : r,
                   ),
                 }
@@ -3012,8 +3056,8 @@ function CrmView({ password }: { password: string }) {
                                             {r.askedAt && <span>📨 Demandé le {new Date(r.askedAt).toLocaleDateString('fr-FR')}</span>}
                                             {r.scoredAt && <span>✅ Noté le {new Date(r.scoredAt).toLocaleDateString('fr-FR')}</span>}
                                           </div>
-                                          {!r.askedAt && (
-                                            <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                          <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                            {!r.askedAt ? (
                                               <button
                                                 onClick={() => triggerNps(co.id, c.id, r.id)}
                                                 disabled={triggeringNpsId === r.id}
@@ -3031,16 +3075,34 @@ function CrmView({ password }: { password: string }) {
                                               >
                                                 {triggeringNpsId === r.id ? 'Envoi…' : '📨 Envoyer maintenant'}
                                               </button>
-                                              {npsTriggerMessage?.responseId === r.id && (
-                                                <span style={{
+                                            ) : (
+                                              <button
+                                                onClick={() => resetNps(co.id, c.id, r.id)}
+                                                disabled={triggeringNpsId === r.id}
+                                                style={{
+                                                  padding: '0.3rem 0.7rem',
+                                                  border: '1px solid #d4d4d8',
+                                                  borderRadius: '6px',
+                                                  background: '#fff',
+                                                  color: '#52525b',
                                                   fontSize: '0.65rem',
-                                                  color: npsTriggerMessage.tone === 'err' ? '#b91c1c' : '#166534',
-                                                }}>
-                                                  {npsTriggerMessage.text}
-                                                </span>
-                                              )}
-                                            </div>
-                                          )}
+                                                  fontWeight: 600,
+                                                  cursor: triggeringNpsId === r.id ? 'wait' : 'pointer',
+                                                }}
+                                                title="Réinitialiser : efface askedAt, score et commentaire pour rendre l'entrée à nouveau éligible"
+                                              >
+                                                {triggeringNpsId === r.id ? 'Réinit…' : '↺ Réinitialiser'}
+                                              </button>
+                                            )}
+                                            {npsTriggerMessage?.responseId === r.id && (
+                                              <span style={{
+                                                fontSize: '0.65rem',
+                                                color: npsTriggerMessage.tone === 'err' ? '#b91c1c' : '#166534',
+                                              }}>
+                                                {npsTriggerMessage.text}
+                                              </span>
+                                            )}
+                                          </div>
                                           {r.comment && (
                                             <div style={{
                                               marginTop: '0.4rem',
