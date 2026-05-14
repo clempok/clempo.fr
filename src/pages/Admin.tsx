@@ -266,31 +266,59 @@ type CrmCompany = {
   sector?: CompanySector
 }
 
-const SIZE_PTS: Record<CompanySize, number> = { Startup: 5, Scaleup: 12, ETI: 20, 'Grand groupe': 25 }
-const LOCATION_PTS: Record<CompanyLocation, number> = { FR: 25, Europe_US: 15, Autre: 5 }
-const SECTOR_PTS: Record<CompanySector, number> = { LogicielsSante: 25, MedTechBioPharma: 18, SanteB2C: 10, Autre: 3 }
+const SIZE_PTS: Record<CompanySize, number> = { Startup: 4, Scaleup: 10, ETI: 16, 'Grand groupe': 20 }
+const LOCATION_PTS: Record<CompanyLocation, number> = { FR: 20, Europe_US: 12, Autre: 4 }
+const SECTOR_PTS: Record<CompanySector, number> = { LogicielsSante: 20, MedTechBioPharma: 14, SanteB2C: 8, Autre: 2 }
+
+type HierarchyLevel = 'Founder' | 'CLevel' | 'Manager' | 'Other'
+const HIERARCHY_PTS: Record<HierarchyLevel, number> = { Founder: 20, CLevel: 13, Manager: 6, Other: 0 }
+const HIERARCHY_LABELS: Record<HierarchyLevel, string> = { Founder: 'Founder', CLevel: 'C-level', Manager: 'Manager', Other: 'Autre' }
+
+function classifyJobTitle(title: string | undefined): HierarchyLevel | null {
+  if (!title) return null
+  const t = title.toLowerCase()
+  if (/founder|fondateur|fondatrice|co-?founder|co-?fondateur|cofounder|cofondateur/.test(t)) return 'Founder'
+  if (/\bceo\b|\bcto\b|\bcfo\b|\bcoo\b|\bcmo\b|\bcpo\b|\bcro\b|\bcio\b|chief\s+\w+\s+officer|chief\s+\w+|\bpdg\b|\bdg\b|directeur\s+g[eé]n[eé]ral|directrice\s+g[eé]n[eé]rale|\bvp\b|vice\s*-?\s*pr[eé]sident|head\s+of\s+/.test(t)) return 'CLevel'
+  if (/manager|director|directeur|directrice|lead\b|responsable|\bhead\b/.test(t)) return 'Manager'
+  return 'Other'
+}
+
+function bestHierarchy(co: CrmCompany): HierarchyLevel | null {
+  let best: HierarchyLevel | null = null
+  const rank: Record<HierarchyLevel, number> = { Founder: 3, CLevel: 2, Manager: 1, Other: 0 }
+  for (const c of co.contacts) {
+    const h = classifyJobTitle(c.jobTitle)
+    if (!h) continue
+    if (!best || rank[h] > rank[best]) best = h
+  }
+  return best
+}
 
 type CompanyScore = {
   total: number
   size: number
   location: number
   sector: number
+  hierarchy: number
   engagement: number
+  hierarchyLevel: HierarchyLevel | null
 }
 
 function computeCompanyScore(co: CrmCompany): CompanyScore {
   const size = co.size ? SIZE_PTS[co.size] : 0
   const location = co.location ? LOCATION_PTS[co.location] : 0
   const sector = co.sector ? SECTOR_PTS[co.sector] : 0
+  const hierarchyLevel = bestHierarchy(co)
+  const hierarchy = hierarchyLevel ? HIERARCHY_PTS[hierarchyLevel] : 0
   let engagement = 0
   for (const c of co.contacts) {
-    engagement += Math.min(c.visits?.length || 0, 10)
+    engagement += Math.min(c.visits?.length || 0, 8)
     const src = (c.source || '').toLowerCase()
     if (src.includes('brochure')) engagement += 3
     if (src.includes('lemcal')) engagement += 2
   }
-  engagement = Math.min(engagement, 25)
-  return { total: size + location + sector + engagement, size, location, sector, engagement }
+  engagement = Math.min(engagement, 20)
+  return { total: size + location + sector + hierarchy + engagement, size, location, sector, hierarchy, engagement, hierarchyLevel }
 }
 
 function scoreTier(total: number): 'top' | 'good' | 'mid' | 'low' {
@@ -1808,6 +1836,8 @@ function CrmView({ password }: { password: string }) {
   const [classifyMessage, setClassifyMessage] = useState<{ companyId: string; text: string; tone: 'ok' | 'info' | 'err' } | null>(null)
   const [backfilling, setBackfilling] = useState(false)
   const [backfillMessage, setBackfillMessage] = useState<{ text: string; tone: 'ok' | 'info' | 'err' } | null>(null)
+  const [bulkClassifying, setBulkClassifying] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number; current: string } | null>(null)
 
   const authHeaders = useMemo(
     () => ({ Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' }),
@@ -2001,6 +2031,52 @@ function CrmView({ password }: { password: string }) {
     }
   }
 
+  /* ---- Bulk LLM classify (Lead + Opportunité, missing fields) ---- */
+  const bulkClassifyPipeline = async () => {
+    if (!companies) return
+    const targets = companies.filter(co =>
+      (co.status === 'Lead' || co.status === 'Opportunité') &&
+      (!co.size || !co.location || !co.sector),
+    )
+    if (targets.length === 0) {
+      setBackfillMessage({ text: 'Aucune entreprise Lead/Opportunité avec champs manquants.', tone: 'info' })
+      return
+    }
+    if (!confirm(`Classifier ${targets.length} entreprise${targets.length > 1 ? 's' : ''} (Lead + Opportunité, champs manquants) via Claude ? Cela prendra ~${Math.ceil(targets.length * 2.5)}s.`)) return
+
+    setBulkClassifying(true)
+    setBulkProgress({ done: 0, total: targets.length, current: targets[0].name })
+    let ok = 0
+    let err = 0
+    for (let i = 0; i < targets.length; i++) {
+      const co = targets[i]
+      setBulkProgress({ done: i, total: targets.length, current: co.name })
+      try {
+        const res = await fetch('/.netlify/functions/admin-classify-company', {
+          method: 'POST', headers: authHeaders,
+          body: JSON.stringify({ companyId: co.id, overwrite: false }),
+        })
+        const json = await res.json()
+        if (res.ok && json.applied && json.company) {
+          setCompanies(prev => prev?.map(c => c.id === co.id ? json.company : c) || null)
+          ok++
+        } else {
+          err++
+        }
+      } catch {
+        err++
+      }
+      // Light throttle between calls — Anthropic rate limits + give the UI breathing room.
+      await new Promise(r => setTimeout(r, 800))
+    }
+    setBulkProgress(null)
+    setBulkClassifying(false)
+    setBackfillMessage({
+      text: `Classification terminée : ${ok} réussie${ok > 1 ? 's' : ''}${err > 0 ? `, ${err} en erreur` : ''}.`,
+      tone: err > 0 ? 'info' : 'ok',
+    })
+  }
+
   /* ---- Bulk heuristic location backfill ---- */
   const backfillLocations = async () => {
     if (!confirm('Renseigner la localisation = FR sur toutes les entreprises avec ≥50% d\'emails .fr ? (les valeurs déjà saisies ne sont pas écrasées)')) return
@@ -2160,6 +2236,18 @@ function CrmView({ password }: { password: string }) {
             {backfilling ? 'Backfill…' : '🇫🇷 Backfill FR'}
           </button>
           <button
+            onClick={bulkClassifyPipeline}
+            disabled={bulkClassifying}
+            title="Classifie via Claude toutes les entreprises Lead/Opportunité avec des champs manquants"
+            style={{
+              padding: '0.5rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+              background: bulkClassifying ? '#f4f4f5' : '#fff', color: '#555',
+              fontSize: '0.8rem', cursor: bulkClassifying ? 'wait' : 'pointer', fontWeight: 600,
+            }}
+          >
+            {bulkClassifying && bulkProgress ? `🤖 ${bulkProgress.done}/${bulkProgress.total}…` : '🤖 Classifier pipeline'}
+          </button>
+          <button
             onClick={refresh}
             style={{
               padding: '0.5rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
@@ -2179,6 +2267,15 @@ function CrmView({ password }: { password: string }) {
           border: `1px solid ${backfillMessage.tone === 'err' ? '#fecaca' : backfillMessage.tone === 'ok' ? '#bbf7d0' : '#e2e8f0'}`,
         }}>
           {backfillMessage.text}
+        </div>
+      )}
+
+      {bulkProgress && (
+        <div style={{
+          marginBottom: '0.75rem', padding: '0.5rem 0.8rem', borderRadius: '8px', fontSize: '0.75rem',
+          background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0',
+        }}>
+          🤖 Classification {bulkProgress.done + 1}/{bulkProgress.total} — en cours : <strong>{bulkProgress.current}</strong>
         </div>
       )}
 
@@ -2330,7 +2427,7 @@ function CrmView({ password }: { password: string }) {
                     </div>
                   </div>
                   <div
-                    title={`Taille ${score.size} · Loc ${score.location} · Secteur ${score.sector} · Engagement ${score.engagement}`}
+                    title={`Taille ${score.size} · Loc ${score.location} · Secteur ${score.sector} · Hiérarchie ${score.hierarchy}${score.hierarchyLevel ? ` (${HIERARCHY_LABELS[score.hierarchyLevel]})` : ''} · Engagement ${score.engagement}`}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                       padding: '3px 8px', borderRadius: '6px',
@@ -2414,6 +2511,10 @@ function CrmView({ password }: { password: string }) {
                             <span style={{ color: '#555' }}>Loc {s.location}</span>
                             <span style={{ color: '#999' }}>·</span>
                             <span style={{ color: '#555' }}>Secteur {s.sector}</span>
+                            <span style={{ color: '#999' }}>·</span>
+                            <span style={{ color: '#555' }} title={s.hierarchyLevel ? HIERARCHY_LABELS[s.hierarchyLevel] : 'Aucun job title détecté'}>
+                              Hiérarchie {s.hierarchy}{s.hierarchyLevel ? ` (${HIERARCHY_LABELS[s.hierarchyLevel]})` : ''}
+                            </span>
                             <span style={{ color: '#999' }}>·</span>
                             <span style={{ color: '#555' }}>Engagement {s.engagement}</span>
                             <button

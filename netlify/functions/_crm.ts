@@ -118,16 +118,43 @@ export type CrmCompany = {
   notionSyncedAt?: string
 }
 
-const SIZE_PTS: Record<CompanySize, number> = { Startup: 5, Scaleup: 12, ETI: 20, 'Grand groupe': 25 }
-const LOCATION_PTS: Record<CompanyLocation, number> = { FR: 25, Europe_US: 15, Autre: 5 }
-const SECTOR_PTS: Record<CompanySector, number> = { LogicielsSante: 25, MedTechBioPharma: 18, SanteB2C: 10, Autre: 3 }
+const SIZE_PTS: Record<CompanySize, number> = { Startup: 4, Scaleup: 10, ETI: 16, 'Grand groupe': 20 }
+const LOCATION_PTS: Record<CompanyLocation, number> = { FR: 20, Europe_US: 12, Autre: 4 }
+const SECTOR_PTS: Record<CompanySector, number> = { LogicielsSante: 20, MedTechBioPharma: 14, SanteB2C: 8, Autre: 2 }
+
+export type HierarchyLevel = 'Founder' | 'CLevel' | 'Manager' | 'Other'
+const HIERARCHY_PTS: Record<HierarchyLevel, number> = { Founder: 20, CLevel: 13, Manager: 6, Other: 0 }
+
+/** Map a single job title to a hierarchy bucket. Order matters: founder > C-level > manager. */
+export function classifyJobTitle(title: string | undefined): HierarchyLevel | null {
+  if (!title) return null
+  const t = title.toLowerCase()
+  if (/founder|fondateur|fondatrice|co-?founder|co-?fondateur|cofounder|cofondateur/.test(t)) return 'Founder'
+  if (/\bceo\b|\bcto\b|\bcfo\b|\bcoo\b|\bcmo\b|\bcpo\b|\bcro\b|\bcio\b|chief\s+\w+\s+officer|chief\s+\w+|\bpdg\b|\bdg\b|directeur\s+g[eé]n[eé]ral|directrice\s+g[eé]n[eé]rale|\bvp\b|vice\s*-?\s*pr[eé]sident|head\s+of\s+/.test(t)) return 'CLevel'
+  if (/manager|director|directeur|directrice|lead\b|responsable|\bhead\b/.test(t)) return 'Manager'
+  return 'Other'
+}
+
+/** Pick the best hierarchy tier across all contacts of the company. */
+export function bestHierarchy(co: CrmCompany): HierarchyLevel | null {
+  let best: HierarchyLevel | null = null
+  const rank: Record<HierarchyLevel, number> = { Founder: 3, CLevel: 2, Manager: 1, Other: 0 }
+  for (const c of co.contacts) {
+    const h = classifyJobTitle(c.jobTitle)
+    if (!h) continue
+    if (!best || rank[h] > rank[best]) best = h
+  }
+  return best
+}
 
 export type CompanyScore = {
   total: number
   size: number
   location: number
   sector: number
+  hierarchy: number
   engagement: number
+  hierarchyLevel: HierarchyLevel | null
 }
 
 export function computeCompanyScore(co: CrmCompany): CompanyScore {
@@ -135,16 +162,22 @@ export function computeCompanyScore(co: CrmCompany): CompanyScore {
   const location = co.location ? LOCATION_PTS[co.location] : 0
   const sector = co.sector ? SECTOR_PTS[co.sector] : 0
 
+  const hierarchyLevel = bestHierarchy(co)
+  const hierarchy = hierarchyLevel ? HIERARCHY_PTS[hierarchyLevel] : 0
+
   let engagement = 0
   for (const c of co.contacts) {
-    engagement += Math.min(c.visits?.length || 0, 10)
+    engagement += Math.min(c.visits?.length || 0, 8)
     const src = (c.source || '').toLowerCase()
     if (src.includes('brochure')) engagement += 3
     if (src.includes('lemcal')) engagement += 2
   }
-  engagement = Math.min(engagement, 25)
+  engagement = Math.min(engagement, 20)
 
-  return { total: size + location + sector + engagement, size, location, sector, engagement }
+  return {
+    total: size + location + sector + hierarchy + engagement,
+    size, location, sector, hierarchy, engagement, hierarchyLevel,
+  }
 }
 
 export function detectLanguage(input: { email?: string; firstName?: string }): ContactLanguage {
