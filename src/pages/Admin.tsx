@@ -1881,6 +1881,8 @@ function CrmView({ password }: { password: string }) {
   const [newTaskDesc, setNewTaskDesc] = useState('')
   const [enrichingId, setEnrichingId] = useState<string | null>(null)
   const [enrichMessage, setEnrichMessage] = useState<{ contactId: string; text: string; tone: 'ok' | 'info' | 'err' } | null>(null)
+  const [triggeringNpsId, setTriggeringNpsId] = useState<string | null>(null)
+  const [npsTriggerMessage, setNpsTriggerMessage] = useState<{ responseId: string; text: string; tone: 'ok' | 'err' } | null>(null)
   const [classifyingId, setClassifyingId] = useState<string | null>(null)
   const [classifyMessage, setClassifyMessage] = useState<{ companyId: string; text: string; tone: 'ok' | 'info' | 'err' } | null>(null)
   const [backfilling, setBackfilling] = useState(false)
@@ -2045,6 +2047,46 @@ function CrmView({ password }: { password: string }) {
       setEnrichMessage({ contactId, text: `Erreur : ${String(err)}`, tone: 'err' })
     } finally {
       setEnrichingId(null)
+    }
+  }
+
+  /* ---- NPS manual trigger (skips J+1 wait) ---- */
+  const triggerNps = async (companyId: string, contactId: string, responseId: string) => {
+    setTriggeringNpsId(responseId)
+    setNpsTriggerMessage(null)
+    try {
+      const res = await fetch('/.netlify/functions/admin-nps-trigger', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ companyId, contactId, responseId }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.ok) {
+        throw new Error(json?.error || json?.detail || `HTTP ${res.status}`)
+      }
+      const dryRunLabel = json.dryRun ? ` (DRY-RUN → ${json.recipient})` : ` → ${json.recipient}`
+      setNpsTriggerMessage({ responseId, text: `Email envoyé${dryRunLabel}`, tone: 'ok' })
+      // Reflect the askedAt in local state so the entry stops showing "En attente J+1"
+      setCompanies(prev => prev?.map(co => co.id === companyId
+        ? {
+            ...co,
+            contacts: co.contacts.map(c => c.id === contactId
+              ? {
+                  ...c,
+                  npsResponses: c.npsResponses?.map(r => r.id === responseId
+                    ? { ...r, askedAt: json.askedAt }
+                    : r,
+                  ),
+                }
+              : c,
+            ),
+          }
+        : co,
+      ) || null)
+    } catch (err) {
+      setNpsTriggerMessage({ responseId, text: `Erreur : ${String(err)}`, tone: 'err' })
+    } finally {
+      setTriggeringNpsId(null)
     }
   }
 
@@ -2778,6 +2820,35 @@ function CrmView({ password }: { password: string }) {
                                             {r.askedAt && <span>📨 Demandé le {new Date(r.askedAt).toLocaleDateString('fr-FR')}</span>}
                                             {r.scoredAt && <span>✅ Noté le {new Date(r.scoredAt).toLocaleDateString('fr-FR')}</span>}
                                           </div>
+                                          {!r.askedAt && (
+                                            <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                              <button
+                                                onClick={() => triggerNps(co.id, c.id, r.id)}
+                                                disabled={triggeringNpsId === r.id}
+                                                style={{
+                                                  padding: '0.3rem 0.7rem',
+                                                  border: `1px solid ${ACCENT}`,
+                                                  borderRadius: '6px',
+                                                  background: triggeringNpsId === r.id ? '#f4f4f5' : ACCENT,
+                                                  color: triggeringNpsId === r.id ? '#999' : '#fff',
+                                                  fontSize: '0.65rem',
+                                                  fontWeight: 600,
+                                                  cursor: triggeringNpsId === r.id ? 'wait' : 'pointer',
+                                                }}
+                                                title="Envoyer l'email NPS maintenant (skip J+1)"
+                                              >
+                                                {triggeringNpsId === r.id ? 'Envoi…' : '📨 Envoyer maintenant'}
+                                              </button>
+                                              {npsTriggerMessage?.responseId === r.id && (
+                                                <span style={{
+                                                  fontSize: '0.65rem',
+                                                  color: npsTriggerMessage.tone === 'err' ? '#b91c1c' : '#166534',
+                                                }}>
+                                                  {npsTriggerMessage.text}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
                                           {r.comment && (
                                             <div style={{
                                               marginTop: '0.4rem',

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
-import type { ContactLanguage } from './_crm'
+import type { ContactLanguage, CrmContact, CrmNpsResponse } from './_crm'
+import { detectLanguage } from './_crm'
 
 const SITE_URL = 'https://www.clempo.fr'
 
@@ -161,4 +162,64 @@ export function npsThanksUrl(token: string, score: number): string {
 
 export function npsThanksErrorUrl(): string {
   return `${SITE_URL}/merci-nps?err=invalid`
+}
+
+const OWNER_EMAIL = 'clement.pougetosmont@gmail.com'
+
+/**
+ * Send a single NPS email for a pending response. Shared by the daily cron
+ * and the admin "Envoyer maintenant" button so dry-run, copy, and token
+ * generation stay identical. Mutates `np` in place on success (askedAt,
+ * askedToken) — caller is responsible for persisting the CRM.
+ */
+export async function sendNpsEmailFor(
+  contact: CrmContact,
+  np: CrmNpsResponse,
+  opts: { apiKey: string; isDryRun: boolean },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!contact.email) return { ok: false, error: 'no-email' }
+
+  const language = contact.language || detectLanguage({
+    email: contact.email,
+    firstName: contact.firstName,
+  })
+  const token = signNpsToken({
+    contactEmail: contact.email.toLowerCase(),
+    responseId: np.id,
+  })
+  const { subject, html } = buildNpsEmailHtml({
+    firstName: contact.firstName || '',
+    language,
+    resourceLabel: np.resourceLabel,
+    scoreUrlFor: (score) => npsRespondUrl(token, score),
+    isDryRun: opts.isDryRun,
+    realRecipient: contact.email,
+  })
+
+  const recipient = opts.isDryRun ? OWNER_EMAIL : contact.email
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${opts.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Clément Pouget-Osmont <noreply@clempo.fr>',
+        to: [recipient],
+        reply_to: OWNER_EMAIL,
+        subject: opts.isDryRun ? `[TEST] ${subject}` : subject,
+        html,
+      }),
+    })
+    if (!res.ok) {
+      const errText = await res.text()
+      return { ok: false, error: errText }
+    }
+    np.askedAt = new Date().toISOString()
+    np.askedToken = token
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: String(err) }
+  }
 }

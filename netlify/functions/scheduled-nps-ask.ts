@@ -1,6 +1,6 @@
 import type { Config } from '@netlify/functions'
-import { readCrm, writeCrm, detectLanguage } from './_crm'
-import { buildNpsEmailHtml, npsRespondUrl, signNpsToken } from './_nps'
+import { readCrm, writeCrm } from './_crm'
+import { sendNpsEmailFor } from './_nps'
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 const TTL_DAYS = 7
@@ -26,7 +26,6 @@ export default async () => {
   }
 
   const isDryRun = process.env.NPS_DRY_RUN === '1'
-  const ownerEmail = 'clement.pougetosmont@gmail.com'
 
   let sent = 0
   let skipped = 0
@@ -49,55 +48,16 @@ export default async () => {
           if (ageMs > TTL_DAYS * ONE_DAY_MS) { skipped += 1; continue }
           if (!contact.email) { skipped += 1; continue }
 
-          const language = contact.language || detectLanguage({
-            email: contact.email,
-            firstName: contact.firstName,
-          })
-          const token = signNpsToken({
-            contactEmail: contact.email.toLowerCase(),
-            responseId: np.id,
-          })
-          const { subject, html } = buildNpsEmailHtml({
-            firstName: contact.firstName || '',
-            language,
-            resourceLabel: np.resourceLabel,
-            scoreUrlFor: (score) => npsRespondUrl(token, score),
-            isDryRun,
-            realRecipient: contact.email,
-          })
-
-          const recipient = isDryRun ? ownerEmail : contact.email
-          try {
-            const res = await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                from: 'Clément Pouget-Osmont <noreply@clempo.fr>',
-                to: [recipient],
-                reply_to: ownerEmail,
-                subject: isDryRun ? `[TEST] ${subject}` : subject,
-                html,
-              }),
-            })
-            if (!res.ok) {
-              const errText = await res.text()
-              console.error('[scheduled-nps-ask] Resend error:', errText)
-              errors += 1
-              continue
-            }
-            np.askedAt = new Date().toISOString()
-            np.askedToken = token
-            contact.updatedAt = np.askedAt
-            co.updatedAt = np.askedAt
-            dirty = true
-            sent += 1
-          } catch (err) {
-            console.error('[scheduled-nps-ask] send error:', err)
+          const result = await sendNpsEmailFor(contact, np, { apiKey, isDryRun })
+          if (!result.ok) {
+            console.error('[scheduled-nps-ask] send error:', result.error)
             errors += 1
+            continue
           }
+          contact.updatedAt = np.askedAt!
+          co.updatedAt = np.askedAt!
+          dirty = true
+          sent += 1
         }
       }
     }
