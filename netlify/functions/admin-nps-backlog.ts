@@ -17,6 +17,9 @@ type Eligible = {
   resourceLabel: string
   downloadedAt: string
   hasExistingEntry: boolean
+  /** 'fresh' = jamais sollicité ; 'test-resend' = sollicité en DRY-RUN
+   *  (ou avant tracking) → sera renvoyé en prod après nettoyage. */
+  kind: 'fresh' | 'test-resend'
 }
 
 /**
@@ -98,7 +101,12 @@ const handler: Handler = async (event) => {
         if (!resource) continue
 
         const existing = c.npsResponses?.find(r => r.resource === resource.slug)
-        if (existing?.askedAt) continue // already asked, skip
+        // Skip only if the entry was sent for real (askedDryRun === false).
+        // DRY-RUN entries (askedDryRun === true) and pre-tracking entries
+        // (undefined) are treated as testable — they get re-sent in prod.
+        if (existing?.askedAt && existing.askedDryRun === false) continue
+
+        const kind: 'fresh' | 'test-resend' = existing?.askedAt ? 'test-resend' : 'fresh'
 
         eligibles.push({
           companyId: co.id,
@@ -109,6 +117,7 @@ const handler: Handler = async (event) => {
           resourceLabel: existing?.resourceLabel || resource.label,
           downloadedAt: existing?.downloadedAt || c.createdAt,
           hasExistingEntry: !!existing,
+          kind,
         })
       }
     }
@@ -155,7 +164,19 @@ const handler: Handler = async (event) => {
         }
         contact.npsResponses.push(np)
       }
-      if (np.askedAt) continue
+      // Safety: never resend over a real prod send.
+      if (np.askedAt && np.askedDryRun === false) continue
+      // Wipe DRY-RUN traces (askedAt + fake scores/comments from owner-side
+      // clicks) so the prod send starts from a clean slate.
+      if (np.askedAt) {
+        delete np.askedAt
+        delete np.askedToken
+        delete np.askedDryRun
+        delete np.score
+        delete np.scoredAt
+        delete np.comment
+        delete np.commentAt
+      }
 
       const result = await sendNpsEmailFor(contact, np, { apiKey, isDryRun, isBacklog: true })
       if (!result.ok) {

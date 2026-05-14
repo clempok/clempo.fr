@@ -1886,7 +1886,7 @@ function CrmView({ password }: { password: string }) {
   const [npsTriggerMessage, setNpsTriggerMessage] = useState<{ responseId: string; text: string; tone: 'ok' | 'err' } | null>(null)
   const [backlogDays, setBacklogDays] = useState(15)
   const [backlogState, setBacklogState] = useState<'idle' | 'previewing' | 'preview-ready' | 'sending' | 'done' | 'err'>('idle')
-  const [backlogPreview, setBacklogPreview] = useState<{ count: number; dryRun: boolean; eligibles: Array<{ contactId: string; email: string; fullName: string; resourceLabel: string; downloadedAt: string; hasExistingEntry: boolean }> } | null>(null)
+  const [backlogPreview, setBacklogPreview] = useState<{ count: number; dryRun: boolean; eligibles: Array<{ contactId: string; email: string; fullName: string; resourceLabel: string; downloadedAt: string; hasExistingEntry: boolean; kind: 'fresh' | 'test-resend' }> } | null>(null)
   const [backlogResult, setBacklogResult] = useState<{ sent: number; errors: number; remaining: number; dryRun: boolean; failures: Array<{ email: string; error: string }> } | null>(null)
   const [backlogError, setBacklogError] = useState('')
   const [classifyingId, setClassifyingId] = useState<string | null>(null)
@@ -2608,7 +2608,19 @@ function CrmView({ password }: { password: string }) {
           }}>
             {backlogPreview.eligibles.map(e => (
               <div key={e.contactId} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', borderBottom: '1px solid #f4f4f5', padding: '0.2rem 0' }}>
-                <span style={{ flex: 1, color: '#374151' }}>
+                <span style={{ flex: 1, color: '#374151', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {e.kind === 'test-resend' && (
+                    <span
+                      title="Avait un envoi DRY-RUN (ou antérieur au tracking). Le score/commentaire éventuels seront nettoyés, puis l'email partira en prod."
+                      style={{
+                        padding: '0 5px', borderRadius: 4,
+                        background: '#fef3c7', color: '#92400e',
+                        fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.02em',
+                      }}
+                    >
+                      TEST→PROD
+                    </span>
+                  )}
                   {e.fullName} · <span style={{ color: '#0066cc' }}>{e.email}</span>
                 </span>
                 <span style={{ color: '#6b7280' }}>{e.resourceLabel}</span>
