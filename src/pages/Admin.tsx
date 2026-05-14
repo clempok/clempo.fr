@@ -221,6 +221,7 @@ type CrmNpsResponse = {
   downloadedAt: string
   askedAt?: string
   askedToken?: string
+  askedDryRun?: boolean
   score?: number
   scoredAt?: string
   comment?: string
@@ -3053,7 +3054,41 @@ function CrmView({ password }: { password: string }) {
                                           </div>
                                           <div style={{ fontSize: '0.65rem', color: '#888', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                             <span>📥 Téléchargé le {new Date(r.downloadedAt).toLocaleDateString('fr-FR')}</span>
-                                            {r.askedAt && <span>📨 Demandé le {new Date(r.askedAt).toLocaleDateString('fr-FR')}</span>}
+                                            {r.askedAt && (
+                                              <span>
+                                                📨 Demandé le {new Date(r.askedAt).toLocaleDateString('fr-FR')}
+                                                {r.askedDryRun === true && (
+                                                  <span style={{
+                                                    display: 'inline-block', marginLeft: 6,
+                                                    padding: '0 5px', borderRadius: 4,
+                                                    background: '#fef3c7', color: '#92400e',
+                                                    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.02em',
+                                                  }} title="Email routé vers ton inbox uniquement, le prospect n'a rien reçu.">
+                                                    TEST
+                                                  </span>
+                                                )}
+                                                {r.askedDryRun === false && (
+                                                  <span style={{
+                                                    display: 'inline-block', marginLeft: 6,
+                                                    padding: '0 5px', borderRadius: 4,
+                                                    background: '#dcfce7', color: '#166534',
+                                                    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.02em',
+                                                  }} title="Email envoyé au vrai prospect.">
+                                                    PROD
+                                                  </span>
+                                                )}
+                                                {r.askedDryRun === undefined && (
+                                                  <span style={{
+                                                    display: 'inline-block', marginLeft: 6,
+                                                    padding: '0 5px', borderRadius: 4,
+                                                    background: '#f1f5f9', color: '#64748b',
+                                                    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.02em',
+                                                  }} title="Statut inconnu (envoi antérieur au tracking). Vérifier sur Resend.">
+                                                    ?
+                                                  </span>
+                                                )}
+                                              </span>
+                                            )}
                                             {r.scoredAt && <span>✅ Noté le {new Date(r.scoredAt).toLocaleDateString('fr-FR')}</span>}
                                           </div>
                                           <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>

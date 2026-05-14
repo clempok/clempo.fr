@@ -49,6 +49,10 @@ export type CrmNpsResponse = {
   downloadedAt: string    // ISO timestamp of the download
   askedAt?: string        // ISO — when the NPS email was sent
   askedToken?: string     // HMAC token kept for audit/idempotence
+  /** Whether the askedAt send was a DRY-RUN (email routed to owner only)
+   *  or a real production send to the prospect. Undefined means the entry
+   *  predates this tracking field — check Resend logs to disambiguate. */
+  askedDryRun?: boolean
   score?: number          // 0-10
   scoredAt?: string
   comment?: string

@@ -224,6 +224,7 @@ export async function sendNpsEmailFor(
     }
     np.askedAt = new Date().toISOString()
     np.askedToken = token
+    np.askedDryRun = opts.isDryRun
     return { ok: true }
   } catch (err) {
     return { ok: false, error: String(err) }
