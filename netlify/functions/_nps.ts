@@ -1,6 +1,5 @@
 import crypto from 'node:crypto'
 import type { ContactLanguage, CrmContact, CrmNpsResponse } from './_crm'
-import { detectLanguage } from './_crm'
 
 const SITE_URL = 'https://www.clempo.fr'
 
@@ -185,10 +184,10 @@ export async function sendNpsEmailFor(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!contact.email) return { ok: false, error: 'no-email' }
 
-  const language = contact.language || detectLanguage({
-    email: contact.email,
-    firstName: contact.firstName,
-  })
+  // NPS emails default to FR. EN is only used when the contact has been
+  // explicitly flagged 'EN' in the CRM (manually via the admin Langue
+  // dropdown, or via admin-crm contact creation with EN selected).
+  const language: ContactLanguage = contact.language === 'EN' ? 'EN' : 'FR'
   const token = signNpsToken({
     contactEmail: contact.email.toLowerCase(),
     responseId: np.id,
