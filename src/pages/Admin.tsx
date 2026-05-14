@@ -182,6 +182,36 @@ function isoWeekLabel(date: Date): string {
 const CRM_STATUSES = ['Non qualifié', 'Prospect', 'Lead', 'Opportunité', 'Client', 'Lost'] as const
 type CrmStatus = (typeof CRM_STATUSES)[number]
 
+const CONTACT_LANGUAGES = ['FR', 'EN'] as const
+type ContactLanguage = (typeof CONTACT_LANGUAGES)[number]
+
+const COMPANY_SIZES = ['Startup', 'Scaleup', 'ETI', 'Grand groupe'] as const
+type CompanySize = (typeof COMPANY_SIZES)[number]
+
+const COMPANY_LOCATIONS = ['FR', 'Europe_US', 'Autre'] as const
+type CompanyLocation = (typeof COMPANY_LOCATIONS)[number]
+
+const COMPANY_SECTORS = ['LogicielsSante', 'MedTechBioPharma', 'SanteB2C', 'Autre'] as const
+type CompanySector = (typeof COMPANY_SECTORS)[number]
+
+const SIZE_LABELS: Record<CompanySize, string> = {
+  Startup: 'Startup',
+  Scaleup: 'Scaleup',
+  ETI: 'ETI',
+  'Grand groupe': 'Grand groupe',
+}
+const LOCATION_LABELS: Record<CompanyLocation, string> = {
+  FR: 'France',
+  Europe_US: 'Europe Ouest / US',
+  Autre: 'Autre',
+}
+const SECTOR_LABELS: Record<CompanySector, string> = {
+  LogicielsSante: 'Logiciels santé pro',
+  MedTechBioPharma: 'MedTech / BioTech / Pharma',
+  SanteB2C: 'Santé B2C',
+  Autre: 'Autre',
+}
+
 type CrmContactVisit = { ts: string; path: string }
 
 type CrmContact = {
@@ -197,6 +227,7 @@ type CrmContact = {
   phone?: string
   jobTitle?: string
   company?: string
+  language?: ContactLanguage
   enrichedAt?: string
   enrichmentSource?: string
   notionPageId?: string
@@ -230,6 +261,57 @@ type CrmCompany = {
   updatedAt: string
   statusHistory?: CrmStatusHistoryEntry[]
   notionPageId?: string
+  size?: CompanySize
+  location?: CompanyLocation
+  sector?: CompanySector
+}
+
+const SIZE_PTS: Record<CompanySize, number> = { Startup: 5, Scaleup: 12, ETI: 20, 'Grand groupe': 25 }
+const LOCATION_PTS: Record<CompanyLocation, number> = { FR: 25, Europe_US: 15, Autre: 5 }
+const SECTOR_PTS: Record<CompanySector, number> = { LogicielsSante: 25, MedTechBioPharma: 18, SanteB2C: 10, Autre: 3 }
+
+type CompanyScore = {
+  total: number
+  size: number
+  location: number
+  sector: number
+  engagement: number
+}
+
+function computeCompanyScore(co: CrmCompany): CompanyScore {
+  const size = co.size ? SIZE_PTS[co.size] : 0
+  const location = co.location ? LOCATION_PTS[co.location] : 0
+  const sector = co.sector ? SECTOR_PTS[co.sector] : 0
+  let engagement = 0
+  for (const c of co.contacts) {
+    engagement += Math.min(c.visits?.length || 0, 10)
+    const src = (c.source || '').toLowerCase()
+    if (src.includes('brochure')) engagement += 3
+    if (src.includes('lemcal')) engagement += 2
+  }
+  engagement = Math.min(engagement, 25)
+  return { total: size + location + sector + engagement, size, location, sector, engagement }
+}
+
+function scoreTier(total: number): 'top' | 'good' | 'mid' | 'low' {
+  if (total >= 70) return 'top'
+  if (total >= 50) return 'good'
+  if (total >= 25) return 'mid'
+  return 'low'
+}
+
+const SCORE_TIER_COLORS: Record<'top' | 'good' | 'mid' | 'low', { bg: string; fg: string; label: string }> = {
+  top: { bg: '#d1fae5', fg: '#065f46', label: 'Top' },
+  good: { bg: '#dbeafe', fg: '#1e40af', label: 'Bon' },
+  mid: { bg: '#fef3c7', fg: '#92400e', label: 'Moyen' },
+  low: { bg: '#f4f4f5', fg: '#71717a', label: 'Faible' },
+}
+
+function detectLanguage(input: { email?: string; firstName?: string }): ContactLanguage {
+  const email = (input.email || '').toLowerCase()
+  if (email.endsWith('.fr')) return 'FR'
+  if (/[éèêëàâäîïôöûüç]/i.test(input.firstName || '')) return 'FR'
+  return 'EN'
 }
 
 const STATUS_COLORS: Record<CrmStatus, { bg: string; fg: string }> = {
@@ -1710,6 +1792,8 @@ function CrmView({ password }: { password: string }) {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CrmStatus | 'all'>('all')
+  const [tierFilter, setTierFilter] = useState<'all' | 'top' | 'good' | 'mid' | 'low'>('all')
+  const [sortBy, setSortBy] = useState<'name' | 'score'>('name')
   const [expandedCoId, setExpandedCoId] = useState<string | null>(null)
   const [expandedContactId, setExpandedContactId] = useState<string | null>(null)
   const [showAddCompany, setShowAddCompany] = useState(false)
@@ -1949,9 +2033,11 @@ function CrmView({ password }: { password: string }) {
   const filtered = useMemo(() => {
     if (!companies) return []
     const q = search.trim().toLowerCase()
-    return companies
-      .filter(co => statusFilter === 'all' || co.status === statusFilter)
-      .filter(co => {
+    const withScore = companies.map(co => ({ co, score: computeCompanyScore(co) }))
+    return withScore
+      .filter(({ co }) => statusFilter === 'all' || co.status === statusFilter)
+      .filter(({ score }) => tierFilter === 'all' || scoreTier(score.total) === tierFilter)
+      .filter(({ co }) => {
         if (!q) return true
         if (co.name.toLowerCase().includes(q)) return true
         return co.contacts.some(c =>
@@ -1960,8 +2046,17 @@ function CrmView({ password }: { password: string }) {
           c.lastName.toLowerCase().includes(q),
         )
       })
-      .sort((a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1))
-  }, [companies, search, statusFilter])
+      .sort((a, b) => {
+        if (sortBy === 'score') return b.score.total - a.score.total
+        return a.co.name.toLowerCase() < b.co.name.toLowerCase() ? -1 : 1
+      })
+  }, [companies, search, statusFilter, tierFilter, sortBy])
+
+  const tierCounts = useMemo(() => {
+    const c: Record<'all' | 'top' | 'good' | 'mid' | 'low', number> = { all: companies?.length || 0, top: 0, good: 0, mid: 0, low: 0 }
+    companies?.forEach(co => { c[scoreTier(computeCompanyScore(co).total)]++ })
+    return c
+  }, [companies])
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: companies?.length || 0 }
@@ -2008,11 +2103,45 @@ function CrmView({ password }: { password: string }) {
       </div>
 
       {/* Status filter pills */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
         <FilterPill label={`Tous (${counts.all})`} active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
         {CRM_STATUSES.map(s => (
           <FilterPill key={s} label={`${s} (${counts[s] || 0})`} active={statusFilter === s} onClick={() => setStatusFilter(s)} color={STATUS_COLORS[s]} />
         ))}
+      </div>
+
+      {/* Score tier filter + sort toggle */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <FilterPill label={`Score : tous (${tierCounts.all})`} active={tierFilter === 'all'} onClick={() => setTierFilter('all')} />
+        <FilterPill label={`Top ≥70 (${tierCounts.top})`} active={tierFilter === 'top'} onClick={() => setTierFilter('top')} color={SCORE_TIER_COLORS.top} />
+        <FilterPill label={`Bon 50-69 (${tierCounts.good})`} active={tierFilter === 'good'} onClick={() => setTierFilter('good')} color={SCORE_TIER_COLORS.good} />
+        <FilterPill label={`Moyen 25-49 (${tierCounts.mid})`} active={tierFilter === 'mid'} onClick={() => setTierFilter('mid')} color={SCORE_TIER_COLORS.mid} />
+        <FilterPill label={`Faible <25 (${tierCounts.low})`} active={tierFilter === 'low'} onClick={() => setTierFilter('low')} color={SCORE_TIER_COLORS.low} />
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: '4px', alignItems: 'center', fontSize: '0.7rem', color: '#999' }}>
+          Tri :
+          <button
+            onClick={() => setSortBy('name')}
+            style={{
+              padding: '0.3rem 0.6rem', border: '1px solid #e0e0e0', borderRadius: '6px',
+              background: sortBy === 'name' ? ACCENT : '#fff',
+              color: sortBy === 'name' ? '#fff' : '#555',
+              fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Nom
+          </button>
+          <button
+            onClick={() => setSortBy('score')}
+            style={{
+              padding: '0.3rem 0.6rem', border: '1px solid #e0e0e0', borderRadius: '6px',
+              background: sortBy === 'score' ? ACCENT : '#fff',
+              color: sortBy === 'score' ? '#fff' : '#555',
+              fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Score
+          </button>
+        </span>
       </div>
 
       {/* Search */}
@@ -2086,15 +2215,17 @@ function CrmView({ password }: { password: string }) {
         {filtered.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: '#999', fontSize: '0.85rem' }}>Aucune entreprise.</div>
         ) : (
-          filtered.map(co => {
+          filtered.map(({ co, score }) => {
             const isExpanded = expandedCoId === co.id
+            const tier = scoreTier(score.total)
+            const tierColor = SCORE_TIER_COLORS[tier]
             return (
               <div key={co.id} style={{ borderBottom: '1px solid #f4f4f5' }}>
                 {/* Company row */}
                 <div
                   onClick={() => { setExpandedCoId(isExpanded ? null : co.id); setExpandedContactId(null); setAddContactForCo(null) }}
                   style={{
-                    display: 'grid', gridTemplateColumns: '2.5fr 1fr 1.5fr auto',
+                    display: 'grid', gridTemplateColumns: '2.2fr 0.7fr 1fr 1.5fr auto',
                     gap: '1rem', alignItems: 'center', padding: '0.9rem 1rem',
                     cursor: 'pointer', fontSize: '0.8rem',
                     background: isExpanded ? '#fafafa' : 'transparent',
@@ -2117,6 +2248,18 @@ function CrmView({ password }: { password: string }) {
                         </a>
                       )}
                     </div>
+                  </div>
+                  <div
+                    title={`Taille ${score.size} · Loc ${score.location} · Secteur ${score.sector} · Engagement ${score.engagement}`}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                      padding: '3px 8px', borderRadius: '6px',
+                      background: tierColor.bg, color: tierColor.fg,
+                      fontSize: '0.72rem', fontWeight: 700, width: 'fit-content',
+                    }}
+                  >
+                    {score.total}
+                    <span style={{ fontSize: '0.6rem', opacity: 0.7, fontWeight: 600 }}>{tierColor.label}</span>
                   </div>
                   <div style={{ color: '#999', fontSize: '0.7rem' }}>
                     {new Date(co.updatedAt).toLocaleDateString('fr-FR')}
@@ -2153,6 +2296,46 @@ function CrmView({ password }: { password: string }) {
                         />
                       </div>
                     </div>
+
+                    {/* Scoring attributes */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                      <SelectField
+                        label="Taille"
+                        value={co.size || ''}
+                        options={COMPANY_SIZES.map(s => ({ value: s, label: SIZE_LABELS[s] }))}
+                        onSave={v => updateCompany(co.id, { size: (v || undefined) as CompanySize | undefined })}
+                      />
+                      <SelectField
+                        label="Localisation"
+                        value={co.location || ''}
+                        options={COMPANY_LOCATIONS.map(l => ({ value: l, label: LOCATION_LABELS[l] }))}
+                        onSave={v => updateCompany(co.id, { location: (v || undefined) as CompanyLocation | undefined })}
+                      />
+                      <SelectField
+                        label="Secteur"
+                        value={co.sector || ''}
+                        options={COMPANY_SECTORS.map(s => ({ value: s, label: SECTOR_LABELS[s] }))}
+                        onSave={v => updateCompany(co.id, { sector: (v || undefined) as CompanySector | undefined })}
+                      />
+                    </div>
+
+                    {/* Score breakdown */}
+                    {(() => {
+                      const s = computeCompanyScore(co)
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.75rem', padding: '0.5rem 0.7rem', background: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px', fontSize: '0.7rem' }}>
+                          <span style={{ fontWeight: 700, color: '#111' }}>Score : {s.total}/100</span>
+                          <span style={{ color: '#999' }}>·</span>
+                          <span style={{ color: '#555' }}>Taille {s.size}</span>
+                          <span style={{ color: '#999' }}>·</span>
+                          <span style={{ color: '#555' }}>Loc {s.location}</span>
+                          <span style={{ color: '#999' }}>·</span>
+                          <span style={{ color: '#555' }}>Secteur {s.sector}</span>
+                          <span style={{ color: '#999' }}>·</span>
+                          <span style={{ color: '#555' }}>Engagement {s.engagement}</span>
+                        </div>
+                      )
+                    })()}
 
                     {/* Contacts header */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -2194,7 +2377,23 @@ function CrmView({ password }: { password: string }) {
                               </span>
                             </div>
                             <div style={{ color: '#555', wordBreak: 'break-all', fontSize: '0.75rem' }}>{c.email}</div>
-                            <div style={{ color: '#999', fontSize: '0.68rem' }}>{c.source}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#999', fontSize: '0.68rem' }}>
+                              {c.language && (
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  background: c.language === 'FR' ? '#dbeafe' : '#fef3c7',
+                                  color: c.language === 'FR' ? '#1e40af' : '#92400e',
+                                  fontSize: '0.62rem',
+                                  fontWeight: 700,
+                                  letterSpacing: '0.02em',
+                                }}>
+                                  {c.language}
+                                </span>
+                              )}
+                              <span>{c.source}</span>
+                            </div>
                             <div style={{ fontSize: '0.65rem', color: '#bbb' }}>{expandedContactId === c.id ? '▲' : '▼'}</div>
                           </div>
 
@@ -2209,6 +2408,12 @@ function CrmView({ password }: { password: string }) {
                                 <EditField label="Entreprise (contact)" value={c.company || ''} onSave={v => updateContact(co.id, c.id, { company: v })} />
                                 <EditField label="LinkedIn" value={c.linkedIn || ''} onSave={v => updateContact(co.id, c.id, { linkedIn: v })} />
                                 <EditField label="Source" value={c.source} onSave={v => updateContact(co.id, c.id, { source: v })} />
+                                <SelectField
+                                  label="Langue"
+                                  value={c.language || ''}
+                                  options={CONTACT_LANGUAGES.map(l => ({ value: l, label: l }))}
+                                  onSave={v => updateContact(co.id, c.id, { language: (v || undefined) as ContactLanguage | undefined })}
+                                />
                               </div>
                               <div style={{ marginTop: '0.5rem' }}>
                                 <label style={crmLabelStyle}>Notes</label>
@@ -2452,6 +2657,32 @@ function EditField({ label, value, onSave }: { label: string; value: string; onS
   )
 }
 
+function SelectField({ label, value, options, onSave, allowEmpty = true }: {
+  label: string
+  value: string
+  options: ReadonlyArray<{ value: string; label: string }>
+  onSave: (v: string) => void
+  allowEmpty?: boolean
+}) {
+  return (
+    <div>
+      <label style={crmLabelStyle}>{label}</label>
+      <select
+        value={value}
+        onChange={e => onSave(e.target.value)}
+        style={{
+          width: '100%', padding: '0.5rem 0.7rem', border: '1px solid #e0e0e0',
+          borderRadius: '8px', fontSize: '0.8rem', outline: 'none',
+          background: '#fff', boxSizing: 'border-box',
+        }}
+      >
+        {allowEmpty && <option value="">—</option>}
+        {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+      </select>
+    </div>
+  )
+}
+
 function NewCompanyForm({ onSave, onCancel }: { onSave: (name: string, status: CrmStatus) => void; onCancel: () => void }) {
   const [name, setName] = useState('')
   const [status, setStatus] = useState<CrmStatus>('Non qualifié')
@@ -2476,14 +2707,32 @@ function NewCompanyForm({ onSave, onCancel }: { onSave: (name: string, status: C
 }
 
 function NewContactForm({ onSave, onCancel }: { onSave: (fields: Partial<CrmContact>) => void; onCancel: () => void }) {
-  const [fields, setFields] = useState<Partial<CrmContact>>({ email: '', firstName: '', lastName: '', source: 'Manual', notes: '' })
-  const upd = (k: keyof CrmContact, v: string) => setFields(p => ({ ...p, [k]: v }))
+  const [fields, setFields] = useState<Partial<CrmContact>>({ email: '', firstName: '', lastName: '', source: 'Manual', notes: '', language: undefined })
+  const [langTouched, setLangTouched] = useState(false)
+  const upd = (k: keyof CrmContact, v: string) => setFields(p => {
+    const next = { ...p, [k]: v }
+    // Auto-detect language as long as the user hasn't picked one manually.
+    if (!langTouched && (k === 'email' || k === 'firstName')) {
+      next.language = detectLanguage({ email: next.email, firstName: next.firstName })
+    }
+    return next
+  })
   return (
     <div style={{ border: '1px solid #e0e0e0', borderRadius: '10px', padding: '0.75rem', marginBottom: '0.75rem', background: '#fff' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
         <input placeholder="Email *" value={fields.email} onChange={e => upd('email', e.target.value)} style={newFieldStyle} />
         <input placeholder="Prénom" value={fields.firstName} onChange={e => upd('firstName', e.target.value)} style={newFieldStyle} />
         <input placeholder="Nom" value={fields.lastName} onChange={e => upd('lastName', e.target.value)} style={newFieldStyle} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+        <select
+          value={fields.language || ''}
+          onChange={e => { setLangTouched(true); setFields(p => ({ ...p, language: (e.target.value || undefined) as ContactLanguage | undefined })) }}
+          style={newFieldStyle}
+        >
+          <option value="">Langue —</option>
+          {CONTACT_LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={{ padding: '0.35rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '6px', background: '#fff', color: '#555', fontSize: '0.7rem', cursor: 'pointer' }}>Annuler</button>

@@ -12,6 +12,18 @@ export const CRM_STATUSES = [
 
 export type CrmStatus = (typeof CRM_STATUSES)[number]
 
+export const CONTACT_LANGUAGES = ['FR', 'EN'] as const
+export type ContactLanguage = (typeof CONTACT_LANGUAGES)[number]
+
+export const COMPANY_SIZES = ['Startup', 'Scaleup', 'ETI', 'Grand groupe'] as const
+export type CompanySize = (typeof COMPANY_SIZES)[number]
+
+export const COMPANY_LOCATIONS = ['FR', 'Europe_US', 'Autre'] as const
+export type CompanyLocation = (typeof COMPANY_LOCATIONS)[number]
+
+export const COMPANY_SECTORS = ['LogicielsSante', 'MedTechBioPharma', 'SanteB2C', 'Autre'] as const
+export type CompanySector = (typeof COMPANY_SECTORS)[number]
+
 /** Priority index: higher = more advanced in pipeline */
 const STATUS_PRIORITY: Record<CrmStatus, number> = {
   'Non qualifié': 0,
@@ -38,6 +50,9 @@ export type CrmContact = {
   phone?: string
   jobTitle?: string
   company?: string
+  /** Preferred outreach language. Auto-detected on create (".fr" TLD or
+   *  French diacritics → FR, else EN) and editable in the admin. */
+  language?: ContactLanguage
   /** ISO timestamp of the last successful Dropcontact enrichment, plus the
    *  request_id for traceability. Lets the UI surface "Enriched on X" and
    *  rate-limit re-enrichments. */
@@ -85,6 +100,11 @@ export type CrmCompany = {
   notes: string
   createdAt: string
   updatedAt: string
+  /** Scoring attributes — drive computeCompanyScore. All optional so legacy
+   *  records stay valid; UI shows a 0/dash badge until renseigned. */
+  size?: CompanySize
+  location?: CompanyLocation
+  sector?: CompanySector
   /**
    * Chronological log of status transitions, used by the Analytics funnel.
    * Back-filled on read for legacy companies created before this field existed
@@ -96,6 +116,42 @@ export type CrmCompany = {
   /** ISO timestamp of the last successful push to Notion. Compared against
    *  updatedAt to detect records that need re-patching. */
   notionSyncedAt?: string
+}
+
+const SIZE_PTS: Record<CompanySize, number> = { Startup: 5, Scaleup: 12, ETI: 20, 'Grand groupe': 25 }
+const LOCATION_PTS: Record<CompanyLocation, number> = { FR: 25, Europe_US: 15, Autre: 5 }
+const SECTOR_PTS: Record<CompanySector, number> = { LogicielsSante: 25, MedTechBioPharma: 18, SanteB2C: 10, Autre: 3 }
+
+export type CompanyScore = {
+  total: number
+  size: number
+  location: number
+  sector: number
+  engagement: number
+}
+
+export function computeCompanyScore(co: CrmCompany): CompanyScore {
+  const size = co.size ? SIZE_PTS[co.size] : 0
+  const location = co.location ? LOCATION_PTS[co.location] : 0
+  const sector = co.sector ? SECTOR_PTS[co.sector] : 0
+
+  let engagement = 0
+  for (const c of co.contacts) {
+    engagement += Math.min(c.visits?.length || 0, 10)
+    const src = (c.source || '').toLowerCase()
+    if (src.includes('brochure')) engagement += 3
+    if (src.includes('lemcal')) engagement += 2
+  }
+  engagement = Math.min(engagement, 25)
+
+  return { total: size + location + sector + engagement, size, location, sector, engagement }
+}
+
+export function detectLanguage(input: { email?: string; firstName?: string }): ContactLanguage {
+  const email = (input.email || '').toLowerCase()
+  if (email.endsWith('.fr')) return 'FR'
+  if (/[éèêëàâäîïôöûüç]/i.test(input.firstName || '')) return 'FR'
+  return 'EN'
 }
 
 export type CrmData = {

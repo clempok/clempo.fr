@@ -1,6 +1,12 @@
 import type { Handler } from '@netlify/functions'
 import { checkAuth } from './_analytics'
-import { readCrm, writeCrm, CRM_STATUSES, type CrmStatus, type CrmContact, type CrmCompany, type CrmTask } from './_crm'
+import {
+  readCrm, writeCrm,
+  CRM_STATUSES, CONTACT_LANGUAGES, COMPANY_SIZES, COMPANY_LOCATIONS, COMPANY_SECTORS,
+  detectLanguage,
+  type CrmStatus, type CrmContact, type CrmCompany, type CrmTask,
+  type ContactLanguage, type CompanySize, type CompanyLocation, type CompanySector,
+} from './_crm'
 import { buildInputFromContact, submitDropcontactSearch } from './_dropcontact'
 
 const handler: Handler = async (event) => {
@@ -34,6 +40,15 @@ const handler: Handler = async (event) => {
         if (fields.status && !CRM_STATUSES.includes(fields.status as CrmStatus)) {
           return { statusCode: 400, body: JSON.stringify({ error: 'Invalid status' }) }
         }
+        if (fields.size !== undefined && fields.size !== null && !COMPANY_SIZES.includes(fields.size as CompanySize)) {
+          return { statusCode: 400, body: JSON.stringify({ error: 'Invalid size' }) }
+        }
+        if (fields.location !== undefined && fields.location !== null && !COMPANY_LOCATIONS.includes(fields.location as CompanyLocation)) {
+          return { statusCode: 400, body: JSON.stringify({ error: 'Invalid location' }) }
+        }
+        if (fields.sector !== undefined && fields.sector !== null && !COMPANY_SECTORS.includes(fields.sector as CompanySector)) {
+          return { statusCode: 400, body: JSON.stringify({ error: 'Invalid sector' }) }
+        }
         const now = new Date().toISOString()
         if (fields.name !== undefined) company.name = fields.name
         if (fields.status !== undefined) {
@@ -48,6 +63,9 @@ const handler: Handler = async (event) => {
           }
         }
         if (fields.notes !== undefined) company.notes = fields.notes
+        if (fields.size !== undefined) company.size = fields.size || undefined
+        if (fields.location !== undefined) company.location = fields.location || undefined
+        if (fields.sector !== undefined) company.sector = fields.sector || undefined
         company.updatedAt = now
         await writeCrm(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true, company }) }
@@ -100,6 +118,9 @@ const handler: Handler = async (event) => {
         if (!company) return { statusCode: 404, body: JSON.stringify({ error: 'Company not found' }) }
         const contact = company.contacts.find(c => c.id === contactId)
         if (!contact) return { statusCode: 404, body: JSON.stringify({ error: 'Contact not found' }) }
+        if (fields.language !== undefined && fields.language !== null && !CONTACT_LANGUAGES.includes(fields.language as ContactLanguage)) {
+          return { statusCode: 400, body: JSON.stringify({ error: 'Invalid language' }) }
+        }
         if (fields.email !== undefined) contact.email = fields.email
         if (fields.firstName !== undefined) contact.firstName = fields.firstName
         if (fields.lastName !== undefined) contact.lastName = fields.lastName
@@ -109,6 +130,7 @@ const handler: Handler = async (event) => {
         if (fields.phone !== undefined) contact.phone = fields.phone
         if (fields.jobTitle !== undefined) contact.jobTitle = fields.jobTitle
         if (fields.company !== undefined) contact.company = fields.company
+        if (fields.language !== undefined) contact.language = fields.language || undefined
         contact.updatedAt = new Date().toISOString()
         await writeCrm(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true, contact }) }
@@ -133,6 +155,9 @@ const handler: Handler = async (event) => {
           }
         }
         const now = new Date().toISOString()
+        const language = fields.language && CONTACT_LANGUAGES.includes(fields.language as ContactLanguage)
+          ? fields.language as ContactLanguage
+          : detectLanguage({ email, firstName: fields.firstName })
         const contact: CrmContact = {
           id: email.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `c-${Date.now()}`,
           email,
@@ -141,6 +166,7 @@ const handler: Handler = async (event) => {
           source: fields.source || 'Manual',
           notes: fields.notes || '',
           linkedIn: fields.linkedIn || undefined,
+          language,
           createdAt: now,
           updatedAt: now,
         }
