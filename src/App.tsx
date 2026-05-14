@@ -19,6 +19,7 @@ import QuotePage from './pages/QuotePage'
 import TransitionCMO from './pages/TransitionCMO'
 import Specialites from './pages/Specialites'
 import SpecialitePage from './pages/SpecialitePage'
+import NpsThanks from './pages/NpsThanks'
 
 // Normalize a referrer hostname into a short stable label so the admin dashboard
 // can group "www.google.fr", "google.com", "www.google.co.uk" under "google".
@@ -156,6 +157,7 @@ function Shell() {
         <Route path="/transition-cmo" element={<TransitionCMO />} />
         <Route path="/parts-de-marche-logiciels-medicaux" element={<Specialites />} />
         <Route path="/specialites/:slug" element={<SpecialitePage />} />
+        <Route path="/merci-nps" element={<NpsThanks />} />
       </Routes>
       {!isAdmin && !isQuote && <Footer />}
       {!isAdmin && !isQuote && <ReturnVisitorPopup />}

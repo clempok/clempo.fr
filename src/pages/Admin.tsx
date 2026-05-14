@@ -214,6 +214,19 @@ const SECTOR_LABELS: Record<CompanySector, string> = {
 
 type CrmContactVisit = { ts: string; path: string }
 
+type CrmNpsResponse = {
+  id: string
+  resource: string
+  resourceLabel: string
+  downloadedAt: string
+  askedAt?: string
+  askedToken?: string
+  score?: number
+  scoredAt?: string
+  comment?: string
+  commentAt?: string
+}
+
 type CrmContact = {
   id: string
   email: string
@@ -233,6 +246,7 @@ type CrmContact = {
   notionPageId?: string
   visits?: CrmContactVisit[]
   lastVisitAlertAt?: string
+  npsResponses?: CrmNpsResponse[]
 }
 
 type CrmTask = {
@@ -273,6 +287,40 @@ const SECTOR_PTS: Record<CompanySector, number> = { LogicielsSante: 20, MedTechB
 type HierarchyLevel = 'Founder' | 'CLevel' | 'Manager' | 'Other'
 const HIERARCHY_PTS: Record<HierarchyLevel, number> = { Founder: 20, CLevel: 13, Manager: 6, Other: 0 }
 const HIERARCHY_LABELS: Record<HierarchyLevel, string> = { Founder: 'Founder', CLevel: 'C-level', Manager: 'Manager', Other: 'Autre' }
+
+function bestNpsScore(c: CrmContact): number | null {
+  if (!c.npsResponses) return null
+  const scored = c.npsResponses.filter(r => typeof r.score === 'number') as (CrmNpsResponse & { score: number })[]
+  if (scored.length === 0) return null
+  return scored.reduce((best, r) => r.score > best ? r.score : best, scored[0].score)
+}
+
+function matchesNpsFilter(
+  c: CrmContact,
+  filter: 'promoters' | 'passives' | 'detractors' | 'pending',
+): boolean {
+  if (!c.npsResponses || c.npsResponses.length === 0) return false
+  if (filter === 'pending') return c.npsResponses.some(r => r.score === undefined)
+  return c.npsResponses.some(r => {
+    if (typeof r.score !== 'number') return false
+    if (filter === 'promoters') return r.score >= 9
+    if (filter === 'passives') return r.score >= 7 && r.score <= 8
+    if (filter === 'detractors') return r.score <= 6
+    return false
+  })
+}
+
+function npsScoreColor(score: number): string {
+  if (score <= 6) return '#dc2626'
+  if (score <= 8) return '#f59e0b'
+  return '#16a34a'
+}
+
+function npsScoreLabel(score: number): string {
+  if (score <= 6) return 'Détracteur'
+  if (score <= 8) return 'Passif'
+  return 'Promoteur'
+}
 
 function classifyJobTitle(title: string | undefined): HierarchyLevel | null {
   if (!title) return null
@@ -1821,6 +1869,7 @@ function CrmView({ password }: { password: string }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CrmStatus | 'all'>('all')
   const [tierFilter, setTierFilter] = useState<'all' | 'top' | 'good' | 'mid' | 'low'>('all')
+  const [npsFilter, setNpsFilter] = useState<'all' | 'promoters' | 'passives' | 'detractors' | 'pending'>('all')
   const [sortBy, setSortBy] = useState<'name' | 'score'>('name')
   const [expandedCoId, setExpandedCoId] = useState<string | null>(null)
   const [expandedContactId, setExpandedContactId] = useState<string | null>(null)
@@ -2171,6 +2220,10 @@ function CrmView({ password }: { password: string }) {
       .filter(({ co }) => statusFilter === 'all' || co.status === statusFilter)
       .filter(({ score }) => tierFilter === 'all' || scoreTier(score.total) === tierFilter)
       .filter(({ co }) => {
+        if (npsFilter === 'all') return true
+        return co.contacts.some(c => matchesNpsFilter(c, npsFilter))
+      })
+      .filter(({ co }) => {
         if (!q) return true
         if (co.name.toLowerCase().includes(q)) return true
         return co.contacts.some(c =>
@@ -2183,7 +2236,18 @@ function CrmView({ password }: { password: string }) {
         if (sortBy === 'score') return b.score.total - a.score.total
         return a.co.name.toLowerCase() < b.co.name.toLowerCase() ? -1 : 1
       })
-  }, [companies, search, statusFilter, tierFilter, sortBy])
+  }, [companies, search, statusFilter, tierFilter, npsFilter, sortBy])
+
+  const npsCounts = useMemo(() => {
+    const c = { all: companies?.length || 0, promoters: 0, passives: 0, detractors: 0, pending: 0 }
+    companies?.forEach(co => {
+      if (co.contacts.some(x => matchesNpsFilter(x, 'promoters'))) c.promoters += 1
+      if (co.contacts.some(x => matchesNpsFilter(x, 'passives'))) c.passives += 1
+      if (co.contacts.some(x => matchesNpsFilter(x, 'detractors'))) c.detractors += 1
+      if (co.contacts.some(x => matchesNpsFilter(x, 'pending'))) c.pending += 1
+    })
+    return c
+  }, [companies])
 
   const tierCounts = useMemo(() => {
     const c: Record<'all' | 'top' | 'good' | 'mid' | 'low', number> = { all: companies?.length || 0, top: 0, good: 0, mid: 0, low: 0 }
@@ -2285,6 +2349,15 @@ function CrmView({ password }: { password: string }) {
         {CRM_STATUSES.map(s => (
           <FilterPill key={s} label={`${s} (${counts[s] || 0})`} active={statusFilter === s} onClick={() => setStatusFilter(s)} color={STATUS_COLORS[s]} />
         ))}
+      </div>
+
+      {/* NPS filter pills */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+        <FilterPill label={`NPS : tous (${npsCounts.all})`} active={npsFilter === 'all'} onClick={() => setNpsFilter('all')} />
+        <FilterPill label={`Promoteurs 9-10 (${npsCounts.promoters})`} active={npsFilter === 'promoters'} onClick={() => setNpsFilter('promoters')} color={{ bg: '#16a34a', fg: '#fff' }} />
+        <FilterPill label={`Passifs 7-8 (${npsCounts.passives})`} active={npsFilter === 'passives'} onClick={() => setNpsFilter('passives')} color={{ bg: '#f59e0b', fg: '#fff' }} />
+        <FilterPill label={`Détracteurs ≤6 (${npsCounts.detractors})`} active={npsFilter === 'detractors'} onClick={() => setNpsFilter('detractors')} color={{ bg: '#dc2626', fg: '#fff' }} />
+        <FilterPill label={`En attente (${npsCounts.pending})`} active={npsFilter === 'pending'} onClick={() => setNpsFilter('pending')} color={{ bg: '#6366f1', fg: '#fff' }} />
       </div>
 
       {/* Score tier filter + sort toggle */}
@@ -2602,6 +2675,24 @@ function CrmView({ password }: { password: string }) {
                                   {c.language}
                                 </span>
                               )}
+                              {(() => {
+                                const best = bestNpsScore(c)
+                                if (best === null) return null
+                                return (
+                                  <span style={{
+                                    display: 'inline-block',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    background: npsScoreColor(best),
+                                    color: '#fff',
+                                    fontSize: '0.62rem',
+                                    fontWeight: 700,
+                                    letterSpacing: '0.02em',
+                                  }} title={`NPS ${best}/10 (${npsScoreLabel(best)})`}>
+                                    NPS {best}
+                                  </span>
+                                )
+                              })()}
                               <span>{c.source}</span>
                             </div>
                             <div style={{ fontSize: '0.65rem', color: '#bbb' }}>{expandedContactId === c.id ? '▲' : '▼'}</div>
@@ -2649,6 +2740,63 @@ function CrmView({ password }: { password: string }) {
                                   border: `1px solid ${enrichMessage.tone === 'err' ? '#fecaca' : enrichMessage.tone === 'ok' ? '#bbf7d0' : '#e2e8f0'}`,
                                 }}>
                                   {enrichMessage.text}
+                                </div>
+                              )}
+                              {c.npsResponses && c.npsResponses.length > 0 && (
+                                <div style={{ marginTop: '0.6rem' }}>
+                                  <label style={{ ...crmLabelStyle, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    📊 NPS
+                                    <span style={{ background: '#ede9fe', color: '#5b21b6', borderRadius: '4px', padding: '0.1rem 0.4rem', fontSize: '0.6rem', fontWeight: 700 }}>
+                                      {c.npsResponses.length}
+                                    </span>
+                                  </label>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                    {[...c.npsResponses].reverse().map(r => {
+                                      const hasScore = typeof r.score === 'number'
+                                      const scoreColor = hasScore ? npsScoreColor(r.score as number) : '#94a3b8'
+                                      const scoreLabel = hasScore ? npsScoreLabel(r.score as number) : (r.askedAt ? 'En attente de réponse' : 'En attente J+1')
+                                      return (
+                                        <div key={r.id} style={{ padding: '0.5rem 0.6rem', background: '#fff', borderRadius: '6px', border: '1px solid #eee' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                            <span style={{
+                                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                              minWidth: 36, height: 24, padding: '0 6px',
+                                              background: scoreColor, color: '#fff',
+                                              borderRadius: '6px', fontWeight: 700, fontSize: '0.78rem',
+                                            }}>
+                                              {hasScore ? `${r.score}/10` : '—'}
+                                            </span>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: scoreColor }}>
+                                              {scoreLabel}
+                                            </span>
+                                            <span style={{ marginLeft: 'auto', fontSize: '0.65rem', color: '#999' }}>
+                                              {r.resourceLabel}
+                                            </span>
+                                          </div>
+                                          <div style={{ fontSize: '0.65rem', color: '#888', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            <span>📥 Téléchargé le {new Date(r.downloadedAt).toLocaleDateString('fr-FR')}</span>
+                                            {r.askedAt && <span>📨 Demandé le {new Date(r.askedAt).toLocaleDateString('fr-FR')}</span>}
+                                            {r.scoredAt && <span>✅ Noté le {new Date(r.scoredAt).toLocaleDateString('fr-FR')}</span>}
+                                          </div>
+                                          {r.comment && (
+                                            <div style={{
+                                              marginTop: '0.4rem',
+                                              padding: '0.4rem 0.6rem',
+                                              background: '#f8fafc',
+                                              borderLeft: `3px solid ${scoreColor}`,
+                                              borderRadius: '4px',
+                                              fontSize: '0.72rem',
+                                              color: '#334155',
+                                              whiteSpace: 'pre-wrap',
+                                              lineHeight: 1.5,
+                                            }}>
+                                              "{r.comment}"
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
                                 </div>
                               )}
                               {c.visits && c.visits.length > 0 && (

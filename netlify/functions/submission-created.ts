@@ -1,6 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { recordEvent } from './_analytics'
-import { upsertContact } from './_crm'
+import { upsertContact, addPendingNps } from './_crm'
 import { JOURNALISTES_SHEET_URL } from './_journalistes'
 
 /**
@@ -117,6 +117,7 @@ async function handleJournalistes(d: {
       status: 'Lead',
     }, 'Lead'),
   ])
+  await addPendingNps(d.email, 'journalistes', 'Liste journalistes santé')
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
@@ -192,6 +193,7 @@ async function handleDataDownload(d: {
       status: 'Lead',
     }, 'Lead'),
   ])
+  await addPendingNps(d.email, d.slug || 'data-download', sourceLabel)
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {

@@ -39,6 +39,22 @@ export type CrmContactVisit = {
   path: string // e.g. "/articles/marketing-healthtech"
 }
 
+/** One NPS solicitation tied to a single resource download. The pending entry
+ *  is created at download time by `addPendingNps`; the daily cron picks it up
+ *  at J+1 and sets askedAt; the public response endpoints fill score / comment. */
+export type CrmNpsResponse = {
+  id: string              // crypto.randomUUID()
+  resource: string        // technical slug, e.g. "medecins-generalistes" | "journalistes"
+  resourceLabel: string   // human label, e.g. "Data — Médecins généralistes"
+  downloadedAt: string    // ISO timestamp of the download
+  askedAt?: string        // ISO — when the NPS email was sent
+  askedToken?: string     // HMAC token kept for audit/idempotence
+  score?: number          // 0-10
+  scoredAt?: string
+  comment?: string
+  commentAt?: string
+}
+
 export type CrmContact = {
   id: string
   email: string
@@ -74,6 +90,8 @@ export type CrmContact = {
   /** ISO timestamp of the last successful push to Notion. Compared against
    *  updatedAt to detect records that need re-patching. */
   notionSyncedAt?: string
+  /** NPS solicitations, one per resource download. */
+  npsResponses?: CrmNpsResponse[]
 }
 
 export type CrmTask = {
@@ -634,5 +652,47 @@ export async function upsertContact(
     await writeCrm(data)
   } catch (err) {
     console.error('upsertContact error:', err)
+  }
+}
+
+/**
+ * Record a pending NPS solicitation for a contact: a single resource download.
+ * The daily cron (scheduled-nps-ask) scans these and sends the NPS email at J+1.
+ * Each call creates a new entry, even for the same resource — re-downloads
+ * legitimately deserve a fresh ask.
+ */
+export async function addPendingNps(
+  email: string,
+  resource: string,
+  resourceLabel: string,
+): Promise<void> {
+  try {
+    const data = await readCrm()
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail) return
+
+    const now = new Date().toISOString()
+
+    for (const co of data.companies) {
+      const contact = co.contacts.find(c => c.email.toLowerCase() === normalizedEmail)
+      if (contact) {
+        if (!contact.npsResponses) contact.npsResponses = []
+        contact.npsResponses.push({
+          id: globalThis.crypto?.randomUUID
+            ? globalThis.crypto.randomUUID()
+            : `nps-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+          resource,
+          resourceLabel,
+          downloadedAt: now,
+        })
+        contact.updatedAt = now
+        co.updatedAt = now
+        await writeCrm(data)
+        return
+      }
+    }
+    console.warn('addPendingNps: contact not found for', normalizedEmail)
+  } catch (err) {
+    console.error('addPendingNps error:', err)
   }
 }

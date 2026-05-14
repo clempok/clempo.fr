@@ -70,6 +70,23 @@ export const translations = {
     footer: {
       contact: 'Contact',
     },
+    nps_thanks: {
+      doc_title: 'Merci pour votre retour | Clempo.fr',
+      title: 'Merci pour votre retour',
+      score_prefix: 'Vous avez noté ',
+      score_suffix: '/10',
+      ask_comment: 'Qu\'est-ce qui motive votre note ? (optionnel)',
+      placeholder: 'Ce qui vous a plu, ce qui manque, ce qui pourrait être amélioré…',
+      submit: 'Envoyer le commentaire',
+      submitting: 'Envoi…',
+      thanks_after: 'Merci, votre commentaire est bien reçu.',
+      error_invalid: 'Ce lien n\'est plus valide. Vous pouvez fermer cet onglet.',
+      error_send: 'L\'envoi a échoué, réessayez dans quelques instants.',
+      cta_title: 'Envie d\'aller plus loin ?',
+      cta_sub: 'Réservez 30 minutes pour parler de votre projet santé.',
+      cta_btn: 'Prendre rendez-vous →',
+      home: 'Retour à l\'accueil',
+    },
   },
   en: {
     nav: {
@@ -139,6 +156,23 @@ export const translations = {
     },
     footer: {
       contact: 'Contact',
+    },
+    nps_thanks: {
+      doc_title: 'Thanks for your feedback | Clempo.fr',
+      title: 'Thanks for your feedback',
+      score_prefix: 'You rated this ',
+      score_suffix: '/10',
+      ask_comment: 'What\'s the main reason for your score? (optional)',
+      placeholder: 'What worked, what was missing, what could be improved…',
+      submit: 'Send comment',
+      submitting: 'Sending…',
+      thanks_after: 'Got it — thanks for sharing.',
+      error_invalid: 'This link is no longer valid. You can close this tab.',
+      error_send: 'Sending failed, please try again in a few seconds.',
+      cta_title: 'Want to go deeper?',
+      cta_sub: 'Book 30 minutes to talk about your healthcare project.',
+      cta_btn: 'Book a call →',
+      home: 'Back to home',
     },
   },
 }
