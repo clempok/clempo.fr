@@ -279,6 +279,28 @@ const handler: Handler = async (event) => {
 
       // --- One-shot data ops ---
 
+      if (action === 'backfill-locations') {
+        // Heuristic: for companies without `location`, set FR if at least half
+        // of contact emails end with .fr. Conservative — never overwrites a
+        // value already set, never assigns Europe_US/Autre (too ambiguous).
+        let updated = 0
+        const updatedIds: string[] = []
+        const now = new Date().toISOString()
+        for (const co of data.companies) {
+          if (co.location) continue
+          if (co.contacts.length === 0) continue
+          const frCount = co.contacts.filter(c => (c.email || '').toLowerCase().endsWith('.fr')).length
+          if (frCount >= Math.ceil(co.contacts.length / 2)) {
+            co.location = 'FR'
+            co.updatedAt = now
+            updated++
+            updatedIds.push(co.id)
+          }
+        }
+        await writeCrm(data)
+        return { statusCode: 200, body: JSON.stringify({ ok: true, updated, updatedIds }) }
+      }
+
       if (action === 'backdate-status-transitions') {
         // Backdate statusHistory entries for a target status (e.g. 'Client') that
         // fall in [windowStartISO, windowEndISO) — except for company IDs in

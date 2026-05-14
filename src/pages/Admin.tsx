@@ -1804,6 +1804,10 @@ function CrmView({ password }: { password: string }) {
   const [newTaskDesc, setNewTaskDesc] = useState('')
   const [enrichingId, setEnrichingId] = useState<string | null>(null)
   const [enrichMessage, setEnrichMessage] = useState<{ contactId: string; text: string; tone: 'ok' | 'info' | 'err' } | null>(null)
+  const [classifyingId, setClassifyingId] = useState<string | null>(null)
+  const [classifyMessage, setClassifyMessage] = useState<{ companyId: string; text: string; tone: 'ok' | 'info' | 'err' } | null>(null)
+  const [backfilling, setBackfilling] = useState(false)
+  const [backfillMessage, setBackfillMessage] = useState<{ text: string; tone: 'ok' | 'info' | 'err' } | null>(null)
 
   const authHeaders = useMemo(
     () => ({ Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' }),
@@ -1965,6 +1969,59 @@ function CrmView({ password }: { password: string }) {
     }
   }
 
+  /* ---- Classification (LLM) ---- */
+  const classifyCompany = async (companyId: string, overwrite = false) => {
+    setClassifyingId(companyId)
+    setClassifyMessage({ companyId, text: 'Analyse en cours…', tone: 'info' })
+    try {
+      const res = await fetch('/.netlify/functions/admin-classify-company', {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ companyId, overwrite }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || json?.details || `HTTP ${res.status}`)
+      const c = json.classification as { size: string | null; location: string | null; sector: string | null; confidence: string; reasoning: string }
+      if (json.applied && json.company) {
+        // Replace the company in state with the persisted one (preserves contacts/tasks).
+        setCompanies(prev => prev?.map(co => co.id === companyId ? json.company : co) || null)
+      }
+      const parts = [
+        c.size ? `Taille=${c.size}` : null,
+        c.location ? `Loc=${c.location}` : null,
+        c.sector ? `Secteur=${c.sector}` : null,
+      ].filter(Boolean)
+      const summary = parts.length === 0
+        ? `Aucun signal fiable (${c.confidence}). ${c.reasoning}`
+        : `${parts.join(' · ')} (${c.confidence}). ${c.reasoning}`
+      setClassifyMessage({ companyId, text: summary, tone: parts.length ? 'ok' : 'info' })
+    } catch (err) {
+      setClassifyMessage({ companyId, text: `Erreur : ${String(err)}`, tone: 'err' })
+    } finally {
+      setClassifyingId(null)
+    }
+  }
+
+  /* ---- Bulk heuristic location backfill ---- */
+  const backfillLocations = async () => {
+    if (!confirm('Renseigner la localisation = FR sur toutes les entreprises avec ≥50% d\'emails .fr ? (les valeurs déjà saisies ne sont pas écrasées)')) return
+    setBackfilling(true)
+    setBackfillMessage({ text: 'Backfill en cours…', tone: 'info' })
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'backfill-locations' }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`)
+      setBackfillMessage({ text: `${json.updated} entreprise${json.updated > 1 ? 's' : ''} mise${json.updated > 1 ? 's' : ''} à jour (localisation = FR).`, tone: 'ok' })
+      await refresh()
+    } catch (err) {
+      setBackfillMessage({ text: `Erreur : ${String(err)}`, tone: 'err' })
+    } finally {
+      setBackfilling(false)
+    }
+  }
+
   /* ---- Task actions ---- */
   const createTask = async (companyId: string) => {
     if (!newTaskTitle.trim() || !newTaskDate) return
@@ -2080,7 +2137,7 @@ function CrmView({ password }: { password: string }) {
             {companies?.length || 0} entreprises · {totalContacts} contacts
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => setShowAddCompany(true)}
             style={{
@@ -2089,6 +2146,18 @@ function CrmView({ password }: { password: string }) {
             }}
           >
             + Nouvelle entreprise
+          </button>
+          <button
+            onClick={backfillLocations}
+            disabled={backfilling}
+            title="Renseigne automatiquement location=FR sur les entreprises avec ≥50% d'emails .fr"
+            style={{
+              padding: '0.5rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+              background: backfilling ? '#f4f4f5' : '#fff', color: '#555',
+              fontSize: '0.8rem', cursor: backfilling ? 'wait' : 'pointer', fontWeight: 600,
+            }}
+          >
+            {backfilling ? 'Backfill…' : '🇫🇷 Backfill FR'}
           </button>
           <button
             onClick={refresh}
@@ -2101,6 +2170,17 @@ function CrmView({ password }: { password: string }) {
           </button>
         </div>
       </div>
+
+      {backfillMessage && (
+        <div style={{
+          marginBottom: '0.75rem', padding: '0.5rem 0.8rem', borderRadius: '8px', fontSize: '0.75rem',
+          background: backfillMessage.tone === 'err' ? '#fef2f2' : backfillMessage.tone === 'ok' ? '#f0fdf4' : '#f1f5f9',
+          color: backfillMessage.tone === 'err' ? '#b91c1c' : backfillMessage.tone === 'ok' ? '#166534' : '#475569',
+          border: `1px solid ${backfillMessage.tone === 'err' ? '#fecaca' : backfillMessage.tone === 'ok' ? '#bbf7d0' : '#e2e8f0'}`,
+        }}>
+          {backfillMessage.text}
+        </div>
+      )}
 
       {/* Status filter pills */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
@@ -2319,20 +2399,49 @@ function CrmView({ password }: { password: string }) {
                       />
                     </div>
 
-                    {/* Score breakdown */}
+                    {/* Score breakdown + LLM classify */}
                     {(() => {
                       const s = computeCompanyScore(co)
+                      const isClassifying = classifyingId === co.id
+                      const hasAnyClass = !!(co.size && co.location && co.sector)
                       return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.75rem', padding: '0.5rem 0.7rem', background: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px', fontSize: '0.7rem' }}>
-                          <span style={{ fontWeight: 700, color: '#111' }}>Score : {s.total}/100</span>
-                          <span style={{ color: '#999' }}>·</span>
-                          <span style={{ color: '#555' }}>Taille {s.size}</span>
-                          <span style={{ color: '#999' }}>·</span>
-                          <span style={{ color: '#555' }}>Loc {s.location}</span>
-                          <span style={{ color: '#999' }}>·</span>
-                          <span style={{ color: '#555' }}>Secteur {s.sector}</span>
-                          <span style={{ color: '#999' }}>·</span>
-                          <span style={{ color: '#555' }}>Engagement {s.engagement}</span>
+                        <div style={{ marginBottom: '0.75rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0.7rem', background: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px', fontSize: '0.7rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 700, color: '#111' }}>Score : {s.total}/100</span>
+                            <span style={{ color: '#999' }}>·</span>
+                            <span style={{ color: '#555' }}>Taille {s.size}</span>
+                            <span style={{ color: '#999' }}>·</span>
+                            <span style={{ color: '#555' }}>Loc {s.location}</span>
+                            <span style={{ color: '#999' }}>·</span>
+                            <span style={{ color: '#555' }}>Secteur {s.sector}</span>
+                            <span style={{ color: '#999' }}>·</span>
+                            <span style={{ color: '#555' }}>Engagement {s.engagement}</span>
+                            <button
+                              onClick={() => classifyCompany(co.id, hasAnyClass)}
+                              disabled={isClassifying}
+                              title={hasAnyClass ? 'Re-classifier (écrase les valeurs)' : 'Deviner Taille/Loc/Secteur via Claude'}
+                              style={{
+                                marginLeft: 'auto', padding: '0.3rem 0.6rem',
+                                border: `1px solid ${ACCENT}`, borderRadius: '6px',
+                                background: isClassifying ? '#f4f4f5' : '#fff',
+                                color: isClassifying ? '#999' : ACCENT,
+                                fontSize: '0.65rem', fontWeight: 600,
+                                cursor: isClassifying ? 'wait' : 'pointer',
+                              }}
+                            >
+                              {isClassifying ? 'Analyse…' : hasAnyClass ? '🤖 Re-classifier' : '🤖 Auto-classifier'}
+                            </button>
+                          </div>
+                          {classifyMessage?.companyId === co.id && (
+                            <div style={{
+                              marginTop: '0.4rem', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem',
+                              background: classifyMessage.tone === 'err' ? '#fef2f2' : classifyMessage.tone === 'ok' ? '#f0fdf4' : '#f1f5f9',
+                              color: classifyMessage.tone === 'err' ? '#b91c1c' : classifyMessage.tone === 'ok' ? '#166534' : '#475569',
+                              border: `1px solid ${classifyMessage.tone === 'err' ? '#fecaca' : classifyMessage.tone === 'ok' ? '#bbf7d0' : '#e2e8f0'}`,
+                            }}>
+                              {classifyMessage.text}
+                            </div>
+                          )}
                         </div>
                       )
                     })()}
