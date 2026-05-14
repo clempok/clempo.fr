@@ -80,6 +80,8 @@ const COPY = {
     hello: (name: string) => name ? `Bonjour ${name},` : 'Bonjour,',
     body: (label: string) =>
       `Vous avez téléchargé hier <strong>${label}</strong>. J'aimerais savoir si le contenu vous a été utile.`,
+    bodyBacklog: (label: string) =>
+      `Vous avez récemment téléchargé <strong>${label}</strong>. J'aimerais savoir si le contenu vous a été utile.`,
     question: 'Sur une échelle de 0 à 10, quelle est la probabilité que vous recommandiez cette ressource à un collègue ?',
     legendLow: '0 — Pas du tout',
     legendHigh: '10 — Très probablement',
@@ -91,6 +93,8 @@ const COPY = {
     hello: (name: string) => name ? `Hi ${name},` : 'Hi,',
     body: (label: string) =>
       `Yesterday you downloaded <strong>${label}</strong>. I'd love to know whether it was useful to you.`,
+    bodyBacklog: (label: string) =>
+      `You recently downloaded <strong>${label}</strong>. I'd love to know whether it was useful to you.`,
     question: 'On a scale from 0 to 10, how likely are you to recommend this resource to a colleague?',
     legendLow: '0 — Not at all',
     legendHigh: '10 — Very likely',
@@ -106,10 +110,12 @@ export function buildNpsEmailHtml(opts: {
   scoreUrlFor: (score: number) => string
   isDryRun: boolean
   realRecipient: string
+  isBacklog?: boolean
 }): { subject: string; html: string } {
   const lang = opts.language === 'EN' ? 'EN' : 'FR'
   const t = COPY[lang]
   const subject = t.subject(opts.resourceLabel)
+  const bodyText = opts.isBacklog ? t.bodyBacklog(opts.resourceLabel) : t.body(opts.resourceLabel)
 
   const buttonsHtml = Array.from({ length: 11 }, (_, n) => {
     const color = scoreColor(n)
@@ -132,7 +138,7 @@ export function buildNpsEmailHtml(opts: {
   <div style="max-width:560px;margin:0 auto;padding:32px 20px;font-family:Arial,Helvetica,sans-serif;color:#0a0a0a;">
     ${dryRunBanner}
     <p style="font-size:16px;margin:0 0 16px;">${t.hello(opts.firstName)}</p>
-    <p style="font-size:16px;line-height:1.55;margin:0 0 16px;">${t.body(opts.resourceLabel)}</p>
+    <p style="font-size:16px;line-height:1.55;margin:0 0 16px;">${bodyText}</p>
     <p style="font-size:16px;line-height:1.55;margin:0 0 24px;">${t.question}</p>
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;margin:0 auto;">
       <tr>${buttonsHtml}</tr>
@@ -175,7 +181,7 @@ const OWNER_EMAIL = 'clement.pougetosmont@gmail.com'
 export async function sendNpsEmailFor(
   contact: CrmContact,
   np: CrmNpsResponse,
-  opts: { apiKey: string; isDryRun: boolean },
+  opts: { apiKey: string; isDryRun: boolean; isBacklog?: boolean },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!contact.email) return { ok: false, error: 'no-email' }
 
@@ -194,6 +200,7 @@ export async function sendNpsEmailFor(
     scoreUrlFor: (score) => npsRespondUrl(token, score),
     isDryRun: opts.isDryRun,
     realRecipient: contact.email,
+    isBacklog: opts.isBacklog,
   })
 
   const recipient = opts.isDryRun ? OWNER_EMAIL : contact.email

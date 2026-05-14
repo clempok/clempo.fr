@@ -1883,6 +1883,11 @@ function CrmView({ password }: { password: string }) {
   const [enrichMessage, setEnrichMessage] = useState<{ contactId: string; text: string; tone: 'ok' | 'info' | 'err' } | null>(null)
   const [triggeringNpsId, setTriggeringNpsId] = useState<string | null>(null)
   const [npsTriggerMessage, setNpsTriggerMessage] = useState<{ responseId: string; text: string; tone: 'ok' | 'err' } | null>(null)
+  const [backlogDays, setBacklogDays] = useState(15)
+  const [backlogState, setBacklogState] = useState<'idle' | 'previewing' | 'preview-ready' | 'sending' | 'done' | 'err'>('idle')
+  const [backlogPreview, setBacklogPreview] = useState<{ count: number; dryRun: boolean; eligibles: Array<{ contactId: string; email: string; fullName: string; resourceLabel: string; downloadedAt: string; hasExistingEntry: boolean }> } | null>(null)
+  const [backlogResult, setBacklogResult] = useState<{ sent: number; errors: number; remaining: number; dryRun: boolean; failures: Array<{ email: string; error: string }> } | null>(null)
+  const [backlogError, setBacklogError] = useState('')
   const [classifyingId, setClassifyingId] = useState<string | null>(null)
   const [classifyMessage, setClassifyMessage] = useState<{ companyId: string; text: string; tone: 'ok' | 'info' | 'err' } | null>(null)
   const [backfilling, setBackfilling] = useState(false)
@@ -2048,6 +2053,56 @@ function CrmView({ password }: { password: string }) {
     } finally {
       setEnrichingId(null)
     }
+  }
+
+  /* ---- NPS backlog campaign (15-day catchup) ---- */
+  const previewBacklog = async () => {
+    setBacklogState('previewing')
+    setBacklogError('')
+    setBacklogResult(null)
+    try {
+      const res = await fetch('/.netlify/functions/admin-nps-backlog', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ mode: 'preview', days: backlogDays }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`)
+      setBacklogPreview(json)
+      setBacklogState('preview-ready')
+    } catch (err) {
+      setBacklogError(String(err))
+      setBacklogState('err')
+    }
+  }
+
+  const sendBacklog = async () => {
+    if (!backlogPreview) return
+    setBacklogState('sending')
+    setBacklogError('')
+    try {
+      const res = await fetch('/.netlify/functions/admin-nps-backlog', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ mode: 'send', days: backlogDays }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`)
+      setBacklogResult(json)
+      setBacklogState('done')
+      // refresh data to show new askedAt values
+      void refresh()
+    } catch (err) {
+      setBacklogError(String(err))
+      setBacklogState('err')
+    }
+  }
+
+  const resetBacklog = () => {
+    setBacklogState('idle')
+    setBacklogPreview(null)
+    setBacklogResult(null)
+    setBacklogError('')
   }
 
   /* ---- NPS manual trigger (skips J+1 wait) ---- */
@@ -2391,6 +2446,143 @@ function CrmView({ password }: { password: string }) {
         {CRM_STATUSES.map(s => (
           <FilterPill key={s} label={`${s} (${counts[s] || 0})`} active={statusFilter === s} onClick={() => setStatusFilter(s)} color={STATUS_COLORS[s]} />
         ))}
+      </div>
+
+      {/* NPS backlog campaign panel */}
+      <div style={{
+        marginBottom: '0.75rem',
+        padding: '0.65rem 0.85rem',
+        background: '#faf5ff',
+        border: '1px solid #e9d5ff',
+        borderRadius: '10px',
+        fontSize: '0.78rem',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <strong style={{ color: '#5b21b6' }}>📨 Campagne NPS backlog</strong>
+          <span style={{ color: '#6b7280' }}>contacts ayant téléchargé une ressource il y a moins de</span>
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={backlogDays}
+            onChange={(e) => setBacklogDays(Math.max(1, Math.min(365, parseInt(e.target.value, 10) || 15)))}
+            disabled={backlogState === 'previewing' || backlogState === 'sending'}
+            style={{ width: 60, padding: '0.25rem 0.4rem', border: '1px solid #d4d4d8', borderRadius: '6px', fontSize: '0.78rem' }}
+          />
+          <span style={{ color: '#6b7280' }}>jours</span>
+          {(backlogState === 'idle' || backlogState === 'err') && (
+            <button
+              onClick={previewBacklog}
+              style={{
+                padding: '0.35rem 0.8rem',
+                border: `1px solid ${ACCENT}`,
+                borderRadius: '6px',
+                background: '#fff',
+                color: ACCENT,
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Voir les éligibles
+            </button>
+          )}
+          {backlogState === 'previewing' && <span style={{ color: '#6b7280' }}>Chargement…</span>}
+          {backlogState === 'preview-ready' && backlogPreview && (
+            <>
+              <span style={{ color: '#5b21b6', fontWeight: 600 }}>
+                {backlogPreview.count} éligible{backlogPreview.count > 1 ? 's' : ''}
+                {backlogPreview.dryRun && ' · DRY-RUN'}
+              </span>
+              {backlogPreview.count > 0 && (
+                <button
+                  onClick={() => {
+                    const label = backlogPreview.dryRun
+                      ? `Envoyer ${backlogPreview.count} email(s) en DRY-RUN vers toi ?`
+                      : `Envoyer ${backlogPreview.count} email(s) NPS aux prospects ? Cette action est définitive.`
+                    if (window.confirm(label)) void sendBacklog()
+                  }}
+                  style={{
+                    padding: '0.35rem 0.8rem',
+                    border: '1px solid #16a34a',
+                    borderRadius: '6px',
+                    background: '#16a34a',
+                    color: '#fff',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Envoyer maintenant
+                </button>
+              )}
+              <button
+                onClick={resetBacklog}
+                style={{
+                  padding: '0.35rem 0.6rem',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '6px',
+                  background: '#fff',
+                  color: '#666',
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Annuler
+              </button>
+            </>
+          )}
+          {backlogState === 'sending' && <span style={{ color: '#6b7280' }}>Envoi en cours, ne pas fermer…</span>}
+          {backlogState === 'done' && backlogResult && (
+            <>
+              <span style={{ color: '#166534', fontWeight: 600 }}>
+                ✅ {backlogResult.sent} envoyé(s){backlogResult.errors > 0 ? ` · ${backlogResult.errors} erreur(s)` : ''}
+                {backlogResult.remaining > 0 ? ` · ${backlogResult.remaining} restant(s)` : ''}
+                {backlogResult.dryRun && ' · DRY-RUN'}
+              </span>
+              <button
+                onClick={resetBacklog}
+                style={{ padding: '0.35rem 0.6rem', border: '1px solid #e0e0e0', borderRadius: '6px', background: '#fff', color: '#666', fontSize: '0.72rem', cursor: 'pointer' }}
+              >
+                Fermer
+              </button>
+            </>
+          )}
+        </div>
+        {backlogState === 'preview-ready' && backlogPreview && backlogPreview.count > 0 && (
+          <div style={{
+            marginTop: '0.5rem',
+            maxHeight: 180,
+            overflowY: 'auto',
+            background: '#fff',
+            border: '1px solid #ede9fe',
+            borderRadius: '6px',
+            padding: '0.35rem 0.6rem',
+            fontSize: '0.7rem',
+            lineHeight: 1.5,
+          }}>
+            {backlogPreview.eligibles.map(e => (
+              <div key={e.contactId} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', borderBottom: '1px solid #f4f4f5', padding: '0.2rem 0' }}>
+                <span style={{ flex: 1, color: '#374151' }}>
+                  {e.fullName} · <span style={{ color: '#0066cc' }}>{e.email}</span>
+                </span>
+                <span style={{ color: '#6b7280' }}>{e.resourceLabel}</span>
+                <span style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>{new Date(e.downloadedAt).toLocaleDateString('fr-FR')}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {backlogState === 'preview-ready' && backlogPreview?.count === 0 && (
+          <div style={{ marginTop: '0.4rem', color: '#6b7280' }}>Aucun contact éligible sur la période.</div>
+        )}
+        {backlogState === 'done' && backlogResult && backlogResult.failures.length > 0 && (
+          <div style={{ marginTop: '0.5rem', color: '#b91c1c', fontSize: '0.7rem' }}>
+            Échecs : {backlogResult.failures.map(f => `${f.email} (${f.error})`).join(', ')}
+          </div>
+        )}
+        {backlogError && (
+          <div style={{ marginTop: '0.4rem', color: '#b91c1c', fontSize: '0.7rem' }}>Erreur : {backlogError}</div>
+        )}
       </div>
 
       {/* NPS filter pills */}
