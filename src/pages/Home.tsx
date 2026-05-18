@@ -439,7 +439,7 @@ export default function Home() {
 
             {/* Booking embed kept */}
             <div className="booking-block" style={{ flex: '1 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-              <div>
+              <div style={{ textAlign: 'center' }}>
                 <div style={{ marginBottom: '0.6rem' }}>
                   <Eyebrow>// {t('video', 'eyebrow')}</Eyebrow>
                 </div>
