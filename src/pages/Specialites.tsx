@@ -122,7 +122,7 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
   },
   {
     name: 'Olaqin',
-    footprint: "Acteur transverse chez les médecins (généralistes 7 %, spécialistes 5 %) — a su capter une partie de la migration AxiSanté.",
+    footprint: "Acteur transverse chez les médecins (généralistes 7 %, spécialistes 5 %) — a su capter une partie des bascules dans le segment médecins.",
     products: 'Stellair Integral',
   },
 ]
@@ -497,7 +497,7 @@ export default function Specialites() {
             maxWidth: '68ch',
             marginBottom: '2.5rem',
           }}>
-            Cliquez sur une spécialité pour ouvrir la <strong>bar chart race interactive</strong> qui rejoue mois par mois 7 ans de bouleversements concurrentiels — l'effondrement d'AxiSanté, la conquête de Doctolib, la bascule cloud chez les infirmiers, le basculement Julie → Logos_w en dentaire. Chaque page contient le top 5 détaillé, l'analyse des grandes tendances et le téléchargement gratuit de la donnée brute.
+            Cliquez sur une spécialité pour ouvrir la <strong>bar chart race interactive</strong> qui rejoue mois par mois 7 ans de bouleversements concurrentiels — le recul d'AxiSanté, la conquête de Doctolib, la bascule cloud chez les infirmiers, le basculement Julie → Logos_w en dentaire. Chaque page contient le top 5 détaillé, l'analyse des grandes tendances et le téléchargement gratuit de la donnée brute.
           </p>
 
           <div style={{
