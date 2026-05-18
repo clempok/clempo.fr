@@ -34,6 +34,11 @@ export const translations = {
       doc_title: 'Articles — Analyses des systèmes de santé | Clempo.fr',
       doc_meta: 'Analyses approfondies des systèmes de santé mondiaux pour les entrepreneurs et professionnels de la healthtech. Articles de Clément Pouget-Osmont.',
     },
+    video: {
+      eyebrow: 'Vidéo',
+      title: 'Présentation des accompagnements',
+      play: 'Lire la vidéo',
+    },
     media: {
       badge: 'Interventions',
       title: 'Présences médias & conférences',
@@ -120,6 +125,11 @@ export const translations = {
       reading_time: 'read',
       doc_title: 'Articles — Healthcare Systems Analyses | Clempo.fr',
       doc_meta: 'In-depth analyses of global healthcare systems for healthtech entrepreneurs and professionals. By Clément Pouget-Osmont.',
+    },
+    video: {
+      eyebrow: 'Video',
+      title: 'Overview of the services',
+      play: 'Play video',
     },
     media: {
       badge: 'In the Media',

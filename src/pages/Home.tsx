@@ -11,6 +11,7 @@ import JournalistesSheetPreview from '../components/JournalistesSheetPreview'
 import { JOURNALISTES_TITLE, JOURNALISTES_SUB } from '../lib/journalistes'
 import { bookingUrl } from '../lib/cta'
 import Booking from './Booking'
+import YouTubeFacade from '../components/YouTubeFacade'
 
 /* ──────────────────────────────────────────────────────────── *
  * Home — content preserved verbatim, re-skinned with the       *
@@ -437,7 +438,24 @@ export default function Home() {
             </div>
 
             {/* Booking embed kept */}
-            <div className="booking-block" style={{ flex: '1 1 480px', minWidth: 0 }}>
+            <div className="booking-block" style={{ flex: '1 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+              <div>
+                <div style={{ marginBottom: '0.6rem' }}>
+                  <Eyebrow>// {t('video', 'eyebrow')}</Eyebrow>
+                </div>
+                <h3 style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 'clamp(1.25rem, 1.8vw, 1.55rem)',
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.2,
+                  margin: '0 0 1.1rem 0',
+                  color: 'var(--ink)',
+                }}>
+                  {t('video', 'title')}
+                </h3>
+                <YouTubeFacade videoId="rdwcJ7gAyv0" title={t('video', 'title')} playLabel={t('video', 'play')} />
+              </div>
               <Booking embedded />
             </div>
           </div>
