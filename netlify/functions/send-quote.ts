@@ -141,6 +141,7 @@ const handler: Handler = async (event) => {
     const body = JSON.parse(event.body || '{}')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { token, data, previewOnly } = body as { token: string; data: any; previewOnly?: boolean }
+    const isDraft = data?.draft === true
 
     // Auth — accept QUOTE_SECRET or ADMIN_PASSWORD
     const secret = process.env.QUOTE_SECRET
@@ -205,9 +206,11 @@ const handler: Handler = async (event) => {
       existing.senderPhone = data.senderPhone || undefined
       existing.senderPhoto = data.senderPhoto || undefined
       existing.updatedAt = now
-      existing.resentAt = now
-      // Status: si déjà accepté/refusé/consulté, on garde — sinon on remet sent
-      if (existing.status === 'draft') existing.status = 'sent'
+      if (!isDraft) {
+        existing.resentAt = now
+        // Status: si déjà accepté/refusé/consulté, on garde — sinon on remet sent
+        if (existing.status === 'draft') existing.status = 'sent'
+      }
     } else {
       const quote: Quote = {
         id: quoteId,
@@ -231,7 +234,7 @@ const handler: Handler = async (event) => {
         paymentTerms: data.paymentTerms || undefined,
         subject: data.subject || undefined,
         emailContent: data.emailContent,
-        status: 'sent',
+        status: isDraft ? 'draft' : 'sent',
         accentColor: data.accentColor || '#0A0A0B',
         senderName: data.senderName,
         senderCompany: data.senderCompany,
@@ -239,11 +242,20 @@ const handler: Handler = async (event) => {
         senderPhone: data.senderPhone || undefined,
         senderPhoto: data.senderPhoto || undefined,
         createdAt: now,
-        sentAt: now,
+        sentAt: isDraft ? undefined : now,
       }
       quotesData.quotes.push(quote)
     }
     await saveQuotes(quotesData)
+
+    // Mode brouillon : on s'arrête là, pas d'email
+    if (isDraft) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, draft: true, quoteId, quoteUrl, updated: !!existing }),
+      }
+    }
 
     // Send via Resend
     const apiKey = process.env.RESEND_API_KEY

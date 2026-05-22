@@ -3922,6 +3922,7 @@ function QuotesView({ password }: { password: string }) {
   const [sending, setSending] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingRef, setEditingRef] = useState<string>('')
+  const [editingStatus, setEditingStatus] = useState<AdminQuote['status'] | null>(null)
 
   const resetForm = useCallback(() => {
     setForm(makeInitialForm())
@@ -3929,6 +3930,7 @@ function QuotesView({ password }: { password: string }) {
     setArgs(DEFAULT_ARGS.map(a => ({ ...a })))
     setEditingId(null)
     setEditingRef('')
+    setEditingStatus(null)
   }, [])
 
   const startEdit = useCallback((q: AdminQuote) => {
@@ -3972,6 +3974,7 @@ function QuotesView({ password }: { password: string }) {
     )
     setEditingId(q.id)
     setEditingRef(q.reference)
+    setEditingStatus(q.status)
     setActiveSection('emetteur')
     setSubView('new')
   }, [])
@@ -4050,13 +4053,14 @@ function QuotesView({ password }: { password: string }) {
   }
 
   // mode:
-  //   'send'        -> envoi initial d'un nouveau devis (création)
+  //   'send'        -> envoi initial d'un nouveau devis (création + email)
+  //   'save-draft'  -> création d'un brouillon, pas d'email (présentation live, envoi différé)
   //   'save'        -> sauvegarde des modifications, pas d'email
-  //   'save-resend' -> sauvegarde + renvoi de l'email (avec mention "mis à jour")
-  const handleSubmit = async (mode: 'send' | 'save' | 'save-resend') => {
+  //   'save-resend' -> sauvegarde + envoi/renvoi de l'email
+  const handleSubmit = async (mode: 'send' | 'save' | 'save-resend' | 'save-draft') => {
     if (!form.clientEmail) return showToast('Email du client requis', '#dc2626')
     if (!form.clientName) return showToast('Nom du client requis', '#dc2626')
-    if (mode !== 'save' && !form.emailContent.trim()) return showToast("Contenu de l'email requis", '#dc2626')
+    if (mode !== 'save' && mode !== 'save-draft' && !form.emailContent.trim()) return showToast("Contenu de l'email requis", '#dc2626')
     if (lines.every(l => !l.description)) return showToast('Au moins une ligne requise', '#dc2626')
 
     const ccList = form.clientCcEmails
@@ -4064,8 +4068,9 @@ function QuotesView({ password }: { password: string }) {
 
     const confirmMsg =
       mode === 'send'        ? `Envoyer le devis ${form.reference} a ${form.clientEmail}${ccList.length ? ` (+ ${ccList.length} en copie)` : ''} ?`
+      : mode === 'save-draft'? `Enregistrer le devis ${form.reference} en brouillon (sans envoyer d'email) ?`
       : mode === 'save'      ? `Enregistrer les modifications du devis ${editingRef} (sans renvoyer d'email) ?`
-      :                        `Renvoyer le devis ${editingRef} mis a jour a ${form.clientEmail}${ccList.length ? ` (+ ${ccList.length} en copie)` : ''} ?`
+      :                        `Envoyer le devis ${editingRef} mis a jour a ${form.clientEmail}${ccList.length ? ` (+ ${ccList.length} en copie)` : ''} ?`
     if (!confirm(confirmMsg)) return
 
     setSending(true)
@@ -4119,13 +4124,18 @@ function QuotesView({ password }: { password: string }) {
         })
         result = await res.json()
       } else {
-        // 'send' (création) ou 'save-resend' (update + resend)
+        // 'send' (création + email), 'save-draft' (création brouillon, pas d'email),
+        // ou 'save-resend' (update + email)
         res = await fetch('/.netlify/functions/send-quote', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             token: password,
-            data: { ...payload, existingId: mode === 'save-resend' ? editingId : undefined },
+            data: {
+              ...payload,
+              existingId: mode === 'save-resend' ? editingId : undefined,
+              draft: mode === 'save-draft',
+            },
           }),
         })
         result = await res.json()
@@ -4135,8 +4145,9 @@ function QuotesView({ password }: { password: string }) {
 
       const successMsg =
         mode === 'send'        ? `Devis envoye ! URL : ${result.quoteUrl}`
+        : mode === 'save-draft'? `Brouillon enregistre. URL de presentation : ${result.quoteUrl}`
         : mode === 'save'      ? `Devis ${editingRef} mis a jour (sans renvoi d'email).`
-        :                        `Devis ${editingRef} mis a jour et renvoye. URL : ${result.quoteUrl}`
+        :                        `Devis ${editingRef} mis a jour et envoye. URL : ${result.quoteUrl}`
       showToast(successMsg, '#16a34a')
       refresh()
       resetForm()
@@ -4626,21 +4637,36 @@ function QuotesView({ password }: { password: string }) {
                       cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.6 : 1,
                     }}
                   >
-                    {sending ? 'Envoi en cours...' : 'Enregistrer + renvoyer l\'email'}
+                    {sending
+                      ? 'Envoi en cours...'
+                      : editingStatus === 'draft' ? 'Envoyer le devis' : 'Enregistrer + renvoyer l\'email'}
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => handleSubmit('send')}
-                  disabled={sending}
-                  style={{
-                    flex: 1, padding: '0.75rem', borderRadius: 10, border: 'none',
-                    background: '#16a34a', color: '#fff', fontSize: '0.85rem', fontWeight: 600,
-                    cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.6 : 1,
-                  }}
-                >
-                  {sending ? 'Envoi en cours...' : 'Envoyer le devis'}
-                </button>
+                <>
+                  <button
+                    onClick={() => handleSubmit('save-draft')}
+                    disabled={sending}
+                    style={{
+                      padding: '0.75rem 1rem', borderRadius: 10, border: '1px solid #16a34a',
+                      background: '#fff', color: '#16a34a', fontSize: '0.82rem', fontWeight: 600,
+                      cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.6 : 1,
+                    }}
+                  >
+                    {sending ? '...' : 'Enregistrer sans envoyer'}
+                  </button>
+                  <button
+                    onClick={() => handleSubmit('send')}
+                    disabled={sending}
+                    style={{
+                      flex: 1, padding: '0.75rem', borderRadius: 10, border: 'none',
+                      background: '#16a34a', color: '#fff', fontSize: '0.85rem', fontWeight: 600,
+                      cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.6 : 1,
+                    }}
+                  >
+                    {sending ? 'Envoi en cours...' : 'Envoyer le devis'}
+                  </button>
+                </>
               )}
               <button
                 onClick={() => { resetForm(); setSubView('history') }}
