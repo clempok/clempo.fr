@@ -25,6 +25,16 @@ const handler: Handler = async (event) => {
     const source = data.source || ''
     const slug = data.slug || ''
 
+    // Hiring-only fields
+    const school = data.school || ''
+    const startDate = data['start-date'] || ''
+    const durationMonths = data['duration-months'] || ''
+    const linkedin = data.linkedin || ''
+    const contentLinks = data['content-links'] || ''
+    const healthLink = data['health-link'] || ''
+    const aiLinks = data['ai-links'] || ''
+    const message = data.message || ''
+
     console.log('submission-created:', { formName, firstName, lastName, email, source, slug })
 
     if (!formName) {
@@ -40,6 +50,13 @@ const handler: Handler = async (event) => {
     }
     if (formName === 'data-download') {
       return handleDataDownload({ firstName, lastName, email, phone, company, source, slug })
+    }
+    if (formName === 'hiring') {
+      return handleHiring({
+        firstName, lastName, email, phone,
+        school, startDate, durationMonths, linkedin,
+        contentLinks, healthLink, aiLinks, message,
+      })
     }
 
     console.warn('submission-created: unknown form_name', formName)
@@ -234,6 +251,96 @@ async function handleDataDownload(d: {
     const err = await res.text()
     console.error('Resend error (data-download):', err)
     return { statusCode: 200, body: 'OK (email failed)' }
+  }
+  return { statusCode: 200, body: 'OK' }
+}
+
+async function handleHiring(d: {
+  firstName: string; lastName: string; email: string; phone: string
+  school: string; startDate: string; durationMonths: string; linkedin: string
+  contentLinks: string; healthLink: string; aiLinks: string; message: string
+}) {
+  await recordEvent({
+    type: 'hiring',
+    firstName: d.firstName,
+    lastName: d.lastName,
+    email: d.email,
+    company: d.school,
+    phone: d.phone,
+  })
+
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    console.error('RESEND_API_KEY not set')
+    return { statusCode: 500, body: 'Missing API key' }
+  }
+
+  const fullName = [d.firstName, d.lastName].filter(Boolean).join(' ') || d.email
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const nl2br = (s: string) => esc(s).replace(/\n/g, '<br/>')
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 640px; margin: 0 auto;">
+      <h2 style="color: #09090b; margin-bottom: 8px;">🎓 Nouvelle candidature stage — clempo.fr</h2>
+      <p style="color: #555; font-size: 14px; margin-top: 0; margin-bottom: 24px;">
+        Candidature reçue via la page <a href="https://www.clempo.fr/hiring" style="color: #0066cc;">/hiring</a>
+      </p>
+
+      <h3 style="color: #09090b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Identité</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #666; width: 160px;">Prénom Nom</td><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-weight: 600;">${esc(fullName)}</td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #666;">Email</td><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-weight: 600;"><a href="mailto:${esc(d.email)}" style="color: #0066cc;">${esc(d.email)}</a></td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #666;">Téléphone</td><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-weight: 600;">${esc(d.phone) || '—'}</td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #666;">LinkedIn</td><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-weight: 600;">${d.linkedin ? `<a href="${esc(d.linkedin)}" style="color: #0066cc;">${esc(d.linkedin)}</a>` : '—'}</td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #666;">École / formation</td><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-weight: 600;">${esc(d.school) || '—'}</td></tr>
+        <tr><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; color: #666;">Date de début</td><td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-weight: 600;">${esc(d.startDate) || '—'}</td></tr>
+        <tr><td style="padding: 8px 0; color: #666;">Durée</td><td style="padding: 8px 0; font-weight: 600;">${esc(d.durationMonths) || '—'} mois</td></tr>
+      </table>
+
+      <h3 style="color: #09090b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">📝 Condition 1 — Liens vers du contenu créé</h3>
+      <div style="background: #f9f9f9; border-left: 3px solid #09090b; padding: 14px 16px; font-size: 14px; line-height: 1.6; color: #222; border-radius: 4px;">
+        ${nl2br(d.contentLinks) || '<em style="color: #999;">(vide)</em>'}
+      </div>
+
+      <h3 style="color: #09090b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 24px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">🏥 Condition 2 — Lien avec la santé</h3>
+      <div style="background: #f9f9f9; border-left: 3px solid #09090b; padding: 14px 16px; font-size: 14px; line-height: 1.6; color: #222; border-radius: 4px;">
+        ${nl2br(d.healthLink) || '<em style="color: #999;">(vide)</em>'}
+      </div>
+
+      <h3 style="color: #09090b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 24px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">🤖 Condition 3 — Maîtrise des outils IA</h3>
+      <div style="background: #f9f9f9; border-left: 3px solid #09090b; padding: 14px 16px; font-size: 14px; line-height: 1.6; color: #222; border-radius: 4px;">
+        ${nl2br(d.aiLinks) || '<em style="color: #999;">(vide)</em>'}
+      </div>
+
+      ${d.message ? `
+      <h3 style="color: #09090b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 24px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Message libre</h3>
+      <div style="background: #f9f9f9; padding: 14px 16px; font-size: 14px; line-height: 1.6; color: #222; border-radius: 4px;">
+        ${nl2br(d.message)}
+      </div>
+      ` : ''}
+
+      <div style="margin-top: 32px; padding: 16px; background: #f9f9f9; border-radius: 8px; font-size: 13px; color: #888;">
+        Soumis via le formulaire de candidature stage de clempo.fr/hiring
+      </div>
+    </div>
+  `
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: 'Clempo.fr <noreply@clempo.fr>',
+      to: ['clement.pougetosmont@gmail.com'],
+      replyTo: d.email || undefined,
+      subject: `🎓 Candidature stage — ${fullName}`,
+      html,
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    console.error('Resend error (hiring):', err)
+    return { statusCode: 500, body: err }
   }
   return { statusCode: 200, body: 'OK' }
 }
