@@ -34,6 +34,9 @@ const handler: Handler = async (event) => {
     const healthLink = data['health-link'] || ''
     const aiLinks = data['ai-links'] || ''
     const message = data.message || ''
+    // Netlify Forms stores uploaded files as URLs in the payload data.
+    // For files, it can be either a plain URL string or an object {url, filename, size, type}.
+    const hiringFiles = collectHiringFiles(data)
 
     console.log('submission-created:', { formName, firstName, lastName, email, source, slug })
 
@@ -56,6 +59,7 @@ const handler: Handler = async (event) => {
         firstName, lastName, email, phone,
         school, startDate, durationMonths, linkedin,
         contentLinks, healthLink, aiLinks, message,
+        files: hiringFiles,
       })
     }
 
@@ -255,10 +259,42 @@ async function handleDataDownload(d: {
   return { statusCode: 200, body: 'OK' }
 }
 
+type HiringFile = { label: string; url: string; filename: string; size?: number }
+
+function collectHiringFiles(data: Record<string, unknown>): HiringFile[] {
+  const out: HiringFile[] = []
+  for (const key of ['cv', 'portfolio'] as const) {
+    const raw = data[key]
+    if (!raw) continue
+    // Netlify Forms file payload can be a URL string or an object with metadata.
+    if (typeof raw === 'string') {
+      out.push({ label: key, url: raw, filename: filenameFromUrl(raw, key) })
+    } else if (raw && typeof raw === 'object') {
+      const obj = raw as Record<string, unknown>
+      const url = typeof obj.url === 'string' ? obj.url : ''
+      if (!url) continue
+      const filename = typeof obj.filename === 'string' ? obj.filename : filenameFromUrl(url, key)
+      const size = typeof obj.size === 'number' ? obj.size : undefined
+      out.push({ label: key, url, filename, size })
+    }
+  }
+  return out
+}
+
+function filenameFromUrl(url: string, fallback: string): string {
+  try {
+    const last = new URL(url).pathname.split('/').pop() || ''
+    return decodeURIComponent(last) || fallback
+  } catch {
+    return fallback
+  }
+}
+
 async function handleHiring(d: {
   firstName: string; lastName: string; email: string; phone: string
   school: string; startDate: string; durationMonths: string; linkedin: string
   contentLinks: string; healthLink: string; aiLinks: string; message: string
+  files: HiringFile[]
 }) {
   await recordEvent({
     type: 'hiring',
@@ -319,11 +355,33 @@ async function handleHiring(d: {
       </div>
       ` : ''}
 
+      ${d.files.length ? `
+      <h3 style="color: #09090b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 24px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px;">📎 Pièces jointes</h3>
+      <ul style="padding-left: 18px; margin: 0; font-size: 14px; line-height: 1.7; color: #222;">
+        ${d.files.map(f => `<li><strong style="text-transform: capitalize;">${esc(f.label)}</strong> — <a href="${esc(f.url)}" style="color: #0066cc;">${esc(f.filename)}</a>${f.size ? ` <span style="color:#888;">(${Math.round(f.size / 1024)} Ko)</span>` : ''}</li>`).join('')}
+      </ul>
+      <p style="font-size: 12px; color: #888; margin-top: 8px;">Les fichiers sont aussi joints à cet email (si l'attachement n'a pas excédé la limite Resend).</p>
+      ` : ''}
+
       <div style="margin-top: 32px; padding: 16px; background: #f9f9f9; border-radius: 8px; font-size: 13px; color: #888;">
         Soumis via le formulaire de candidature stage de clempo.fr/hiring
       </div>
     </div>
   `
+
+  // Fetch each uploaded file and turn it into a base64 attachment for Resend.
+  // Skipped silently on fetch failure — the HTML email still links to the file.
+  const attachments: { filename: string; content: string }[] = []
+  for (const f of d.files) {
+    try {
+      const r = await fetch(f.url)
+      if (!r.ok) { console.warn('hiring: failed to fetch attachment', f.url, r.status); continue }
+      const buf = Buffer.from(await r.arrayBuffer())
+      attachments.push({ filename: f.filename, content: buf.toString('base64') })
+    } catch (err) {
+      console.warn('hiring: error fetching attachment', f.url, err)
+    }
+  }
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -334,6 +392,7 @@ async function handleHiring(d: {
       replyTo: d.email || undefined,
       subject: `🎓 Candidature stage — ${fullName}`,
       html,
+      ...(attachments.length ? { attachments } : {}),
     }),
   })
 

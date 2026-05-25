@@ -48,6 +48,115 @@ const conditions = [
   },
 ]
 
+function FilePicker({
+  label, name, file, onChange, accept, fmtSize,
+}: {
+  label: string
+  name: string
+  file: File | null
+  onChange: (f: File | null) => void
+  accept: string
+  fmtSize: (b: number) => string
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  return (
+    <div>
+      <label style={{
+        display: 'block',
+        fontFamily: 'var(--font-mono)',
+        fontSize: '0.7rem',
+        fontWeight: 500,
+        marginBottom: '0.4rem',
+        color: 'var(--steel)',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+      }}>{label}</label>
+      <input
+        ref={inputRef}
+        type="file"
+        name={name}
+        accept={accept}
+        onChange={e => onChange(e.target.files?.[0] || null)}
+        style={{ display: 'none' }}
+      />
+      {file ? (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem',
+          background: 'var(--paper)',
+          border: '1px solid var(--ink)',
+          borderRadius: 'var(--cb-radius)',
+          padding: '0.7rem 0.9rem',
+          fontSize: '0.82rem',
+          color: 'var(--ink)',
+        }}>
+          <span style={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            fontWeight: 600,
+            flex: 1,
+            minWidth: 0,
+          }}>
+            📎 {file.name}
+            <span style={{ color: 'var(--steel)', fontWeight: 400, marginLeft: '0.4rem', fontSize: '0.75rem' }}>
+              {fmtSize(file.size)}
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              onChange(null)
+              if (inputRef.current) inputRef.current.value = ''
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--steel)',
+              cursor: 'none',
+              fontSize: '1rem',
+              padding: 0,
+              lineHeight: 1,
+              flexShrink: 0,
+            }}
+            aria-label="Supprimer le fichier"
+          >×</button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          style={{
+            width: '100%',
+            background: 'var(--paper)',
+            border: '1px dashed rgba(10,10,11,0.3)',
+            borderRadius: 'var(--cb-radius)',
+            padding: '0.85rem 1rem',
+            fontFamily: 'var(--font-sans)',
+            fontSize: '0.85rem',
+            color: 'var(--steel)',
+            cursor: 'none',
+            textAlign: 'left',
+            transition: 'border-color 0.2s, color 0.2s',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.borderColor = 'var(--ink)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--ink)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(10,10,11,0.3)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--steel)';
+          }}
+        >
+          + Choisir un fichier
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function Hiring() {
   const clients = [...defaultClients, ...defaultClients]
 
@@ -56,34 +165,44 @@ export default function Hiring() {
     school: '', startDate: '', durationMonths: '3', linkedin: '',
     contentLinks: '', healthLink: '', aiLinks: '', message: '',
   })
+  const [cvFile, setCvFile] = useState<File | null>(null)
+  const [portfolioFile, setPortfolioFile] = useState<File | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  const MAX_BYTES = 8 * 1024 * 1024 // Netlify Forms limit per file
+  const fmtSize = (b: number) => b < 1024 * 1024 ? `${(b / 1024).toFixed(0)} Ko` : `${(b / 1024 / 1024).toFixed(1)} Mo`
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setSubmitting(true)
+    e.preventDefault()
+    setFileError(null)
+    if (cvFile && cvFile.size > MAX_BYTES) { setFileError(`Le CV dépasse 8 Mo (${fmtSize(cvFile.size)}).`); return }
+    if (portfolioFile && portfolioFile.size > MAX_BYTES) { setFileError(`Le portfolio dépasse 8 Mo (${fmtSize(portfolioFile.size)}).`); return }
+    setSubmitting(true)
     try {
-      await fetch('/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          'form-name': 'hiring',
-          'first-name': formData.firstName,
-          'last-name': formData.lastName,
-          'email': formData.email,
-          'phone': formData.phone,
-          'school': formData.school,
-          'start-date': formData.startDate,
-          'duration-months': formData.durationMonths,
-          'linkedin': formData.linkedin,
-          'content-links': formData.contentLinks,
-          'health-link': formData.healthLink,
-          'ai-links': formData.aiLinks,
-          'message': formData.message,
-        }).toString(),
-      })
+      const body = new FormData()
+      body.append('form-name', 'hiring')
+      body.append('first-name', formData.firstName)
+      body.append('last-name', formData.lastName)
+      body.append('email', formData.email)
+      body.append('phone', formData.phone)
+      body.append('school', formData.school)
+      body.append('start-date', formData.startDate)
+      body.append('duration-months', formData.durationMonths)
+      body.append('linkedin', formData.linkedin)
+      body.append('content-links', formData.contentLinks)
+      body.append('health-link', formData.healthLink)
+      body.append('ai-links', formData.aiLinks)
+      body.append('message', formData.message)
+      if (cvFile) body.append('cv', cvFile, cvFile.name)
+      if (portfolioFile) body.append('portfolio', portfolioFile, portfolioFile.name)
+      await fetch('/', { method: 'POST', body })
       setSubmitted(true)
       if (typeof window !== 'undefined') {
-        window.scrollTo({ top: document.getElementById('apply')?.offsetTop || 0, behavior: 'smooth' })
+        setTimeout(() => {
+          window.scrollTo({ top: document.getElementById('apply')?.offsetTop || 0, behavior: 'smooth' })
+        }, 50)
       }
     } catch { setSubmitted(true) }
     finally { setSubmitting(false) }
@@ -132,7 +251,7 @@ export default function Hiring() {
       />
 
       {/* Hidden Netlify form registration */}
-      <form name="hiring" data-netlify="true" hidden>
+      <form name="hiring" data-netlify="true" encType="multipart/form-data" hidden>
         <input type="hidden" name="form-name" value="hiring" />
         <input type="text" name="first-name" />
         <input type="text" name="last-name" />
@@ -146,6 +265,8 @@ export default function Hiring() {
         <textarea name="health-link"></textarea>
         <textarea name="ai-links"></textarea>
         <textarea name="message"></textarea>
+        <input type="file" name="cv" />
+        <input type="file" name="portfolio" />
       </form>
 
       <div style={{
@@ -576,7 +697,7 @@ export default function Hiring() {
                 </p>
               </div>
             ) : (
-              <form name="hiring" onSubmit={handleSubmit} style={{
+              <form name="hiring" onSubmit={handleSubmit} encType="multipart/form-data" style={{
                 display: 'flex', flexDirection: 'column', gap: '1rem',
                 background: 'var(--paper)',
                 border: '1px solid var(--ink)',
@@ -663,6 +784,46 @@ export default function Hiring() {
                     onBlur={e => { e.target.style.borderColor = 'rgba(10,10,11,0.12)' }}
                   />
                 </div>
+
+                {/* Pièces jointes */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <FilePicker
+                    label="CV (PDF, optionnel)"
+                    name="cv"
+                    file={cvFile}
+                    onChange={setCvFile}
+                    accept=".pdf,.doc,.docx"
+                    fmtSize={fmtSize}
+                  />
+                  <FilePicker
+                    label="Portfolio / autres (optionnel)"
+                    name="portfolio"
+                    file={portfolioFile}
+                    onChange={setPortfolioFile}
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
+                    fmtSize={fmtSize}
+                  />
+                </div>
+                <p style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.7rem',
+                  color: 'var(--steel)',
+                  margin: '-0.25rem 0 0 0',
+                  letterSpacing: '0.02em',
+                }}>
+                  // 8 Mo max par fichier — formats : pdf, doc, docx, png, jpg, zip
+                </p>
+                {fileError && (
+                  <p style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.78rem',
+                    color: '#c0392b',
+                    margin: '0',
+                    fontWeight: 600,
+                  }}>
+                    ✗ {fileError}
+                  </p>
+                )}
 
                 {/* Condition 1 */}
                 <div style={{ marginTop: '1rem', paddingTop: '1.5rem', borderTop: '1px dashed rgba(10,10,11,0.12)' }}>
