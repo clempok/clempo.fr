@@ -3872,9 +3872,9 @@ const UNIT_OPTIONS = ['jours', 'heures', 'mois', 'forfait']
 
 const emptyLine = (): QuoteLine => ({ description: '', detail: '', quantity: 1, unit: 'jours', unitPrice: 0, tva: 20, discount: 0 })
 const DEFAULT_ARGS: QuoteArgument[] = [
-  { title: "L'experience Directeur Marketing", description: "J'ai dirige les equipes marketing de plusieurs entreprises innovantes comme Cherry Biotech (biotech), DocCity (immobilier sante), HeyTeam (HR tech), Sofia Developpement (Healthtech). J'aime autant construire une strategie de marque et definir un positionnement que passer a l'operationnel : concevoir des campagnes, produire du contenu, piloter la croissance." },
-  { title: 'Expertise Sante', description: "Plus de 12 ans d'experience dans le marketing sante dont 5 ans chez Doctolib. Je connais les contraintes reglementaires, les cycles de vente longs et les specificites du marche de la sante en France et en Europe." },
-  { title: 'Une collaboration facile', description: "Je m'integre rapidement dans vos equipes, je suis autonome et pragmatique. Mon objectif : des resultats concrets et mesurables, pas des presentations PowerPoint." },
+  { title: "L'experience Directeur Marketing", description: "J'ai dirigé les équipes marketing de plusieurs entreprises innovantes comme Cherry Biotech (biotech), DocCity (immobilier sante), HeyTeam (HR tech), Sofia Developpement (Healthtech). J'aime autant construire une stratégie de marque et définir un positionnement que passer a l'opérationnel : concevoir des campagnes, produire du contenu, piloter la croissance." },
+  { title: 'Expertise Sante', description: "Plus de 12 ans d'experience dans le marketing santé dont 5 ans chez Doctolib. Je connais les contraintes réglementaires, les cycles de vente longs et les spécificités du marche de la santé en France et en Europe." },
+  { title: 'Une collaboration facile', description: "Les avantages du freelance à temps partager pour avoir un profil senior dans l'équipe sans les contraintes d'une embauche classique" },
 ]
 function makeInitialForm() {
   const today = new Date()
