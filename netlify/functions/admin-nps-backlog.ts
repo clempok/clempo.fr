@@ -101,6 +101,9 @@ const handler: Handler = async (event) => {
         if (!resource) continue
 
         const existing = c.npsResponses?.find(r => r.resource === resource.slug)
+        // Never re-ask a contact who has already responded — a recorded
+        // score wins over any DRY-RUN ambiguity on askedDryRun.
+        if (existing?.score !== undefined) continue
         // Skip only if the entry was sent for real (askedDryRun === false).
         // DRY-RUN entries (askedDryRun === true) and pre-tracking entries
         // (undefined) are treated as testable — they get re-sent in prod.
@@ -166,6 +169,10 @@ const handler: Handler = async (event) => {
       }
       // Safety: never resend over a real prod send.
       if (np.askedAt && np.askedDryRun === false) continue
+      // Safety: never resend (or wipe) an entry that has a recorded score —
+      // the contact already responded. Defense in depth on top of the
+      // eligibility filter above.
+      if (np.score !== undefined) continue
       // Wipe DRY-RUN traces (askedAt + fake scores/comments from owner-side
       // clicks) so the prod send starts from a clean slate.
       if (np.askedAt) {
