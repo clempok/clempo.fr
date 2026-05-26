@@ -60,6 +60,7 @@ type QuoteData = {
 
 const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
 const fmtDate = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+const nl2br = (s: string) => (s ?? '').replace(/\r\n?|\n/g, '<br>')
 
 /* ───────────────────────── Component ───────────────────────── */
 
@@ -360,7 +361,7 @@ export default function QuotePage() {
             </h3>
             <div
               style={{ fontSize: '0.95rem', lineHeight: 1.8, color: GRAPHITE }}
-              dangerouslySetInnerHTML={{ __html: quote.context.description }}
+              dangerouslySetInnerHTML={{ __html: nl2br(quote.context.description) }}
             />
           </div>
         )}
@@ -385,7 +386,7 @@ export default function QuotePage() {
               <div style={{ fontWeight: 700, fontSize: '0.9rem', color: TEXT, marginBottom: '0.4rem', letterSpacing: '-0.01em' }}>
                 {quote.senderName}
               </div>
-              <p style={{ fontSize: '0.9rem', color: GRAPHITE, lineHeight: 1.75, margin: 0 }}>
+              <p style={{ fontSize: '0.9rem', color: GRAPHITE, lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap' }}>
                 {quote.presentation}
               </p>
             </div>
@@ -440,7 +441,7 @@ export default function QuotePage() {
                       {l.detail && (
                         <div
                           style={{ fontSize: '0.82rem', color: MUTED, lineHeight: 1.65, marginTop: '0.35rem' }}
-                          dangerouslySetInnerHTML={{ __html: l.detail }}
+                          dangerouslySetInnerHTML={{ __html: nl2br(l.detail) }}
                         />
                       )}
                     </td>
@@ -608,7 +609,7 @@ function ArgumentsTabs({ arguments: args }: {
           animation: 'fadeUp 0.35s ease-out both',
         }}>
           <p style={{
-            fontSize: '0.95rem', color: GRAPHITE, lineHeight: 1.8, margin: 0,
+            fontSize: '0.95rem', color: GRAPHITE, lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap',
           }}>
             {args[active].description}
           </p>
