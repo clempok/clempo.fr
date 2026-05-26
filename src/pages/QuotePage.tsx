@@ -529,56 +529,6 @@ export default function QuotePage() {
         {/* ═══════ SIGNATURE SECTION ═══════ */}
         <SignatureSection quote={quote} accent={accent} company={company!} id={id!} onSigned={(sig) => setQuote({ ...quote, signature: sig, status: 'accepted' })} />
 
-        {/* ═══════ CTA SECTION ═══════ */}
-        <div style={{
-          background: TEXT, color: BG,
-          borderRadius: 4, padding: '2.75rem 2.5rem',
-          textAlign: 'center', marginBottom: '2rem',
-          position: 'relative', overflow: 'hidden',
-        }}>
-          <div className="q-dotmatrix" style={{ position: 'absolute', inset: 0 }} />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div className="q-eyebrow" style={{ color: SIGNAL, marginBottom: '0.85rem' }}>
-              // Une question ?
-            </div>
-            <h3 style={{
-              fontFamily: FT, fontSize: '1.5rem', fontWeight: 700, color: BG,
-              margin: '0 0 0.65rem', letterSpacing: '-0.02em',
-            }}>
-              On en discute <span style={{ fontFamily: FS, fontStyle: 'italic', fontWeight: 400 }}>ensemble</span> ?
-            </h3>
-            <p style={{ fontSize: '0.95rem', color: MIST, margin: '0 0 1.75rem', lineHeight: 1.6 }}>
-              30 minutes pour répondre à toutes vos questions sur ce devis.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <a
-                href="https://www.clempo.fr/booking"
-                target="_blank" rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.55rem',
-                  background: SIGNAL, color: TEXT,
-                  padding: '0.9rem 1.6rem', borderRadius: 4, textDecoration: 'none',
-                  fontWeight: 600, fontSize: '0.9rem', fontFamily: FT,
-                }}
-              >
-                Prendre rendez-vous <span aria-hidden>→</span>
-              </a>
-              <a
-                href={`mailto:${quote.senderEmail}?subject=Re: Devis ${encodeURIComponent(quote.reference)}`}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.55rem',
-                  background: 'transparent', color: BG,
-                  padding: '0.9rem 1.6rem', borderRadius: 4, textDecoration: 'none',
-                  fontWeight: 500, fontSize: '0.9rem', fontFamily: FT,
-                  border: `1px solid ${BORDER_PAPER}`,
-                }}
-              >
-                Répondre par email
-              </a>
-            </div>
-          </div>
-        </div>
-
         {/* ═══════ FOOTER ═══════ */}
         <div style={{
           textAlign: 'center', paddingBottom: '2rem',
