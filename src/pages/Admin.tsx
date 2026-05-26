@@ -3872,7 +3872,7 @@ const UNIT_OPTIONS = ['jours', 'heures', 'mois', 'forfait']
 
 const emptyLine = (): QuoteLine => ({ description: '', detail: '', quantity: 1, unit: 'jours', unitPrice: 0, tva: 20, discount: 0 })
 const DEFAULT_ARGS: QuoteArgument[] = [
-  { title: "L'experience Directeur Marketing", description: "J'ai dirigé les équipes marketing de plusieurs entreprises innovantes comme Cherry Biotech (biotech), DocCity (immobilier sante), HeyTeam (HR tech), Sofia Developpement (Healthtech). J'aime autant construire une stratégie de marque et définir un positionnement que passer a l'opérationnel : concevoir des campagnes, produire du contenu, piloter la croissance." },
+  { title: "L'experience Directeur Marketing", description: "J'ai dirigé les équipes marketing de plusieurs entreprises innovantes comme Cherry Biotech (biotech), DocCity (immobilier santé), HeyTeam (HR tech), Sofia Développement (Healthtech). J'aime autant construire une stratégie de marque et définir un positionnement que passer à l'opérationnel : concevoir des campagnes, produire du contenu, piloter la croissance." },
   { title: 'Expertise Sante', description: "Plus de 12 ans d'experience dans le marketing santé dont 5 ans chez Doctolib. Je connais les contraintes réglementaires, les cycles de vente longs et les spécificités du marche de la santé en France et en Europe." },
   { title: 'Une collaboration facile', description: "Les avantages du freelance à temps partager pour avoir un profil senior dans l'équipe sans les contraintes d'une embauche classique" },
 ]
