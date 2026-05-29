@@ -99,7 +99,7 @@ export default function QuotePage() {
       .q-eyebrow { font-family: ${FM}; font-weight: 500; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
       .q-wordmark { font-family: ${FT}; font-weight: 700; letter-spacing: -0.05em; text-transform: lowercase; display: inline-flex; align-items: baseline; }
       .q-wordmark::after { content: ''; display: inline-block; width: 0.22em; height: 0.22em; border-radius: 50%; background: ${SIGNAL}; margin-left: 0.02em; transform: translateY(-0.02em); }
-      .q-dotmatrix { background-image: radial-gradient(circle, rgba(237,235,228,0.18) 1px, transparent 1px); background-size: 24px 24px; }
+      .q-dotmatrix { background-image: radial-gradient(circle, rgba(10,10,11,0.06) 1px, transparent 1px); background-size: 24px 24px; }
     `
     document.head.appendChild(s)
     return () => { document.head.removeChild(s) }
@@ -163,11 +163,12 @@ export default function QuotePage() {
     <div style={{ background: BG, minHeight: '100vh', fontFamily: FB, color: TEXT }}>
 
       {/* ═══════════════════════════════════════════════════════
-          HERO — Ink flat bg + dot matrix, mono eyebrows
+          HERO — Paper soft bg + dot matrix, mono eyebrows
           ═══════════════════════════════════════════════════════ */}
       <div style={{
-        background: DEFAULT_ACCENT,
+        background: CARD,
         position: 'relative', overflow: 'hidden',
+        borderBottom: `1px solid ${BORDER}`,
       }}>
         {/* Dot matrix pattern (brand book signature) */}
         <div className="q-dotmatrix" style={{
@@ -187,7 +188,7 @@ export default function QuotePage() {
               // Devis n° {quote.reference}
             </div>
             {quote.validUntil && (
-              <div className="q-eyebrow" style={{ color: MIST }}>
+              <div className="q-eyebrow" style={{ color: MUTED }}>
                 Valable jusqu'au {fmtDate(quote.validUntil)}
               </div>
             )}
@@ -205,7 +206,7 @@ export default function QuotePage() {
                 alt={quote.senderName}
                 style={{
                   width: 140, height: 140, borderRadius: 4, objectFit: 'cover',
-                  border: `1px solid ${BORDER_PAPER}`,
+                  border: `1px solid ${BORDER}`,
                 }}
               />
             </div>
@@ -218,15 +219,15 @@ export default function QuotePage() {
               <h1 style={{
                 fontFamily: FT, fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', fontWeight: 700,
                 letterSpacing: '-0.03em',
-                color: BG, margin: '0 0 0.35rem', lineHeight: 1.15,
+                color: TEXT, margin: '0 0 0.35rem', lineHeight: 1.15,
               }}>
                 {quote.senderName}
               </h1>
               <p style={{
-                fontSize: '1rem', color: MIST,
+                fontSize: '1rem', color: MUTED,
                 margin: '0 0 1.25rem', lineHeight: 1.5,
               }}>
-                <span style={{ fontFamily: FS, fontStyle: 'italic', color: BG }}>Healthcare</span>{' '}
+                <span style={{ fontFamily: FS, fontStyle: 'italic', color: TEXT }}>Healthcare</span>{' '}
                 Marketing Director — {quote.senderCompany}
               </p>
 
@@ -235,8 +236,8 @@ export default function QuotePage() {
                 <a href={`mailto:${quote.senderEmail}`} style={{
                   background: 'transparent',
                   padding: '0.5rem 0.95rem', borderRadius: 4,
-                  fontSize: '0.8rem', color: BG, textDecoration: 'none',
-                  border: `1px solid ${BORDER_PAPER}`,
+                  fontSize: '0.8rem', color: TEXT, textDecoration: 'none',
+                  border: `1px solid ${BORDER}`,
                   fontFamily: FM, fontWeight: 500,
                 }}>
                   {quote.senderEmail}
@@ -245,8 +246,8 @@ export default function QuotePage() {
                   <span style={{
                     background: 'transparent',
                     padding: '0.5rem 0.95rem', borderRadius: 4,
-                    fontSize: '0.8rem', color: BG,
-                    border: `1px solid ${BORDER_PAPER}`,
+                    fontSize: '0.8rem', color: TEXT,
+                    border: `1px solid ${BORDER}`,
                     fontFamily: FM, fontWeight: 500,
                   }}>
                     {quote.senderPhone}
@@ -261,9 +262,9 @@ export default function QuotePage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
               {EXPERTISES.map(e => (
                 <span key={e} style={{
-                  background: 'rgba(0,214,143,0.10)',
+                  background: 'rgba(0,214,143,0.12)',
                   padding: '0.4rem 0.85rem', borderRadius: 4,
-                  fontSize: '0.75rem', fontWeight: 500, color: SIGNAL,
+                  fontSize: '0.75rem', fontWeight: 500, color: '#00805A',
                   letterSpacing: '0.01em',
                 }}>
                   {e}
@@ -275,16 +276,16 @@ export default function QuotePage() {
           {/* Client logos */}
           <div className="q-fade q-fade-3" style={{
             marginTop: '2rem', paddingTop: '1.75rem',
-            borderTop: `1px solid ${BORDER_PAPER}`,
+            borderTop: `1px solid ${BORDER}`,
           }}>
-            <div className="q-eyebrow" style={{ color: MIST, marginBottom: '0.85rem' }}>
+            <div className="q-eyebrow" style={{ color: MUTED, marginBottom: '0.85rem' }}>
               // Ils m'ont fait confiance
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.1rem', alignItems: 'center' }}>
               {CLIENTS.map(c => (
                 <span key={c} style={{
                   fontFamily: FT, fontSize: '0.85rem', fontWeight: 600,
-                  color: BG, letterSpacing: '-0.01em',
+                  color: TEXT, letterSpacing: '-0.01em',
                 }}>
                   {c}
                 </span>

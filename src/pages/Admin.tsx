@@ -4689,14 +4689,15 @@ function QuotesView({ password }: { password: string }) {
               background: Q_PAPER, borderRadius: 4, border: `1px solid ${Q_BORDER}`,
               overflow: 'hidden', fontFamily: Q_FT, color: Q_INK,
             }}>
-              {/* Hero band — Ink + dot matrix */}
+              {/* Hero band — Paper soft + dot matrix */}
               <div style={{
-                background: Q_INK, padding: '1.25rem 1.25rem 1.1rem',
+                background: Q_PAPER_SOFT, padding: '1.25rem 1.25rem 1.1rem',
                 position: 'relative', overflow: 'hidden',
+                borderBottom: `1px solid ${Q_BORDER}`,
               }}>
                 <div style={{
                   position: 'absolute', inset: 0,
-                  backgroundImage: `radial-gradient(circle, ${Q_BORDER_PAPER} 1px, transparent 1px)`,
+                  backgroundImage: `radial-gradient(circle, rgba(10,10,11,0.06) 1px, transparent 1px)`,
                   backgroundSize: '18px 18px',
                 }} />
                 <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.6rem' }}>
@@ -4704,7 +4705,7 @@ function QuotesView({ password }: { password: string }) {
                     // Devis {form.reference}
                   </span>
                   {form.validUntil && (
-                    <span style={{ fontFamily: Q_FM, fontSize: '0.62rem', color: Q_MIST, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    <span style={{ fontFamily: Q_FM, fontSize: '0.62rem', color: Q_STEEL, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                       Valable {new Date(form.validUntil).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
                     </span>
                   )}
@@ -4713,12 +4714,12 @@ function QuotesView({ password }: { password: string }) {
                   <span style={{ fontFamily: Q_FM, fontSize: '0.62rem', color: Q_SIGNAL, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                     // Pour
                   </span>
-                  <div style={{ fontWeight: 700, fontSize: '1.05rem', color: Q_PAPER, letterSpacing: '-0.02em', marginTop: '0.1rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '1.05rem', color: Q_INK, letterSpacing: '-0.02em', marginTop: '0.1rem' }}>
                     {form.clientCompany || form.clientName || '—'}
                   </div>
                   {form.offerTitle && (
-                    <div style={{ marginTop: '0.5rem', color: Q_MIST, fontSize: '0.82rem', lineHeight: 1.4 }}>
-                      <span style={{ fontFamily: Q_FS, fontStyle: 'italic', color: Q_PAPER }}>{form.offerTitle.split(' ')[0]}</span>
+                    <div style={{ marginTop: '0.5rem', color: Q_STEEL, fontSize: '0.82rem', lineHeight: 1.4 }}>
+                      <span style={{ fontFamily: Q_FS, fontStyle: 'italic', color: Q_INK }}>{form.offerTitle.split(' ')[0]}</span>
                       {form.offerTitle.includes(' ') && ' ' + form.offerTitle.split(' ').slice(1).join(' ')}
                     </div>
                   )}
