@@ -4785,47 +4785,32 @@ function QuotesView({ password }: { password: string }) {
               </div>
             </div>
 
-            {/* Email preview — Brand Book 2026 */}
+            {/* Email preview — plain text */}
             <p style={{ fontFamily: Q_FM, fontSize: '0.7rem', fontWeight: 500, color: Q_SIGNAL, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '1.25rem', marginBottom: '0.75rem' }}>
               // Aperçu de l'email
             </p>
             <div style={{
-              background: Q_PAPER, borderRadius: 4, border: `1px solid ${Q_BORDER}`,
-              overflow: 'hidden', fontFamily: Q_FT, color: Q_INK,
+              background: '#ffffff', borderRadius: 4, border: `1px solid ${Q_BORDER}`,
+              padding: '1.5rem 1.25rem',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+              color: '#1a1a1a', fontSize: '0.85rem', lineHeight: 1.6,
             }}>
-              {/* Email header — ink */}
-              <div style={{ background: Q_INK, padding: '1.1rem 1.25rem', position: 'relative', overflow: 'hidden' }}>
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  backgroundImage: `radial-gradient(circle, ${Q_BORDER_PAPER} 1px, transparent 1px)`,
-                  backgroundSize: '18px 18px',
-                }} />
-                <div style={{ position: 'relative' }}>
-                  <span style={{ fontFamily: Q_FM, fontSize: '0.62rem', color: Q_SIGNAL, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                    // Devis {form.reference}
-                  </span>
-                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: Q_PAPER, marginTop: '0.25rem', letterSpacing: '-0.01em' }}>
-                    {form.clientCompany || form.clientName || '...'} — {fmtEur(totalTTC)} TTC
-                  </div>
-                  {form.offerTitle && (
-                    <div style={{ fontSize: '0.78rem', color: Q_MIST, marginTop: '0.2rem' }}>{form.offerTitle}</div>
-                  )}
-                </div>
+              <div style={{ whiteSpace: 'pre-wrap' }}>
+                {form.emailContent || <span style={{ color: Q_MIST, fontStyle: 'italic' }}>Contenu de l'email...</span>}
               </div>
-              <div style={{ padding: '1.1rem 1.25rem' }}>
-                <div style={{ fontSize: '0.82rem', color: Q_GRAPHITE, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                  {form.emailContent || <span style={{ color: Q_MIST, fontStyle: 'italic' }}>Contenu de l'email...</span>}
-                </div>
-                <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                    background: Q_SIGNAL, color: Q_INK,
-                    padding: '0.65rem 1.5rem', borderRadius: 4, fontWeight: 600, fontSize: '0.82rem',
-                    fontFamily: Q_FT,
-                  }}>
-                    Consulter le devis en ligne <span aria-hidden>→</span>
-                  </span>
-                </div>
+              <div style={{ margin: '1.25rem 0' }}>
+                <span style={{
+                  display: 'inline-block',
+                  background: '#0A0A0B', color: '#ffffff',
+                  padding: '0.6rem 1.2rem', borderRadius: 6, fontWeight: 600, fontSize: '0.8rem',
+                }}>
+                  Consulter le devis →
+                </span>
+              </div>
+              <div>
+                {form.senderName || '...'}<br />
+                <span style={{ textDecoration: 'underline' }}>{form.senderEmail || '...'}</span>
+                {form.senderPhone && <><br />{form.senderPhone}</>}
               </div>
             </div>
           </div>
