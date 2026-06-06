@@ -3863,7 +3863,6 @@ const Q_STEEL = '#6B6F7A'
 const Q_MIST = '#B8BCC4'
 const Q_SIGNAL = '#00D68F'
 const Q_BORDER = 'rgba(10,10,11,0.08)'
-const Q_BORDER_PAPER = 'rgba(237,235,228,0.18)'
 const Q_FT = "'Inter', sans-serif"
 const Q_FM = "'JetBrains Mono', ui-monospace, monospace"
 const Q_FS = "'Instrument Serif', Georgia, serif"

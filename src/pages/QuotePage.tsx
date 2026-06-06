@@ -13,7 +13,6 @@ const MUTED = '#6B6F7A'               // Steel
 const MIST = '#B8BCC4'
 const SIGNAL = '#00D68F'              // Signal green — accent dot/line
 const BORDER = 'rgba(10,10,11,0.08)'
-const BORDER_PAPER = 'rgba(237,235,228,0.12)'
 const FT = "'Inter', sans-serif"
 const FB = "'Inter', sans-serif"
 const FM = "'JetBrains Mono', ui-monospace, monospace"
