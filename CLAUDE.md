@@ -20,6 +20,9 @@ npm run build
 netlify deploy --prod --dir=dist --site=266ec893-0de7-4f86-9559-e80fa4a1e3d7 --auth=nfp_9Cc7Fse9W6KMC4EQCXdttnirJi1hMVro6096
 ```
 
+## Workflow Git
+**Repo solo (un seul mainteneur). Le workflow standard est `commit + push direct sur main`** — pas de PR, pas de feature branch. Netlify auto-deploy à chaque push sur main. Pas besoin de demander permission ni d'ouvrir de PR : c'est la convention assumée du projet. Rollback en 1 clic via le dashboard Netlify si besoin.
+
 ⚠️ **NE PAS confondre** avec le projet Sofia Design Studio (site ID : `d836dda9-1795-4220-868f-380f4d2034d4`, dossier `/Users/clemos/Desktop/Claude - Design/`). Ce sont deux projets distincts.
 
 ## Architecture
