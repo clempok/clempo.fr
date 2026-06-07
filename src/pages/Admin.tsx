@@ -404,7 +404,7 @@ export default function Admin() {
   const [password, setPassword] = useState(() => sessionStorage.getItem(AUTH_KEY) || '')
   const [authInput, setAuthInput] = useState('')
   const [authError, setAuthError] = useState('')
-  const [view, setView] = useState<'analytics' | 'crm' | 'quotes' | 'cms' | 'seo'>('analytics')
+  const [view, setView] = useState<'analytics' | 'crm' | 'nps' | 'quotes' | 'cms' | 'seo'>('analytics')
 
   // Mark this browser as "admin" so quote views from here are not counted
   useEffect(() => {
@@ -528,6 +528,12 @@ export default function Admin() {
             👥 CRM
           </button>
           <button
+            onClick={() => setView('nps')}
+            style={tabStyle(view === 'nps')}
+          >
+            📊 NPS
+          </button>
+          <button
             onClick={() => setView('quotes')}
             style={tabStyle(view === 'quotes')}
           >
@@ -565,6 +571,8 @@ export default function Admin() {
           <AnalyticsView password={password} />
         ) : view === 'crm' ? (
           <CrmView password={password} />
+        ) : view === 'nps' ? (
+          <NpsView password={password} />
         ) : view === 'quotes' ? (
           <QuotesView password={password} />
         ) : view === 'seo' ? (
@@ -3340,6 +3348,373 @@ function CrmView({ password }: { password: string }) {
           })
         )}
       </div>
+    </div>
+  )
+}
+
+/* ---------- NPS ---------- */
+
+/** Aggregated NPS metrics for one resource (or the whole site).
+ *  Sent / scored / rate are computed over real prospect sends only —
+ *  DRY-RUN entries are filtered out upstream. */
+type NpsAggregate = {
+  sent: number
+  scored: number
+  promoters: number
+  passives: number
+  detractors: number
+  comments: number
+  nps: number | null
+  rate: number | null
+}
+
+function emptyAggregate(): NpsAggregate {
+  return { sent: 0, scored: 0, promoters: 0, passives: 0, detractors: 0, comments: 0, nps: null, rate: null }
+}
+
+function accumulate(agg: NpsAggregate, r: CrmNpsResponse): void {
+  if (r.askedAt) agg.sent += 1
+  if (typeof r.score === 'number') {
+    agg.scored += 1
+    if (r.score >= 9) agg.promoters += 1
+    else if (r.score >= 7) agg.passives += 1
+    else agg.detractors += 1
+  }
+  if (r.comment && r.comment.trim().length > 0) agg.comments += 1
+}
+
+function finalizeAggregate(agg: NpsAggregate): NpsAggregate {
+  agg.nps = agg.scored > 0 ? Math.round(((agg.promoters - agg.detractors) / agg.scored) * 100) : null
+  agg.rate = agg.sent > 0 ? agg.scored / agg.sent : null
+  return agg
+}
+
+function npsHeadlineColor(nps: number | null): string {
+  if (nps === null) return '#71717a'
+  if (nps >= 50) return '#16a34a'
+  if (nps >= 0) return '#f59e0b'
+  return '#dc2626'
+}
+
+function NpsView({ password }: { password: string }) {
+  const [companies, setCompanies] = useState<CrmCompany[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [resourceFilter, setResourceFilter] = useState<string>('all')
+  const [scoreFilter, setScoreFilter] = useState<'all' | 'promoters' | 'passives' | 'detractors'>('all')
+
+  const authHeaders = useMemo(
+    () => ({ Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' }),
+    [password],
+  )
+
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', { headers: authHeaders })
+      const body = await res.text()
+      if (!res.ok) throw new Error(`${res.status}: ${body}`)
+      const json = JSON.parse(body)
+      setCompanies(json.companies)
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [authHeaders])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  // DRY-RUN entries are excluded so the numbers reflect real prospect
+  // interactions only. Entries with askedDryRun === undefined predate the
+  // tracking field and are treated as real (cf. admin-nps-backlog).
+  const allResponses = useMemo(() => {
+    if (!companies) return []
+    const out: Array<{
+      response: CrmNpsResponse
+      companyId: string
+      companyName: string
+      contactId: string
+      contactEmail: string
+      contactName: string
+    }> = []
+    for (const co of companies) {
+      for (const c of co.contacts) {
+        if (!c.npsResponses) continue
+        for (const r of c.npsResponses) {
+          if (r.askedDryRun === true) continue
+          out.push({
+            response: r,
+            companyId: co.id,
+            companyName: co.name,
+            contactId: c.id,
+            contactEmail: c.email,
+            contactName: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email,
+          })
+        }
+      }
+    }
+    return out
+  }, [companies])
+
+  const overall = useMemo(() => {
+    const agg = emptyAggregate()
+    for (const { response: r } of allResponses) accumulate(agg, r)
+    return finalizeAggregate(agg)
+  }, [allResponses])
+
+  const perResource = useMemo(() => {
+    const map = new Map<string, NpsAggregate & { slug: string; label: string }>()
+    for (const { response: r } of allResponses) {
+      let row = map.get(r.resource)
+      if (!row) {
+        row = { ...emptyAggregate(), slug: r.resource, label: r.resourceLabel || r.resource }
+        map.set(r.resource, row)
+      } else if (!row.label && r.resourceLabel) {
+        row.label = r.resourceLabel
+      }
+      accumulate(row, r)
+    }
+    for (const row of map.values()) finalizeAggregate(row)
+    return Array.from(map.values()).sort((a, b) => b.scored - a.scored || b.sent - a.sent)
+  }, [allResponses])
+
+  const resourceOptions = useMemo(
+    () => perResource.map(r => ({ slug: r.slug, label: r.label })),
+    [perResource],
+  )
+
+  const feedbacks = useMemo(() => {
+    const items = allResponses
+      .filter(({ response: r }) => r.comment && r.comment.trim().length > 0)
+      .filter(({ response: r }) => resourceFilter === 'all' || r.resource === resourceFilter)
+      .filter(({ response: r }) => {
+        if (scoreFilter === 'all') return true
+        if (typeof r.score !== 'number') return false
+        if (scoreFilter === 'promoters') return r.score >= 9
+        if (scoreFilter === 'passives') return r.score >= 7 && r.score <= 8
+        if (scoreFilter === 'detractors') return r.score <= 6
+        return true
+      })
+    items.sort((a, b) => {
+      const ta = a.response.commentAt || a.response.scoredAt || ''
+      const tb = b.response.commentAt || b.response.scoredAt || ''
+      return ta < tb ? 1 : -1
+    })
+    return items
+  }, [allResponses, resourceFilter, scoreFilter])
+
+  if (loading && !companies) return <div style={{ padding: '3rem' }}>Chargement…</div>
+  if (error && !companies) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error}</div>
+
+  const formatPct = (n: number | null, digits = 0) => n === null ? '—' : `${(n * 100).toFixed(digits)}%`
+  const formatNps = (n: number | null) => n === null ? '—' : (n > 0 ? `+${n}` : `${n}`)
+  const formatDate = (iso: string | undefined) => {
+    if (!iso) return ''
+    try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) }
+    catch { return iso }
+  }
+
+  return (
+    <div style={{ padding: '2rem 3rem', maxWidth: '1200px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', margin: 0 }}>NPS</h2>
+          <p style={{ fontSize: '0.75rem', color: '#999', margin: '0.25rem 0 0' }}>
+            Satisfaction des téléchargements (data santé, journalistes). Les envois DRY-RUN sont exclus.
+          </p>
+        </div>
+        <button
+          onClick={refresh}
+          style={{
+            padding: '0.5rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+            background: '#fff', color: '#555', fontSize: '0.8rem', cursor: 'pointer',
+          }}
+        >
+          ⟳ Rafraîchir
+        </button>
+      </div>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem',
+        marginBottom: '2rem',
+      }}>
+        <NpsKpiCard
+          title="NPS total"
+          value={formatNps(overall.nps)}
+          subtitle={`${overall.promoters} promoteur(s) · ${overall.passives} passif(s) · ${overall.detractors} détracteur(s)`}
+          color={npsHeadlineColor(overall.nps)}
+        />
+        <NpsKpiCard
+          title="Taux de réponse"
+          value={formatPct(overall.rate, 1)}
+          subtitle={`${overall.scored} note(s) / ${overall.sent} email(s) envoyé(s)`}
+        />
+        <NpsKpiCard
+          title="Réponses scorées"
+          value={String(overall.scored)}
+          subtitle={`Sur ${overall.sent} email(s) NPS envoyé(s)`}
+        />
+        <NpsKpiCard
+          title="Commentaires"
+          value={String(overall.comments)}
+          subtitle={`Sur ${overall.scored} note(s) reçue(s)`}
+        />
+      </div>
+
+      <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#111', margin: '0 0 0.75rem' }}>
+        NPS par contenu
+      </h3>
+      {perResource.length === 0 ? (
+        <div style={{ padding: '1rem', background: '#f8f8f6', border: '1px solid #eee', borderRadius: '10px', color: '#666', fontSize: '0.8rem', marginBottom: '2rem' }}>
+          Aucune donnée NPS pour le moment.
+        </div>
+      ) : (
+        <div style={{ overflowX: 'auto', marginBottom: '2rem', border: '1px solid #eee', borderRadius: '10px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+            <thead style={{ background: '#fafafa', textAlign: 'left' }}>
+              <tr>
+                <th style={npsThStyle}>Contenu</th>
+                <th style={{ ...npsThStyle, textAlign: 'right' }}>NPS</th>
+                <th style={{ ...npsThStyle, textAlign: 'right' }}>Notes</th>
+                <th style={{ ...npsThStyle, textAlign: 'right' }}>Envoyés</th>
+                <th style={{ ...npsThStyle, textAlign: 'right' }}>Taux réponse</th>
+                <th style={{ ...npsThStyle, textAlign: 'right' }}>Prom. / Pass. / Détr.</th>
+                <th style={{ ...npsThStyle, textAlign: 'right' }}>Comm.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {perResource.map(row => (
+                <tr key={row.slug} style={{ borderTop: '1px solid #f0f0f0' }}>
+                  <td style={npsTdStyle}>{row.label}</td>
+                  <td style={{ ...npsTdStyle, textAlign: 'right', fontWeight: 700, color: npsHeadlineColor(row.nps) }}>
+                    {formatNps(row.nps)}
+                  </td>
+                  <td style={{ ...npsTdStyle, textAlign: 'right' }}>{row.scored}</td>
+                  <td style={{ ...npsTdStyle, textAlign: 'right' }}>{row.sent}</td>
+                  <td style={{ ...npsTdStyle, textAlign: 'right' }}>{formatPct(row.rate, 1)}</td>
+                  <td style={{ ...npsTdStyle, textAlign: 'right', color: '#555' }}>
+                    <span style={{ color: '#16a34a' }}>{row.promoters}</span>
+                    <span style={{ color: '#bbb' }}> / </span>
+                    <span style={{ color: '#f59e0b' }}>{row.passives}</span>
+                    <span style={{ color: '#bbb' }}> / </span>
+                    <span style={{ color: '#dc2626' }}>{row.detractors}</span>
+                  </td>
+                  <td style={{ ...npsTdStyle, textAlign: 'right' }}>{row.comments}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.6rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#111', margin: 0 }}>
+          Feedbacks ({feedbacks.length})
+        </h3>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <FilterPill label="Tous scores" active={scoreFilter === 'all'} onClick={() => setScoreFilter('all')} />
+          <FilterPill label="Promoteurs" active={scoreFilter === 'promoters'} onClick={() => setScoreFilter('promoters')} color={{ bg: '#16a34a', fg: '#fff' }} />
+          <FilterPill label="Passifs" active={scoreFilter === 'passives'} onClick={() => setScoreFilter('passives')} color={{ bg: '#f59e0b', fg: '#fff' }} />
+          <FilterPill label="Détracteurs" active={scoreFilter === 'detractors'} onClick={() => setScoreFilter('detractors')} color={{ bg: '#dc2626', fg: '#fff' }} />
+        </div>
+      </div>
+      <div style={{ marginBottom: '0.75rem' }}>
+        <select
+          value={resourceFilter}
+          onChange={e => setResourceFilter(e.target.value)}
+          style={{
+            padding: '0.4rem 0.6rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+            fontSize: '0.78rem', background: '#fff', color: '#333',
+          }}
+        >
+          <option value="all">Tous les contenus</option>
+          {resourceOptions.map(o => (
+            <option key={o.slug} value={o.slug}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {feedbacks.length === 0 ? (
+        <div style={{ padding: '1rem', background: '#f8f8f6', border: '1px solid #eee', borderRadius: '10px', color: '#666', fontSize: '0.8rem' }}>
+          Aucun commentaire pour ces filtres.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          {feedbacks.map(({ response: r, companyName, contactName, contactEmail }) => {
+            const score = typeof r.score === 'number' ? r.score : null
+            return (
+              <div key={r.id} style={{
+                padding: '0.85rem 1rem', border: '1px solid #eee', borderRadius: '10px', background: '#fff',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                  {score !== null && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 36, height: 36, borderRadius: '8px',
+                      background: npsScoreColor(score), color: '#fff',
+                      fontWeight: 700, fontSize: '0.9rem', flexShrink: 0,
+                    }}>
+                      {score}
+                    </span>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111' }}>
+                      {contactName} <span style={{ color: '#999', fontWeight: 400 }}>· {companyName}</span>
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#999' }}>
+                      {contactEmail} · {r.resourceLabel} · {formatDate(r.commentAt || r.scoredAt)}
+                    </div>
+                  </div>
+                  {score !== null && (
+                    <span style={{
+                      fontSize: '0.7rem', fontWeight: 600,
+                      padding: '0.2rem 0.5rem', borderRadius: '6px',
+                      background: `${npsScoreColor(score)}15`, color: npsScoreColor(score),
+                    }}>
+                      {npsScoreLabel(score)}
+                    </span>
+                  )}
+                </div>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#333', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                  {r.comment}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const npsThStyle: React.CSSProperties = {
+  padding: '0.55rem 0.75rem', fontSize: '0.68rem',
+  fontWeight: 600, color: '#666',
+  textTransform: 'uppercase', letterSpacing: '0.04em',
+  borderBottom: '1px solid #eee',
+}
+const npsTdStyle: React.CSSProperties = {
+  padding: '0.6rem 0.75rem', fontSize: '0.82rem', color: '#222',
+}
+
+function NpsKpiCard({ title, value, subtitle, color }: {
+  title: string; value: string; subtitle?: string; color?: string
+}) {
+  return (
+    <div style={{
+      padding: '1rem 1.1rem', border: '1px solid #eee', borderRadius: '12px', background: '#fff',
+    }}>
+      <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        {title}
+      </div>
+      <div style={{ fontSize: '1.8rem', fontWeight: 700, color: color || '#111', margin: '0.3rem 0 0.2rem' }}>
+        {value}
+      </div>
+      {subtitle && (
+        <div style={{ fontSize: '0.7rem', color: '#999' }}>{subtitle}</div>
+      )}
     </div>
   )
 }
