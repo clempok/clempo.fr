@@ -47,6 +47,7 @@ const routes = [
   '/transition-cmo',
   '/parts-de-marche-logiciels-medicaux',
   '/hiring',
+  '/decideurs-hospitaliers',
   ...slugs.map(s => `/articles/${s}`),
   ...specialiteSlugs.map(s => `/specialites/${s}`),
 ]

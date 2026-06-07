@@ -21,6 +21,7 @@ import Specialites from './pages/Specialites'
 import SpecialitePage from './pages/SpecialitePage'
 import NpsThanks from './pages/NpsThanks'
 import Hiring from './pages/Hiring'
+import DecideursHospitaliers from './pages/DecideursHospitaliers'
 
 // Normalize a referrer hostname into a short stable label so the admin dashboard
 // can group "www.google.fr", "google.com", "www.google.co.uk" under "google".
@@ -160,6 +161,7 @@ function Shell() {
         <Route path="/specialites/:slug" element={<SpecialitePage />} />
         <Route path="/merci-nps" element={<NpsThanks />} />
         <Route path="/hiring" element={<Hiring />} />
+        <Route path="/decideurs-hospitaliers" element={<DecideursHospitaliers />} />
       </Routes>
       {!isAdmin && !isQuote && <Footer />}
       {!isAdmin && !isQuote && <ReturnVisitorPopup />}

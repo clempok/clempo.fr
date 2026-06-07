@@ -14,6 +14,7 @@ import TransitionCMO from './pages/TransitionCMO'
 import Specialites from './pages/Specialites'
 import SpecialitePage from './pages/SpecialitePage'
 import Hiring from './pages/Hiring'
+import DecideursHospitaliers from './pages/DecideursHospitaliers'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const HelmetProviderAny = HelmetProvider as any
@@ -38,6 +39,7 @@ export function render(url: string) {
               <Route path="/parts-de-marche-logiciels-medicaux" element={<Specialites />} />
               <Route path="/specialites/:slug" element={<SpecialitePage />} />
               <Route path="/hiring" element={<Hiring />} />
+              <Route path="/decideurs-hospitaliers" element={<DecideursHospitaliers />} />
             </Routes>
             <Footer />
           </div>
