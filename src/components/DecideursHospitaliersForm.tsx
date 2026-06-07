@@ -107,10 +107,24 @@ export default function DecideursHospitaliersForm({
           fontSize: variant === 'compact' ? '0.9rem' : '1rem',
           lineHeight: 1.55,
           marginBottom: '1.5rem',
-          maxWidth: '420px',
+          maxWidth: '460px',
           margin: '0 auto 1.5rem',
         }}>
-          Bon prospection. Pensez à filtrer par catégorie d'établissement (CHU, EHPAD, clinique…) avant tout cold outreach — ça change tout en B2B santé.
+          Bon usage de cette base. Si vous le souhaitez, je donne quelques conseils d'utilisation dans{' '}
+          <a
+            href="https://open.substack.com/pub/avotresante/p/le-fichier-dont-je-revais-quand-je?r=37ranz&utm_campaign=post&utm_medium=web&showWelcomeOnShare=true"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: 'var(--ink)',
+              fontWeight: 600,
+              textDecoration: 'underline',
+              textDecorationThickness: '1px',
+              textUnderlineOffset: '3px',
+            }}
+          >
+            ma newsletter →
+          </a>
         </p>
         <a
           href={DECIDEURS_HOSPITALIERS_SHEET_URL}
