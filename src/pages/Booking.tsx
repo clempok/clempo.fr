@@ -19,12 +19,20 @@ interface Slot {
   minute: number
 }
 
-// Availability rules (hours in Europe/Paris time)
-const AVAILABILITY: Record<number, [number, number][]> = {
-  1: [[18, 22]], // Monday 18-22
-  3: [[11, 15]], // Wednesday 11-15
-  4: [[11, 15]], // Thursday 11-15
-  5: [[11, 13]], // Friday 11-13
+// Working hours envelope (Europe/Paris). Within these windows, slots are
+// proposed at :00 and :30 only when the Google Calendar is free.
+// Day-of-week index follows JS getDay(): 0=Sun, 1=Mon, ..., 6=Sat.
+const AVAILABILITY: Record<number, [string, string][]> = {
+  1: [['09:00', '17:15'], ['20:30', '22:00']], // Monday
+  2: [['09:00', '17:15'], ['20:30', '22:00']], // Tuesday
+  3: [['09:00', '17:15'], ['20:30', '22:00']], // Wednesday
+  4: [['09:00', '17:15']],                     // Thursday
+  5: [['09:00', '16:45']],                     // Friday
+}
+
+function parseHHMM(s: string): number {
+  const [h, m] = s.split(':').map(Number)
+  return h * 60 + m
 }
 
 const DAY_NAMES_FR = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
@@ -65,23 +73,28 @@ function getSlotsForDay(date: Date, busy: BusyInterval[] = []): Slot[] {
 
   const now = new Date()
   const slots: Slot[] = []
-  for (const [startH, endH] of ranges) {
-    for (let h = startH; h < endH; h++) {
-      for (const m of [0, 30]) {
-        if (h === endH - 1 && m === 30 && SLOT_DURATION === 30) continue
-        const slotStart = new Date(date)
-        slotStart.setHours(h, m, 0, 0)
-        // Don't show past slots
-        if (slotStart <= now) continue
+  for (const [startStr, endStr] of ranges) {
+    const startMin = parseHHMM(startStr)
+    const endMin = parseHHMM(endStr)
+    // Slot starts step every 30 min from the window start; only emit a slot
+    // when it fits fully inside [startMin, endMin]. Window bounds in
+    // AVAILABILITY must be aligned to :00 or :30 for the slot grid to make
+    // sense — the configured rules respect that.
+    for (let mFromMid = startMin; mFromMid + SLOT_DURATION <= endMin; mFromMid += 30) {
+      const h = Math.floor(mFromMid / 60)
+      const m = mFromMid % 60
+      const slotStart = new Date(date)
+      slotStart.setHours(h, m, 0, 0)
+      // Don't show past slots
+      if (slotStart <= now) continue
 
-        const slotEnd = new Date(slotStart.getTime() + SLOT_DURATION * 60 * 1000)
+      const slotEnd = new Date(slotStart.getTime() + SLOT_DURATION * 60 * 1000)
 
-        // Skip if overlaps with any busy interval
-        const isBusy = busy.some(b => slotStart < b.end && slotEnd > b.start)
-        if (isBusy) continue
+      // Skip if overlaps with any busy interval from Google Calendar
+      const isBusy = busy.some(b => slotStart < b.end && slotEnd > b.start)
+      if (isBusy) continue
 
-        slots.push({ date: new Date(date), hour: h, minute: m })
-      }
+      slots.push({ date: new Date(date), hour: h, minute: m })
     }
   }
   return slots
