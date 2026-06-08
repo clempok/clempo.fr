@@ -1,14 +1,19 @@
 /**
  * Minimal Google Sheets API v4 client.
  *
- * Auth flow: load a service-account JSON (GOOGLE_SERVICE_ACCOUNT_JSON env),
- * sign a JWT with its private key, exchange for an OAuth2 access token, then
- * call sheets.googleapis.com. No SDK — kept to a single file so the Netlify
- * function bundle stays lean.
+ * Auth flow: load a service-account JSON, sign a JWT with its private key,
+ * exchange for an OAuth2 access token, then call sheets.googleapis.com. No
+ * SDK — kept to a single file so the Netlify function bundle stays lean.
+ *
+ * Credential storage: read from the Netlify Blob `secrets/gsheet-sa.json`.
+ * Env-var storage is NOT supported because the SA JSON (~2.3KB) blows past
+ * the AWS Lambda 4KB-per-function env-var limit. Upload the SA JSON once via
+ * the `admin-set-gsheet-credentials` endpoint; this file reads it back.
  *
  * The sheet must be shared (Editor) with the service account's `client_email`.
  */
 import crypto from 'node:crypto'
+import { getStore } from '@netlify/blobs'
 
 type ServiceAccount = {
   client_email: string
@@ -16,20 +21,41 @@ type ServiceAccount = {
   token_uri?: string
 }
 
-function loadServiceAccount(): ServiceAccount {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON env var is missing')
+const SITE_ID = '266ec893-0de7-4f86-9559-e80fa4a1e3d7'
+const SA_BLOB_KEY = 'gsheet-sa.json'
+
+export function getSecretsStore() {
+  const token = process.env.NETLIFY_BLOBS_TOKEN || process.env.NETLIFY_API_TOKEN
+  const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID || SITE_ID
+  if (token) return getStore({ name: 'secrets', siteID, token })
+  return getStore({ name: 'secrets' })
+}
+
+let cachedSA: ServiceAccount | null = null
+
+async function loadServiceAccount(): Promise<ServiceAccount> {
+  if (cachedSA) return cachedSA
+
+  const store = getSecretsStore()
+  const raw = (await store.get(SA_BLOB_KEY, { type: 'text' })) as string | null
+  if (!raw) {
+    throw new Error(
+      'Service-account JSON not found in Netlify Blobs. ' +
+      'Upload it via POST /.netlify/functions/admin-set-gsheet-credentials',
+    )
+  }
   let parsed: ServiceAccount
   try {
     parsed = JSON.parse(raw)
   } catch {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON')
+    throw new Error('Stored service-account JSON is malformed')
   }
   if (!parsed.client_email || !parsed.private_key) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON missing client_email or private_key')
+    throw new Error('Stored service-account JSON is missing client_email or private_key')
   }
-  // Netlify env vars often store \n literally — normalize to real newlines.
+  // Normalize \n escapes in case the JSON was edited in a plain-text field.
   parsed.private_key = parsed.private_key.replace(/\\n/g, '\n')
+  cachedSA = parsed
   return parsed
 }
 
@@ -47,7 +73,7 @@ let cachedToken: { token: string; expiresAt: number } | null = null
 async function getAccessToken(scope = 'https://www.googleapis.com/auth/spreadsheets'): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) return cachedToken.token
 
-  const sa = loadServiceAccount()
+  const sa = await loadServiceAccount()
   const iat = Math.floor(Date.now() / 1000)
   const exp = iat + 3600
 
