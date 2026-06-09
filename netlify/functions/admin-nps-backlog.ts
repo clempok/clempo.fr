@@ -24,9 +24,10 @@ type Eligible = {
 
 /**
  * Detect a resource worth surveying from the contact's free-text `source`.
- * The two NPS-eligible sources today are:
+ * The NPS-eligible sources today are:
  *   - "Journalistes" / "Journalistes (...)"
  *   - "Data <specialty>" (set by handleDataDownload in submission-created.ts)
+ *   - "Décideurs hospitaliers" / "Décideurs hospitaliers (...)"
  * Brochure downloads are intentionally excluded.
  */
 function detectResource(source: string | undefined): { slug: string; label: string } | null {
@@ -34,6 +35,9 @@ function detectResource(source: string | undefined): { slug: string; label: stri
   const lower = source.toLowerCase()
   if (lower.includes('journalistes')) {
     return { slug: 'journalistes', label: 'Liste journalistes santé' }
+  }
+  if (lower.includes('décideurs') || lower.includes('decideurs')) {
+    return { slug: 'decideurs-hospitaliers', label: 'Base décideurs hospitaliers' }
   }
   const dataMatch = source.match(/(Data\s+[^,]+)/i)
   if (dataMatch) {
