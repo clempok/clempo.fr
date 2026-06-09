@@ -149,9 +149,9 @@ export default function ReturnVisitorPopup() {
   const copy = {
     fr: {
       default: {
-        eyebrow: '3e fois que vous passez',
+        eyebrow: 'Vous hésitez ?',
         title: 'Et si on parlait directement de votre projet ?',
-        sub: "30 minutes pour comprendre votre contexte et voir si je peux vraiment vous aider. Sans engagement, sans slide deck.",
+        sub: '30 minutes pour comprendre votre contexte et voir si je peux vraiment vous aider.',
         cta: 'Bloquer un créneau',
         dismiss: 'Pas maintenant',
       },
