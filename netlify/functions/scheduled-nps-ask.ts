@@ -41,6 +41,15 @@ export default async () => {
         if (!contact.npsResponses || contact.npsResponses.length === 0) continue
         for (const np of contact.npsResponses) {
           if (np.askedAt) continue
+          // Defensive dedup: if a sibling entry for the same resource has
+          // already been asked or scored (e.g. legacy duplicates from before
+          // addPendingNps dedup was added), do not email again. The backlog
+          // campaign relies on .find() which already collapses to one entry
+          // per resource — this brings the cron in line.
+          if (contact.npsResponses.some(r => r !== np && r.resource === np.resource && (r.askedAt || r.score !== undefined))) {
+            skipped += 1
+            continue
+          }
           const downloadedAt = Date.parse(np.downloadedAt)
           if (Number.isNaN(downloadedAt)) { skipped += 1; continue }
           const ageMs = now - downloadedAt

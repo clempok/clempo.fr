@@ -681,6 +681,11 @@ export async function addPendingNps(
       const contact = co.contacts.find(c => c.email.toLowerCase() === normalizedEmail)
       if (contact) {
         if (!contact.npsResponses) contact.npsResponses = []
+        // Dedup: never create a second NPS entry for the same (contact, resource).
+        // Prevents the cron from emailing twice when a contact re-downloads
+        // (e.g. clicking the link from their original email again).
+        const existing = contact.npsResponses.find(r => r.resource === resource)
+        if (existing) return
         contact.npsResponses.push({
           id: globalThis.crypto?.randomUUID
             ? globalThis.crypto.randomUUID()
