@@ -149,7 +149,7 @@ export default function ReturnVisitorPopup() {
   const copy = {
     fr: {
       default: {
-        eyebrow: 'Vous hésitez ?',
+        eyebrow: "Envie d'accélérer ?",
         title: 'Et si on parlait directement de votre projet ?',
         sub: '30 minutes pour comprendre votre contexte et voir si je peux vraiment vous aider.',
         cta: 'Bloquer un créneau',
