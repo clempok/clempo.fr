@@ -404,7 +404,7 @@ export default function Admin() {
   const [password, setPassword] = useState(() => sessionStorage.getItem(AUTH_KEY) || '')
   const [authInput, setAuthInput] = useState('')
   const [authError, setAuthError] = useState('')
-  const [view, setView] = useState<'analytics' | 'crm' | 'nps' | 'quotes' | 'cms' | 'seo'>('analytics')
+  const [view, setView] = useState<'analytics' | 'crm' | 'content' | 'nps' | 'quotes' | 'cms' | 'seo'>('analytics')
 
   // Mark this browser as "admin" so quote views from here are not counted
   useEffect(() => {
@@ -528,6 +528,12 @@ export default function Admin() {
             👥 CRM
           </button>
           <button
+            onClick={() => setView('content')}
+            style={tabStyle(view === 'content')}
+          >
+            📥 Contenus
+          </button>
+          <button
             onClick={() => setView('nps')}
             style={tabStyle(view === 'nps')}
           >
@@ -571,6 +577,8 @@ export default function Admin() {
           <AnalyticsView password={password} />
         ) : view === 'crm' ? (
           <CrmView password={password} />
+        ) : view === 'content' ? (
+          <ContentView password={password} />
         ) : view === 'nps' ? (
           <NpsView password={password} />
         ) : view === 'quotes' ? (
@@ -3713,6 +3721,283 @@ function NpsKpiCard({ title, value, subtitle, color }: {
       </div>
       {subtitle && (
         <div style={{ fontSize: '0.7rem', color: '#999' }}>{subtitle}</div>
+      )}
+    </div>
+  )
+}
+
+/* ---------- Contenus ---------- */
+
+/** Priority index mirroring _crm.ts STATUS_PRIORITY. Used to count how many
+ *  leads from a given content reached "Opportunité" or "Client" (current
+ *  status only — not historical). Lost is excluded from conversion counts. */
+const STATUS_PRIORITY_CLIENT: Record<CrmStatus, number> = {
+  'Non qualifié': 0,
+  'Prospect': 1,
+  'Lead': 2,
+  'Opportunité': 3,
+  'Client': 4,
+  'Lost': -1,
+}
+
+type ContentLead = {
+  contactId: string
+  companyId: string
+  contactName: string
+  contactEmail: string
+  companyName: string
+  companyStatus: CrmStatus
+  downloadedAt: string
+  npsScore: number | null
+  npsComment: string
+}
+
+type ContentBucket = NpsAggregate & {
+  slug: string
+  label: string
+  leads: ContentLead[]
+  opportunitiesCount: number
+  clientsCount: number
+}
+
+function ContentView({ password }: { password: string }) {
+  const [companies, setCompanies] = useState<CrmCompany[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [expandedSlug, setExpandedSlug] = useState<string | null>(null)
+
+  const authHeaders = useMemo(
+    () => ({ Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' }),
+    [password],
+  )
+
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/.netlify/functions/admin-crm', { headers: authHeaders })
+      const body = await res.text()
+      if (!res.ok) throw new Error(`${res.status}: ${body}`)
+      const json = JSON.parse(body)
+      setCompanies(json.companies)
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [authHeaders])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  const buckets = useMemo<ContentBucket[]>(() => {
+    if (!companies) return []
+    const map = new Map<string, ContentBucket>()
+
+    for (const co of companies) {
+      for (const c of co.contacts) {
+        if (!c.npsResponses || c.npsResponses.length === 0) continue
+        // One contact may have downloaded several contents — credit each bucket once per contact.
+        const seenSlugs = new Set<string>()
+        for (const r of c.npsResponses) {
+          // Exclude DRY-RUN entries from NPS aggregation, but keep the lead in
+          // the bucket — they did download the content, just got a fake email.
+          let row = map.get(r.resource)
+          if (!row) {
+            row = {
+              ...emptyAggregate(),
+              slug: r.resource,
+              label: r.resourceLabel || r.resource,
+              leads: [],
+              opportunitiesCount: 0,
+              clientsCount: 0,
+            }
+            map.set(r.resource, row)
+          } else if (!row.label && r.resourceLabel) {
+            row.label = r.resourceLabel
+          }
+          if (r.askedDryRun !== true) accumulate(row, r)
+          if (!seenSlugs.has(r.resource)) {
+            seenSlugs.add(r.resource)
+            const priority = STATUS_PRIORITY_CLIENT[co.status] ?? 0
+            row.leads.push({
+              contactId: c.id,
+              companyId: co.id,
+              contactName: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email,
+              contactEmail: c.email,
+              companyName: co.name,
+              companyStatus: co.status,
+              downloadedAt: r.downloadedAt,
+              npsScore: typeof r.score === 'number' ? r.score : null,
+              npsComment: r.comment || '',
+            })
+            if (priority >= 3) row.opportunitiesCount += 1
+            if (priority >= 4) row.clientsCount += 1
+          }
+        }
+      }
+    }
+
+    for (const row of map.values()) {
+      finalizeAggregate(row)
+      row.leads.sort((a, b) => (a.downloadedAt < b.downloadedAt ? 1 : -1))
+    }
+    return Array.from(map.values()).sort((a, b) => b.leads.length - a.leads.length)
+  }, [companies])
+
+  if (loading && !companies) return <div style={{ padding: '3rem' }}>Chargement…</div>
+  if (error && !companies) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error}</div>
+
+  const formatNps = (n: number | null) => n === null ? '—' : (n > 0 ? `+${n}` : `${n}`)
+  const formatDate = (iso: string | undefined) => {
+    if (!iso) return ''
+    try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) }
+    catch { return iso }
+  }
+
+  return (
+    <div style={{ padding: '2rem 3rem', maxWidth: '1200px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', margin: 0 }}>Contenus</h2>
+          <p style={{ fontSize: '0.75rem', color: '#999', margin: '0.25rem 0 0' }}>
+            Performance des lead magnets : leads → opportunités → clients, et NPS par contenu.
+          </p>
+        </div>
+        <button
+          onClick={refresh}
+          style={{
+            padding: '0.5rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px',
+            background: '#fff', color: '#555', fontSize: '0.8rem', cursor: 'pointer',
+          }}
+        >
+          ⟳ Rafraîchir
+        </button>
+      </div>
+
+      {buckets.length === 0 ? (
+        <div style={{ padding: '1rem', background: '#f8f8f6', border: '1px solid #eee', borderRadius: '10px', color: '#666', fontSize: '0.8rem' }}>
+          Aucun lead magnet enregistré pour le moment.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          {buckets.map(b => {
+            const isExpanded = expandedSlug === b.slug
+            const conversionPct = (n: number) => b.leads.length > 0 ? `${Math.round((n / b.leads.length) * 100)}%` : '—'
+            return (
+              <div key={b.slug} style={{ border: '1px solid #eee', borderRadius: '12px', background: '#fff', overflow: 'hidden' }}>
+                <button
+                  onClick={() => setExpandedSlug(isExpanded ? null : b.slug)}
+                  style={{
+                    width: '100%', display: 'grid',
+                    gridTemplateColumns: '1.5fr repeat(4, minmax(90px, 1fr)) 32px',
+                    alignItems: 'center', gap: '0.75rem',
+                    padding: '0.9rem 1.1rem', background: 'transparent', border: 'none',
+                    cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#111' }}>
+                    {b.label}
+                    <div style={{ fontSize: '0.65rem', color: '#999', fontWeight: 400, marginTop: 2 }}>{b.slug}</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#111', fontVariantNumeric: 'tabular-nums' }}>{b.leads.length}</div>
+                    <div style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Leads</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: b.opportunitiesCount > 0 ? '#6b21a8' : '#ccc', fontVariantNumeric: 'tabular-nums' }}>
+                      {b.opportunitiesCount}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Opp. <span style={{ color: '#bbb' }}>{conversionPct(b.opportunitiesCount)}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: b.clientsCount > 0 ? '#065f46' : '#ccc', fontVariantNumeric: 'tabular-nums' }}>
+                      {b.clientsCount}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Clients <span style={{ color: '#bbb' }}>{conversionPct(b.clientsCount)}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: npsHeadlineColor(b.nps), fontVariantNumeric: 'tabular-nums' }}>
+                      {formatNps(b.nps)}
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      NPS ({b.scored})
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#999', textAlign: 'center' }}>
+                    {isExpanded ? '▴' : '▾'}
+                  </div>
+                </button>
+                {isExpanded && (
+                  <div style={{ borderTop: '1px solid #eee', background: '#fafafa', padding: '0.5rem 0.75rem 1rem' }}>
+                    {b.leads.length === 0 ? (
+                      <p style={{ margin: '0.6rem', fontSize: '0.78rem', color: '#999' }}>Aucun lead pour ce contenu.</p>
+                    ) : (
+                      <div style={{ overflowX: 'auto', border: '1px solid #eee', borderRadius: '8px', background: '#fff' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                          <thead style={{ background: '#fafafa', textAlign: 'left' }}>
+                            <tr>
+                              <th style={npsThStyle}>Nom</th>
+                              <th style={npsThStyle}>Email</th>
+                              <th style={npsThStyle}>Entreprise</th>
+                              <th style={{ ...npsThStyle, textAlign: 'center' }}>Statut</th>
+                              <th style={{ ...npsThStyle, textAlign: 'right' }}>Téléchargé</th>
+                              <th style={{ ...npsThStyle, textAlign: 'center' }}>NPS</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {b.leads.map(l => {
+                              const sc = STATUS_COLORS[l.companyStatus]
+                              return (
+                                <tr key={`${l.companyId}-${l.contactId}`} style={{ borderTop: '1px solid #f0f0f0' }}>
+                                  <td style={{ ...npsTdStyle, fontWeight: 600 }}>{l.contactName}</td>
+                                  <td style={npsTdStyle}>
+                                    <a href={`mailto:${l.contactEmail}`} style={{ color: '#0066cc', textDecoration: 'none' }}>
+                                      {l.contactEmail}
+                                    </a>
+                                  </td>
+                                  <td style={{ ...npsTdStyle, color: '#555' }}>{l.companyName}</td>
+                                  <td style={{ ...npsTdStyle, textAlign: 'center' }}>
+                                    <span style={{
+                                      display: 'inline-block', padding: '2px 8px', borderRadius: '6px',
+                                      background: sc.bg, color: sc.fg,
+                                      fontSize: '0.7rem', fontWeight: 600,
+                                    }}>
+                                      {l.companyStatus}
+                                    </span>
+                                  </td>
+                                  <td style={{ ...npsTdStyle, textAlign: 'right', color: '#999', whiteSpace: 'nowrap' }}>
+                                    {formatDate(l.downloadedAt)}
+                                  </td>
+                                  <td style={{ ...npsTdStyle, textAlign: 'center' }}>
+                                    {l.npsScore === null ? (
+                                      <span style={{ color: '#ccc' }}>—</span>
+                                    ) : (
+                                      <span style={{
+                                        display: 'inline-block', minWidth: 26, padding: '2px 6px',
+                                        borderRadius: '5px', background: npsScoreColor(l.npsScore), color: '#fff',
+                                        fontWeight: 700, fontSize: '0.72rem',
+                                      }}>
+                                        {l.npsScore}
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       )}
     </div>
   )

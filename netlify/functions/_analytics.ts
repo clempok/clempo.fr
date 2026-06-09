@@ -2,7 +2,7 @@ import { getStore } from '@netlify/blobs'
 
 export type LeadEvent = {
   id: string
-  type: 'booking' | 'brochure' | 'journalistes' | 'data-download'
+  type: 'booking' | 'brochure' | 'journalistes' | 'data-download' | 'decideurs-hospitaliers' | 'hiring'
   ts: string // ISO
   firstName?: string
   lastName?: string
