@@ -11,6 +11,7 @@ import Home from './pages/Home'
 import Articles from './pages/Articles'
 import ArticlePage from './pages/ArticlePage'
 import TransitionCMO from './pages/TransitionCMO'
+import ConsultantMarketingSante from './pages/ConsultantMarketingSante'
 import Specialites from './pages/Specialites'
 import SpecialitePage from './pages/SpecialitePage'
 import Hiring from './pages/Hiring'
@@ -36,6 +37,7 @@ export function render(url: string) {
               <Route path="/articles" element={<Articles />} />
               <Route path="/articles/:slug" element={<ArticlePage />} />
               <Route path="/transition-cmo" element={<TransitionCMO />} />
+              <Route path="/consultant-marketing-sante" element={<ConsultantMarketingSante />} />
               <Route path="/parts-de-marche-logiciels-medicaux" element={<Specialites />} />
               <Route path="/specialites/:slug" element={<SpecialitePage />} />
               <Route path="/hiring" element={<Hiring />} />

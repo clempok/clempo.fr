@@ -17,6 +17,7 @@ import Admin from './pages/Admin'
 import Booking from './pages/Booking'
 import QuotePage from './pages/QuotePage'
 import TransitionCMO from './pages/TransitionCMO'
+import ConsultantMarketingSante from './pages/ConsultantMarketingSante'
 import Specialites from './pages/Specialites'
 import SpecialitePage from './pages/SpecialitePage'
 import NpsThanks from './pages/NpsThanks'
@@ -157,6 +158,7 @@ function Shell() {
         <Route path="/booking" element={<Booking />} />
         <Route path="/devis/:company/:id" element={<QuotePage />} />
         <Route path="/transition-cmo" element={<TransitionCMO />} />
+        <Route path="/consultant-marketing-sante" element={<ConsultantMarketingSante />} />
         <Route path="/parts-de-marche-logiciels-medicaux" element={<Specialites />} />
         <Route path="/specialites/:slug" element={<SpecialitePage />} />
         <Route path="/merci-nps" element={<NpsThanks />} />

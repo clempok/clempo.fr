@@ -4,7 +4,6 @@
 /systeme-sante-monde                  /articles                                     301
 /systemes-sante-incription            /articles/systeme-sante-europe                301
 /a-propos                             /#about                                       301
-/consultant-marketing-sante           /#accompagnements                             301
 
 # Renommage SEO de la page "Parts de marché logiciels médicaux"
 # (les sous-pages /specialites/:slug ne sont PAS impactées — match exact)

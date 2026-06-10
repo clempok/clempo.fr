@@ -45,6 +45,7 @@ const routes = [
   '/',
   '/articles',
   '/transition-cmo',
+  '/consultant-marketing-sante',
   '/parts-de-marche-logiciels-medicaux',
   '/hiring',
   '/decideurs-hospitaliers',

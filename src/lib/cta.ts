@@ -14,6 +14,7 @@
  *   home-hero, home-about, home-advisor, home-parttime, home-footer
  *   footer, navbar
  *   transition-cmo
+ *   consultant-marketing-sante
  *   articles-list, article-<slug>
  *   brochure-download
  *
