@@ -32,3 +32,6 @@ dist-ssr
 
 # Raw data sources used to regenerate public/data/specialites/ — kept local only
 Extract GIE/
+
+# PDFs sources du rebranding des rapports (174 Mo) — travail local, trop lourd pour git
+reports-rebrand/
