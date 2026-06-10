@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 
 const REPO = 'clempok/clempo.fr'
 const FILE_PATH = 'public/content.json'
@@ -4179,11 +4179,72 @@ function renderEmailPreview(input: string): string {
   return input.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, key) => EMAIL_SAMPLE_VARS[key] ?? m)
 }
 
+/** Zero-dependency rich text editor on contentEditable + execCommand.
+ *  Uncontrolled by design: the DOM is initialized once per `key` remount
+ *  (feeding state back on every keystroke would reset the cursor). */
+function EmailRichEditor({ initialHtml, onChange }: { initialHtml: string; onChange: (html: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Enter → <p> (block emails render reliably) instead of <div>.
+    try { document.execCommand('defaultParagraphSeparator', false, 'p') } catch { /* older engines */ }
+  }, [])
+
+  const exec = (command: string, value?: string) => {
+    ref.current?.focus()
+    document.execCommand(command, false, value)
+    if (ref.current) onChange(ref.current.innerHTML)
+  }
+
+  const addLink = () => {
+    const sel = window.getSelection()
+    if (!sel || sel.isCollapsed || !ref.current?.contains(sel.anchorNode)) {
+      alert('Sélectionnez d\'abord le texte à transformer en lien.')
+      return
+    }
+    const url = window.prompt('URL du lien :', 'https://')
+    if (!url || url === 'https://') return
+    exec('createLink', url)
+  }
+
+  const toolBtnStyle: React.CSSProperties = {
+    padding: '0.3rem 0.65rem', border: '1px solid #e0e0e0', borderRadius: '6px',
+    background: '#fff', color: '#333', fontSize: '0.78rem', cursor: 'pointer', lineHeight: 1.2,
+  }
+
+  return (
+    <div style={{ border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', gap: '0.35rem', padding: '0.45rem', borderBottom: '1px solid #eee', background: '#fafafa', flexWrap: 'wrap' }}>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('bold')} title="Gras" style={{ ...toolBtnStyle, fontWeight: 700 }}>B</button>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('italic')} title="Italique" style={{ ...toolBtnStyle, fontStyle: 'italic' }}>I</button>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={addLink} title="Lien sur le texte sélectionné" style={toolBtnStyle}>🔗 Lien</button>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('insertUnorderedList')} title="Liste à puces" style={toolBtnStyle}>• Liste</button>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => exec('removeFormat')} title="Retirer le formatage" style={{ ...toolBtnStyle, color: '#888' }}>⌫ Format</button>
+      </div>
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={() => ref.current && onChange(ref.current.innerHTML)}
+        dangerouslySetInnerHTML={{ __html: initialHtml }}
+        style={{
+          minHeight: '300px', maxHeight: '460px', overflowY: 'auto',
+          padding: '0.9rem 1rem', fontSize: '0.88rem', lineHeight: 1.55,
+          color: '#0a0a0a', outline: 'none', background: '#fff',
+        }}
+      />
+    </div>
+  )
+}
+
 function EmailTemplatesView({ password }: { password: string }) {
   const [templates, setTemplates] = useState<EmailTemplatesData | null>(null)
   const [defaults, setDefaults] = useState<EmailTemplatesData | null>(null)
   const [activeKey, setActiveKey] = useState<'nurture-j3' | 'nurture-j7'>('nurture-j3')
   const [activeLang, setActiveLang] = useState<'FR' | 'EN'>('FR')
+  const [editorMode, setEditorMode] = useState<'rich' | 'html'>('rich')
+  /** Bumped on reset / external body change to remount the rich editor. */
+  const [editorEpoch, setEditorEpoch] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -4265,6 +4326,7 @@ function EmailTemplatesView({ password }: { password: string }) {
         [activeLang]: { ...defaults[activeKey][activeLang] },
       },
     }) : prev)
+    setEditorEpoch(n => n + 1)
     setDirty(true)
     flash('Template réinitialisé au défaut — pensez à sauvegarder.')
   }
@@ -4321,13 +4383,40 @@ function EmailTemplatesView({ password }: { password: string }) {
             />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 600, color: '#666', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Corps (HTML)</label>
-            <textarea
-              value={tpl.body}
-              onChange={e => updateField('body', e.target.value)}
-              rows={18}
-              style={{ width: '100%', padding: '0.7rem 0.8rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', lineHeight: 1.5, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+              <label style={{ fontSize: '0.68rem', fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Corps</label>
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                {([['rich', 'Éditeur'], ['html', 'HTML']] as const).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setEditorMode(mode)}
+                    style={{
+                      padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer',
+                      border: `1px solid ${editorMode === mode ? ACCENT : '#e0e0e0'}`,
+                      background: editorMode === mode ? ACCENT : '#fff',
+                      color: editorMode === mode ? '#fff' : '#888',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {editorMode === 'rich' ? (
+              <EmailRichEditor
+                key={`${activeKey}-${activeLang}-${editorEpoch}`}
+                initialHtml={tpl.body}
+                onChange={html => updateField('body', html)}
+              />
+            ) : (
+              <textarea
+                value={tpl.body}
+                onChange={e => updateField('body', e.target.value)}
+                rows={18}
+                style={{ width: '100%', padding: '0.7rem 0.8rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', lineHeight: 1.5, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+              />
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
