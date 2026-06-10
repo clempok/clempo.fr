@@ -2,7 +2,6 @@ import type { Handler } from '@netlify/functions'
 import { recordEvent } from './_analytics'
 import { upsertContact, addPendingNps } from './_crm'
 import { JOURNALISTES_SHEET_URL } from './_journalistes'
-import { DECIDEURS_HOSPITALIERS_SHEET_URL } from './_decideurs-hospitaliers'
 
 /**
  * Netlify Forms event handler. Dispatches by form name (brochure | journalistes).
@@ -213,49 +212,8 @@ async function handleDecideursHospitaliers(d: {
   ])
   await addPendingNps(d.email, 'decideurs-hospitaliers', 'Base décideurs hospitaliers')
 
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.error('RESEND_API_KEY not set')
-    return { statusCode: 500, body: 'Missing API key' }
-  }
-
-  const fullName = [d.firstName, d.lastName].filter(Boolean).join(' ') || d.email
-  const html = `
-    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-      <h2 style="color: #09090b; margin-bottom: 24px;">🏥 Nouveau lead — Base décideurs hospitaliers</h2>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666; width: 140px;">Prénom</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.firstName}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Nom</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.lastName}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Entreprise</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.company || '—'}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Email</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;"><a href="mailto:${d.email}" style="color: #0066cc;">${d.email}</a></td></tr>
-        <tr><td style="padding: 10px 0; color: #666;">Source</td><td style="padding: 10px 0; font-weight: 600;">${d.source || '—'}</td></tr>
-      </table>
-      <p style="margin-top: 24px; font-size: 13px; color: #555;">
-        Ressource partagée :
-        <a href="${DECIDEURS_HOSPITALIERS_SHEET_URL}" style="color: #0066cc;">${DECIDEURS_HOSPITALIERS_SHEET_URL}</a>
-      </p>
-      <div style="margin-top: 24px; padding: 16px; background: #f9f9f9; border-radius: 8px; font-size: 13px; color: #888;">
-        Ajouté au CRM avec statut "Lead". La visite suivante déclenchera une alerte tracking.
-      </div>
-    </div>
-  `
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'Clempo.fr <noreply@clempo.fr>',
-      to: ['clement.pougetosmont@gmail.com'],
-      subject: `🏥 Nouveau lead décideurs hospitaliers — ${fullName}`,
-      html,
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    console.error('Resend error (decideurs-hospitaliers):', err)
-    return { statusCode: 500, body: err }
-  }
+  // No per-download alert — high-volume lead magnet. The morning recap from
+  // scheduled-leads-digest.ts covers visibility without burning Resend quota.
   return { statusCode: 200, body: 'OK' }
 }
 

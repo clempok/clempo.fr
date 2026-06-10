@@ -4,6 +4,14 @@ import { sendNpsEmailFor } from './_nps'
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 const TTL_DAYS = 7
+/**
+ * Hard cap on real Resend sends per run. Keeps a ~20 email/day buffer in the
+ * Resend free-tier quota (100/day) for the daily digest, per-download alerts,
+ * and other transactional emails. Anything above the cap stays pending and
+ * gets picked up by the next day's cron — the 7-day TTL leaves margin to
+ * drain a spike over a week.
+ */
+const MAX_SENDS_PER_RUN = 80
 
 /**
  * Daily NPS solicitation cron. Scans every contact's npsResponses, picks
@@ -30,13 +38,15 @@ export default async () => {
   let sent = 0
   let skipped = 0
   let errors = 0
+  let pendingByCap = 0
   let dirty = false
+  let capReached = false
 
   try {
     const data = await readCrm()
     const now = Date.now()
 
-    for (const co of data.companies) {
+    outer: for (const co of data.companies) {
       for (const contact of co.contacts) {
         if (!contact.npsResponses || contact.npsResponses.length === 0) continue
         for (const np of contact.npsResponses) {
@@ -57,6 +67,12 @@ export default async () => {
           if (ageMs > TTL_DAYS * ONE_DAY_MS) { skipped += 1; continue }
           if (!contact.email) { skipped += 1; continue }
 
+          if (sent >= MAX_SENDS_PER_RUN) {
+            pendingByCap += 1
+            capReached = true
+            continue
+          }
+
           const result = await sendNpsEmailFor(contact, np, { apiKey, isDryRun })
           if (!result.ok) {
             console.error('[scheduled-nps-ask] send error:', result.error)
@@ -69,14 +85,15 @@ export default async () => {
           sent += 1
         }
       }
+      if (capReached && pendingByCap > 200) break outer
     }
 
     if (dirty) await writeCrm(data)
 
     console.log(
-      `[scheduled-nps-ask] ok · sent=${sent} skipped=${skipped} errors=${errors} dryRun=${isDryRun} · ${Date.now() - start}ms`
+      `[scheduled-nps-ask] ok · sent=${sent} skipped=${skipped} pendingByCap=${pendingByCap} errors=${errors} dryRun=${isDryRun} · ${Date.now() - start}ms`
     )
-    return new Response(JSON.stringify({ sent, skipped, errors, dryRun: isDryRun }), {
+    return new Response(JSON.stringify({ sent, skipped, pendingByCap, errors, dryRun: isDryRun }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
