@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { ShieldCheck, Stethoscope, Network, Target, TrendingUp, FileText, Users, Cpu, LineChart } from 'lucide-react'
+import { Handshake, Megaphone, Network, Target, TrendingUp, FileText, Users, Cpu, LineChart } from 'lucide-react'
 import { useLang } from '../contexts/LangContext'
 import SEO from '../components/SEO'
 import { bookingUrl } from '../lib/cta'
@@ -48,19 +48,19 @@ export default function ConsultantMarketingSante() {
     : "Freelance healthcare marketing consultant, 12 years in the sector including 5 at Doctolib. Advisory, Part-Time CMO or interim for HealthTech, MedTech and pharma."
 
   const why = isFr ? [
-    { icon: ShieldCheck, title: 'Le réglementaire ne se devine pas',
-      text: "Loi anti-cadeaux, publicité encadrée des dispositifs médicaux, hébergement HDS, RGPD santé : un marketeur généraliste découvre ces contraintes en cours de mission. Moi, je construis les funnels avec, dès le premier jour." },
-    { icon: Stethoscope, title: 'Vendre aux médecins est un métier',
-      text: "Les professionnels de santé n'achètent pas comme des DSI ou des DRH. Cycles longs, prescripteurs multiples, méfiance envers le discours commercial. 12 ans à leur parler, dont 5 chez Doctolib, ça ne se rattrape pas en un trimestre." },
-    { icon: Network, title: 'Le réseau fait gagner des mois',
-      text: "Journalistes santé, KOLs, décideurs hospitaliers, fondateurs HealthTech : je sais qui appeler pour tester un positionnement, obtenir une citation presse ou ouvrir une porte commerciale." },
+    { icon: Handshake, title: 'Avoir quelqu\'un qui connaît le terrain',
+      text: "J'ai notamment été commercial sur le terrain pendant 2 ans : des milliers de praticiens rencontrés, des centaines d'hôpitaux visités. Je sais comment un cabinet ou un établissement achète — pas en théorie, pour l'avoir vécu." },
+    { icon: Megaphone, title: 'Avoir quelqu\'un qui a testé tous les canaux',
+      text: "Cibler les pros de santé, les patients, les établissements ou les grands groupes, en France comme à l'étranger : j'ai testé tous les canaux d'acquisition dans un contexte santé. Vous économisez des mois d'essais-erreurs." },
+    { icon: Network, title: 'Profiter d\'un gros réseau dans le domaine',
+      text: "Journalistes santé, KOLs, décideurs hospitaliers, fondateurs HealthTech : un réseau construit en 12 ans, que ce soit pour faire connaître votre offre ou développer des partenariats." },
   ] : [
-    { icon: ShieldCheck, title: 'Healthcare regulation cannot be improvised',
-      text: "Anti-gift law, regulated medical device advertising, HDS hosting, healthcare GDPR: a generalist marketer discovers these constraints mid-engagement. I build funnels with them from day one." },
-    { icon: Stethoscope, title: 'Selling to physicians is a craft',
-      text: "Healthcare professionals don't buy like CIOs or HR directors. Long cycles, multiple prescribers, distrust of sales talk. 12 years speaking to them, including 5 at Doctolib, cannot be caught up in a quarter." },
-    { icon: Network, title: 'The network saves you months',
-      text: "Healthcare journalists, KOLs, hospital decision-makers, HealthTech founders: I know who to call to test a positioning, get press coverage or open a commercial door." },
+    { icon: Handshake, title: 'Someone who knows the field',
+      text: "I spent 2 years as a field sales rep: thousands of practitioners met, hundreds of hospitals visited. I know how a practice or a facility buys — not in theory, from having lived it." },
+    { icon: Megaphone, title: 'Someone who has tested every channel',
+      text: "Targeting healthcare professionals, patients, facilities or large groups, in France and abroad: I've tested every acquisition channel in a healthcare context. You save months of trial and error." },
+    { icon: Network, title: 'A large network in the sector',
+      text: "Healthcare journalists, KOLs, hospital decision-makers, HealthTech founders: a network built over 12 years, whether to get your offer known or to develop partnerships." },
   ]
 
   const offers = isFr ? [
@@ -220,6 +220,28 @@ export default function ConsultantMarketingSante() {
           >
             📅 {ctaLabel} →
           </Link>
+        </section>
+
+        {/* ── VIDÉO PARCOURS ── */}
+        <section style={{ padding: '0 4vw 6rem', maxWidth: '900px', margin: '0 auto' }}>
+          <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: SIGNAL, marginBottom: '1.25rem', fontWeight: 500, textAlign: 'center' }}>
+            // {isFr ? 'Mon parcours en 40 secondes' : 'My track record in 40 seconds'}
+          </p>
+          <video
+            src="/clempo-parcours-40s.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls
+            preload="metadata"
+            aria-label={isFr ? 'Le parcours de Clément Pouget-Osmont en 40 secondes' : "Clément Pouget-Osmont's track record in 40 seconds"}
+            style={{
+              width: '100%', display: 'block', borderRadius: '6px',
+              border: `1px solid ${BORDER}`,
+              boxShadow: '0 12px 40px rgba(10,10,11,0.12)',
+            }}
+          />
         </section>
 
         {/* ── 1. POURQUOI UN SPÉCIALISTE ── */}
