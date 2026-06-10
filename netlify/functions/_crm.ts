@@ -96,6 +96,19 @@ export type CrmContact = {
   notionSyncedAt?: string
   /** NPS solicitations, one per resource download. */
   npsResponses?: CrmNpsResponse[]
+  /** ISO timestamp set when the contact unsubscribed from marketing emails
+   *  (nurture sequence). All non-transactional sends must skip the contact. */
+  emailOptOut?: string
+  /** Nurture sequence state — one cycle per contact, keyed on the FIRST
+   *  download. SentAt is set even in dry-run with the DryRun flag raised:
+   *  dry-run runs skip already-rehearsed entries (no daily owner spam), and
+   *  the live cron re-sends for real anything only ever sent as dry-run. */
+  nurture?: {
+    step3SentAt?: string
+    step3DryRun?: boolean
+    step7SentAt?: string
+    step7DryRun?: boolean
+  }
 }
 
 export type CrmTask = {

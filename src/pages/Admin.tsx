@@ -404,7 +404,7 @@ export default function Admin() {
   const [password, setPassword] = useState(() => sessionStorage.getItem(AUTH_KEY) || '')
   const [authInput, setAuthInput] = useState('')
   const [authError, setAuthError] = useState('')
-  const [view, setView] = useState<'analytics' | 'crm' | 'content' | 'nps' | 'quotes' | 'cms' | 'seo'>('analytics')
+  const [view, setView] = useState<'analytics' | 'crm' | 'content' | 'nps' | 'quotes' | 'cms' | 'seo' | 'emails'>('analytics')
 
   // Mark this browser as "admin" so quote views from here are not counted
   useEffect(() => {
@@ -546,6 +546,12 @@ export default function Admin() {
             📄 Devis
           </button>
           <button
+            onClick={() => setView('emails')}
+            style={tabStyle(view === 'emails')}
+          >
+            ✉️ Emails
+          </button>
+          <button
             onClick={() => setView('cms')}
             style={tabStyle(view === 'cms')}
           >
@@ -585,6 +591,8 @@ export default function Admin() {
           <QuotesView password={password} />
         ) : view === 'seo' ? (
           <SeoView password={password} />
+        ) : view === 'emails' ? (
+          <EmailTemplatesView password={password} />
         ) : (
           <CMSView />
         )}
@@ -4137,6 +4145,240 @@ function NewContactForm({ onSave, onCancel }: { onSave: (fields: Partial<CrmCont
 const newFieldStyle: React.CSSProperties = {
   padding: '0.5rem 0.7rem', border: '1px solid #e0e0e0', borderRadius: '8px',
   fontSize: '0.8rem', outline: 'none', background: '#fff', boxSizing: 'border-box',
+}
+
+/* ---------- Emails (nurture templates editor) ---------- */
+
+type EmailTemplate = { subject: string; body: string }
+type EmailTemplatesData = Record<'nurture-j3' | 'nurture-j7', { FR: EmailTemplate; EN: EmailTemplate }> & { updatedAt?: string }
+
+const EMAIL_TEMPLATE_META: { key: 'nurture-j3' | 'nurture-j7'; label: string; hint: string }[] = [
+  { key: 'nurture-j3', label: 'J+3 — Autres ressources', hint: "Envoyé 3 jours après le 1er téléchargement. Propose les lead magnets que le contact n'a pas encore pris." },
+  { key: 'nurture-j7', label: 'J+7 — Mon offre', hint: 'Envoyé 7 jours après le 1er téléchargement. Présente Advisory / Part-Time CMO / transition + CTA brief.' },
+]
+
+const EMAIL_PLACEHOLDERS: { name: string; desc: string }[] = [
+  { name: '{{hello}}', desc: '« Bonjour Marie, » ou « Bonjour, » selon les données' },
+  { name: '{{firstName}}', desc: 'prénom seul (peut être vide)' },
+  { name: '{{resourceLabel}}', desc: 'nom de la ressource téléchargée' },
+  { name: '{{resourcesHtml}}', desc: 'liste <ul> des autres ressources (J+3 uniquement)' },
+  { name: '{{bookingUrl}}', desc: 'lien de prise de RDV tracké' },
+  { name: '{{siteUrl}}', desc: 'https://www.clempo.fr' },
+]
+
+const EMAIL_SAMPLE_VARS: Record<string, string> = {
+  hello: 'Bonjour Marie,',
+  firstName: 'Marie',
+  resourceLabel: 'Base décideurs hospitaliers',
+  resourcesHtml: '<ul style="padding-left:20px;margin:16px 0;"><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">La liste des journalistes santé français (pour vos RP)</a></li><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">Les parts de marché des logiciels médicaux, spécialité par spécialité</a></li></ul>',
+  bookingUrl: 'https://www.clempo.fr/booking?src=nurture-j7',
+  siteUrl: 'https://www.clempo.fr',
+}
+
+function renderEmailPreview(input: string): string {
+  return input.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, key) => EMAIL_SAMPLE_VARS[key] ?? m)
+}
+
+function EmailTemplatesView({ password }: { password: string }) {
+  const [templates, setTemplates] = useState<EmailTemplatesData | null>(null)
+  const [defaults, setDefaults] = useState<EmailTemplatesData | null>(null)
+  const [activeKey, setActiveKey] = useState<'nurture-j3' | 'nurture-j7'>('nurture-j3')
+  const [activeLang, setActiveLang] = useState<'FR' | 'EN'>('FR')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+
+  const authHeaders = useMemo(
+    () => ({ Authorization: `Bearer ${password}`, 'Content-Type': 'application/json' }),
+    [password],
+  )
+
+  useEffect(() => {
+    fetch('/.netlify/functions/admin-email-templates', { headers: authHeaders })
+      .then(async r => {
+        if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`)
+        return r.json()
+      })
+      .then(json => { setTemplates(json.templates); setDefaults(json.defaults) })
+      .catch(err => setError(String(err)))
+      .finally(() => setLoading(false))
+  }, [authHeaders])
+
+  const flash = (msg: string) => { setNotice(msg); setTimeout(() => setNotice(''), 4000) }
+
+  const updateField = (field: 'subject' | 'body', value: string) => {
+    setTemplates(prev => prev ? ({
+      ...prev,
+      [activeKey]: {
+        ...prev[activeKey],
+        [activeLang]: { ...prev[activeKey][activeLang], [field]: value },
+      },
+    }) : prev)
+    setDirty(true)
+  }
+
+  const handleSave = async () => {
+    if (!templates) return
+    setSaving(true); setError('')
+    try {
+      const res = await fetch('/.netlify/functions/admin-email-templates', {
+        method: 'PUT', headers: authHeaders, body: JSON.stringify(templates),
+      })
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`)
+      setDirty(false)
+      flash('✓ Templates sauvegardés — le prochain envoi du cron utilisera cette version.')
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleTest = async () => {
+    if (!templates) return
+    setTesting(true); setError('')
+    try {
+      const tpl = templates[activeKey][activeLang]
+      const res = await fetch('/.netlify/functions/admin-email-templates', {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ action: 'test', key: activeKey, language: activeLang, subject: tpl.subject, body: tpl.body }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || `${res.status}`)
+      flash(`✓ Test envoyé à ${json.sentTo} (version affichée dans l'éditeur, même non sauvegardée).`)
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  const handleReset = () => {
+    if (!defaults) return
+    setTemplates(prev => prev ? ({
+      ...prev,
+      [activeKey]: {
+        ...prev[activeKey],
+        [activeLang]: { ...defaults[activeKey][activeLang] },
+      },
+    }) : prev)
+    setDirty(true)
+    flash('Template réinitialisé au défaut — pensez à sauvegarder.')
+  }
+
+  if (loading) return <div style={{ padding: '3rem', color: '#666' }}>Chargement…</div>
+  if (!templates) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error || 'templates indisponibles'}</div>
+
+  const tpl = templates[activeKey][activeLang]
+  const meta = EMAIL_TEMPLATE_META.find(m => m.key === activeKey)!
+
+  const pillStyle = (active: boolean): React.CSSProperties => ({
+    padding: '0.45rem 0.9rem', border: `1px solid ${active ? ACCENT : '#e0e0e0'}`,
+    borderRadius: '8px', background: active ? ACCENT : '#fff',
+    color: active ? '#fff' : '#555', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
+  })
+
+  return (
+    <div style={{ padding: '2rem 3rem', maxWidth: '1200px' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', margin: 0 }}>Emails</h2>
+        <p style={{ fontSize: '0.75rem', color: '#999', margin: '0.25rem 0 0' }}>
+          Templates de la séquence nurture (cron quotidien 9h30 UTC). Modifications prises en compte au prochain envoi, sans redéploiement.
+          {templates.updatedAt && ` · Dernière sauvegarde : ${new Date(templates.updatedAt).toLocaleString('fr-FR')}`}
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+        {EMAIL_TEMPLATE_META.map(m => (
+          <button key={m.key} onClick={() => setActiveKey(m.key)} style={pillStyle(activeKey === m.key)}>
+            {m.label}
+          </button>
+        ))}
+        <span style={{ width: '1px', background: '#e0e0e0', margin: '0 0.5rem' }} />
+        {(['FR', 'EN'] as const).map(l => (
+          <button key={l} onClick={() => setActiveLang(l)} style={pillStyle(activeLang === l)}>
+            {l}
+          </button>
+        ))}
+      </div>
+      <p style={{ fontSize: '0.75rem', color: '#888', margin: '0 0 1.25rem' }}>{meta.hint}</p>
+
+      {notice && <div style={{ padding: '0.6rem 0.9rem', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', color: '#166534', fontSize: '0.78rem', marginBottom: '1rem' }}>{notice}</div>}
+      {error && <div style={{ padding: '0.6rem 0.9rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', fontSize: '0.78rem', marginBottom: '1rem' }}>{error}</div>}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(380px, 1fr) minmax(320px, 1fr)', gap: '1.5rem', alignItems: 'start' }}>
+        {/* Editor */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 600, color: '#666', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sujet</label>
+            <input
+              value={tpl.subject}
+              onChange={e => updateField('subject', e.target.value)}
+              style={{ width: '100%', padding: '0.6rem 0.8rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 600, color: '#666', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Corps (HTML)</label>
+            <textarea
+              value={tpl.body}
+              onChange={e => updateField('body', e.target.value)}
+              rows={18}
+              style={{ width: '100%', padding: '0.7rem 0.8rem', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '0.78rem', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', lineHeight: 1.5, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button onClick={handleSave} disabled={saving || !dirty}
+              style={{ padding: '0.55rem 1.1rem', border: 'none', borderRadius: '8px', background: dirty ? ACCENT : '#e0e0e0', color: '#fff', fontSize: '0.8rem', fontWeight: 600, cursor: dirty ? 'pointer' : 'not-allowed' }}>
+              {saving ? 'Sauvegarde…' : dirty ? 'Sauvegarder' : 'Sauvegardé ✓'}
+            </button>
+            <button onClick={handleTest} disabled={testing}
+              style={{ padding: '0.55rem 1.1rem', border: '1px solid #e0e0e0', borderRadius: '8px', background: '#fff', color: '#333', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
+              {testing ? 'Envoi…' : '📤 M’envoyer un test'}
+            </button>
+            <button onClick={handleReset}
+              style={{ padding: '0.55rem 1.1rem', border: '1px solid #e0e0e0', borderRadius: '8px', background: '#fff', color: '#888', fontSize: '0.8rem', cursor: 'pointer' }}>
+              ↺ Réinitialiser au défaut
+            </button>
+          </div>
+
+          <div style={{ padding: '0.9rem 1rem', background: '#f8f8f6', border: '1px solid #eee', borderRadius: '10px' }}>
+            <p style={{ fontSize: '0.68rem', fontWeight: 600, color: '#666', margin: '0 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Placeholders disponibles</p>
+            {EMAIL_PLACEHOLDERS.map(p => (
+              <p key={p.name} style={{ fontSize: '0.72rem', color: '#777', margin: '0 0 0.25rem' }}>
+                <code style={{ background: '#fff', border: '1px solid #eee', borderRadius: '4px', padding: '0 4px' }}>{p.name}</code> — {p.desc}
+              </p>
+            ))}
+            <p style={{ fontSize: '0.72rem', color: '#999', margin: '0.5rem 0 0' }}>
+              Signature et lien de désinscription sont ajoutés automatiquement à l'envoi.
+            </p>
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div>
+          <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 600, color: '#666', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Aperçu (données d'exemple)
+          </label>
+          <div style={{ border: '1px solid #eee', borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{ padding: '0.7rem 1rem', borderBottom: '1px solid #eee', background: '#fafafa', fontSize: '0.8rem', color: '#333' }}>
+              <strong>Sujet :</strong> {renderEmailPreview(tpl.subject)}
+            </div>
+            <div
+              style={{ padding: '1.25rem', background: '#fff', fontSize: '0.85rem', lineHeight: 1.55, color: '#0a0a0a', maxHeight: '480px', overflowY: 'auto' }}
+              dangerouslySetInnerHTML={{ __html: renderEmailPreview(tpl.body) }}
+            />
+            <div style={{ padding: '0.7rem 1rem', borderTop: '1px solid #eee', background: '#fafafa', fontSize: '0.72rem', color: '#999' }}>
+              Clément Pouget-Osmont · clempo.fr · <span style={{ textDecoration: 'underline' }}>Ne plus recevoir ces emails</span> (ajouté automatiquement)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 /* ---------- CMS (existing content editor) ---------- */
