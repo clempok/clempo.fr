@@ -35,3 +35,10 @@ Extract GIE/
 
 # PDFs sources du rebranding des rapports (174 Mo) — travail local, trop lourd pour git
 reports-rebrand/
+
+# Rapports rebrandés — artefacts lourds (sources Gamma, extractions, QA)
+reports-rebrand/source/
+reports-rebrand/extracted/
+reports-rebrand/qa/
+reports-rebrand/fonts/
+reports-rebrand/output/
