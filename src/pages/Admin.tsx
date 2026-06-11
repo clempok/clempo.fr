@@ -4165,6 +4165,7 @@ const EMAIL_PLACEHOLDERS: { name: string; desc: string }[] = [
   { name: '{{resourceLabel}}', desc: 'nom de la ressource téléchargée' },
   { name: '{{resourcesHtml}}', desc: 'liste <ul> des autres ressources (J+3 uniquement)' },
   { name: '{{resourceLinksHtml}}', desc: "bouton(s) d'accès à la ressource (livraison uniquement)" },
+  { name: '{{videoHtml}}', desc: 'miniature cliquable de la vidéo de présentation (→ YouTube)' },
   { name: '{{bookingUrl}}', desc: 'lien de prise de RDV tracké' },
   { name: '{{siteUrl}}', desc: 'https://www.clempo.fr' },
 ]
@@ -4175,6 +4176,7 @@ const EMAIL_SAMPLE_VARS: Record<string, string> = {
   resourceLabel: 'Base décideurs hospitaliers',
   resourcesHtml: '<ul style="padding-left:20px;margin:16px 0;"><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">La liste des journalistes santé français et américains (pour vos RP)</a></li><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">Les parts de marché des logiciels médicaux, spécialité par spécialité</a></li><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">Mes articles de blog dédiés aux acteurs de la santé</a></li></ul>',
   resourceLinksHtml: '<p style="margin:16px 0;"><a href="#" style="display:inline-block;padding:12px 24px;background:#0A0A0B;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">📥 Télécharger la ressource</a></p>',
+  videoHtml: '<p style="margin:24px 0 8px;"><a href="https://www.youtube.com/watch?v=rdwcJ7gAyv0"><img src="https://img.youtube.com/vi/rdwcJ7gAyv0/maxresdefault.jpg" alt="Présentation en vidéo — Clément Pouget-Osmont" width="520" style="width:100%;max-width:520px;border-radius:8px;border:1px solid rgba(10,10,11,0.08);display:block;" /></a></p><p style="margin:0 0 24px;font-size:14px;"><a href="https://www.youtube.com/watch?v=rdwcJ7gAyv0" style="color:#1A1A6B;">▶ Regarder la vidéo de présentation</a></p>',
   bookingUrl: 'https://www.clempo.fr/booking?src=nurture-j7',
   siteUrl: 'https://www.clempo.fr',
 }

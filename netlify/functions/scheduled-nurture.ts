@@ -4,6 +4,7 @@ import type { ContactLanguage, CrmStatus } from './_crm'
 import {
   buildEmailHtml,
   buildResourcesHtml,
+  buildVideoHtml,
   readEmailTemplates,
   renderTemplate,
   sendNurtureEmail,
@@ -120,6 +121,7 @@ export default async () => {
             resourceLabel,
             bookingUrl: `${SITE_URL}/booking?src=nurture-j7`,
             siteUrl: SITE_URL,
+            videoHtml: buildVideoHtml(language),
           }
 
           if (step.key === 'nurture-j3') {

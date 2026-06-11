@@ -7,6 +7,7 @@ import {
   buildEmailHtml,
   buildResourceLinksHtml,
   buildResourcesHtml,
+  buildVideoHtml,
   readEmailTemplates,
   renderTemplate,
   sendNurtureEmail,
@@ -90,6 +91,7 @@ const handler: Handler = async (event) => {
           label: language === 'EN' ? 'Open the database' : 'Ouvrir la base',
           url: 'https://www.clempo.fr/decideurs-hospitaliers',
         }]),
+        videoHtml: buildVideoHtml(language),
       }
 
       const subject = renderTemplate(tpl.subject, vars)

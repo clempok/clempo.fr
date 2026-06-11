@@ -13,6 +13,7 @@ import { getStore } from '@netlify/blobs'
  *   {{resourceLabel}}      — label of the first resource downloaded
  *   {{resourcesHtml}}      — <ul> of the OTHER available resources (J+3)
  *   {{resourceLinksHtml}}  — download button(s) of the resource (resource-delivery)
+ *   {{videoHtml}}          — clickable YouTube thumbnail of the intro video
  *   {{bookingUrl}}         — absolute booking URL with src tracking
  *   {{siteUrl}}            — https://www.clempo.fr
  */
@@ -88,6 +89,8 @@ export const DEFAULT_TEMPLATES: EmailTemplatesData = {
 <li><strong>Part-Time CMO</strong> — 2-3 jours par semaine. Je prends la direction marketing : stratégie, exécution, équipe.</li>
 <li><strong>Management de transition</strong> — temps plein, 6-12 mois, quand votre CMO part ou que le recrutement traîne.</li>
 </ul>
+<p>Pour mettre un visage et des exemples concrets sur tout ça, 2 minutes en vidéo :</p>
+{{videoHtml}}
 <p>Si un sujet marketing vous occupe en ce moment, le plus simple est un brief de 30 minutes, gratuit et sans suite obligée : <a href="{{bookingUrl}}">réserver un créneau</a>.</p>
 <p>Et si ce n'est pas le moment, aucun souci — les ressources restent gratuites et je continue d'en publier.</p>`,
     },
@@ -101,6 +104,8 @@ export const DEFAULT_TEMPLATES: EmailTemplatesData = {
 <li><strong>Part-Time CMO</strong> — 2-3 days a week. I run marketing: strategy, execution, team.</li>
 <li><strong>Interim management</strong> — full-time, 6-12 months, when your CMO leaves or the hire is slow.</li>
 </ul>
+<p>To put a face and concrete examples on all this, 2 minutes on video:</p>
+{{videoHtml}}
 <p>If a marketing topic is on your mind right now, the simplest step is a free 30-minute brief with no strings attached: <a href="{{bookingUrl}}">book a slot</a>.</p>
 <p>And if now is not the time, no worries — the resources stay free and I keep publishing more.</p>`,
     },
@@ -320,6 +325,22 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
     url: `${SITE_URL}/articles`,
   },
 ]
+
+/* ── Intro video (same video as the Home booking block) ── */
+
+const VIDEO_URL = 'https://www.youtube.com/watch?v=rdwcJ7gAyv0'
+const VIDEO_THUMB = 'https://img.youtube.com/vi/rdwcJ7gAyv0/maxresdefault.jpg'
+
+/** Build the {{videoHtml}} block: clickable thumbnail linking to YouTube,
+ *  with a text fallback link (images are often blocked by default). */
+export function buildVideoHtml(language: 'FR' | 'EN'): string {
+  const alt = language === 'EN'
+    ? 'Video introduction — Clément Pouget-Osmont'
+    : 'Présentation en vidéo — Clément Pouget-Osmont'
+  const caption = language === 'EN' ? '▶ Watch the intro video' : '▶ Regarder la vidéo de présentation'
+  return `<p style="margin:24px 0 8px;"><a href="${VIDEO_URL}"><img src="${VIDEO_THUMB}" alt="${alt}" width="520" style="width:100%;max-width:520px;border-radius:8px;border:1px solid rgba(10,10,11,0.08);display:block;" /></a></p>
+<p style="margin:0 0 24px;font-size:14px;"><a href="${VIDEO_URL}" style="color:#1A1A6B;">${caption}</a></p>`
+}
 
 /* ── Resource delivery (transactional, sent at form submission) ── */
 
