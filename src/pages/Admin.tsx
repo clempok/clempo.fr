@@ -4173,7 +4173,7 @@ const EMAIL_SAMPLE_VARS: Record<string, string> = {
   hello: 'Bonjour Marie,',
   firstName: 'Marie',
   resourceLabel: 'Base décideurs hospitaliers',
-  resourcesHtml: '<ul style="padding-left:20px;margin:16px 0;"><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">La liste des journalistes santé français et américains (pour vos RP)</a></li><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">Les parts de marché des logiciels médicaux, spécialité par spécialité</a></li></ul>',
+  resourcesHtml: '<ul style="padding-left:20px;margin:16px 0;"><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">La liste des journalistes santé français et américains (pour vos RP)</a></li><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">Les parts de marché des logiciels médicaux, spécialité par spécialité</a></li><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">Mes articles de blog dédiés aux acteurs de la santé</a></li></ul>',
   resourceLinksHtml: '<p style="margin:16px 0;"><a href="#" style="display:inline-block;padding:12px 24px;background:#0A0A0B;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">📥 Télécharger la ressource</a></p>',
   bookingUrl: 'https://www.clempo.fr/booking?src=nurture-j7',
   siteUrl: 'https://www.clempo.fr',

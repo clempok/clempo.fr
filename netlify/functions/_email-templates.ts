@@ -309,6 +309,16 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
     },
     url: `${SITE_URL}/parts-de-marche-logiciels-medicaux`,
   },
+  {
+    id: 'blog-articles',
+    // Not a gated download: never counts as "already taken", always offered.
+    slugs: () => false,
+    label: {
+      FR: 'Mes articles de blog dédiés aux acteurs de la santé',
+      EN: 'My blog articles for healthcare players',
+    },
+    url: `${SITE_URL}/articles`,
+  },
 ]
 
 /* ── Resource delivery (transactional, sent at form submission) ── */
