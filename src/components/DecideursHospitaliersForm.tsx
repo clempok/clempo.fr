@@ -126,6 +126,16 @@ export default function DecideursHospitaliersForm({
             ma newsletter →
           </a>
         </p>
+        <p style={{
+          color: 'var(--ink)',
+          fontSize: '0.85rem',
+          lineHeight: 1.5,
+          opacity: 0.8,
+          maxWidth: '460px',
+          margin: '0 auto 1.5rem',
+        }}>
+          📩 Le lien vient aussi de vous être envoyé par email — pratique pour retrouver la base plus tard.
+        </p>
         <a
           href={DECIDEURS_HOSPITALIERS_SHEET_URL}
           target="_blank"

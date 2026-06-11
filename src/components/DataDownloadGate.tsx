@@ -18,6 +18,9 @@ function setCidCookie(email: string) {
 
 export default function DataDownloadGate({ slug, specialiteName, monthsCount, totalEditeurs }: Props) {
   const [unlocked, setUnlocked] = useState(false)
+  // True only right after a fresh submission (not for returning visitors
+  // unlocked via localStorage) — gates the "sent by email" notice.
+  const [justSubmitted, setJustSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
@@ -59,6 +62,7 @@ export default function DataDownloadGate({ slug, specialiteName, monthsCount, to
       })
       setCidCookie(form.email)
       try { localStorage.setItem(STORAGE_KEY, '1') } catch { /* ignore */ }
+      setJustSubmitted(true)
       setUnlocked(true)
     } catch {
       setError('Erreur réseau, réessayez')
@@ -109,6 +113,17 @@ export default function DataDownloadGate({ slug, specialiteName, monthsCount, to
           <DownloadLink href={`/data/specialites/${slug}.csv`} label={`CSV — ${slug}.csv`} />
           <DownloadLink href={`/data/specialites/${slug}.xlsx`} label={`XLSX — ${slug}.xlsx`} />
         </div>
+        {justSubmitted && (
+          <p style={{
+            fontSize: '0.78rem',
+            color: 'rgba(237,235,228,0.65)',
+            lineHeight: 1.5,
+            marginTop: '1rem',
+            marginBottom: 0,
+          }}>
+            📩 Les liens de téléchargement viennent aussi de vous être envoyés par email.
+          </p>
+        )}
       </div>
     )
   }

@@ -2,11 +2,20 @@ import type { Handler } from '@netlify/functions'
 import { recordEvent } from './_analytics'
 import { upsertContact, addPendingNps } from './_crm'
 import { JOURNALISTES_SHEET_URL } from './_journalistes'
+import { DECIDEURS_HOSPITALIERS_SHEET_URL } from './_decideurs-hospitaliers'
+import { sendResourceDeliveryEmail } from './_email-templates'
+import type { ResourceLink } from './_email-templates'
+
+const SITE_URL = 'https://www.clempo.fr'
 
 /**
  * Netlify Forms event handler. Dispatches by form name (brochure | journalistes).
  * Always sends a lead-notification email to Clément. The journalistes branch
  * also upserts the lead into the CRM with status "Lead".
+ *
+ * Every lead-magnet branch also emails the resource to the lead itself
+ * (editable "resource-delivery" template, admin Emails tab) — people kept
+ * losing the file when they only had it on the success screen.
  */
 const handler: Handler = async (event) => {
   try {
@@ -24,6 +33,7 @@ const handler: Handler = async (event) => {
     const phone = data.phone || payload.phone || ''
     const source = data.source || ''
     const slug = data.slug || ''
+    const lang: 'FR' | 'EN' = String(data.lang || '').toUpperCase() === 'EN' ? 'EN' : 'FR'
 
     // Hiring-only fields
     const school = data.school || ''
@@ -52,7 +62,7 @@ const handler: Handler = async (event) => {
       return handleDecideursHospitaliers({ firstName, lastName, email, company, source })
     }
     if (formName === 'brochure') {
-      return handleBrochure({ firstName, lastName, email, company, phone })
+      return handleBrochure({ firstName, lastName, email, company, phone, lang })
     }
     if (formName === 'data-download') {
       return handleDataDownload({ firstName, lastName, email, phone, company, source, slug })
@@ -74,10 +84,48 @@ const handler: Handler = async (event) => {
   }
 }
 
-async function handleBrochure(d: {
-  firstName: string; lastName: string; email: string; company: string; phone: string
+/** Email the resource to the lead. Failures are logged, never propagated:
+ *  the success screen tells people to check their inbox, but the on-page
+ *  link remains the primary delivery path. */
+async function deliverResource(opts: {
+  formName: string
+  email: string
+  firstName: string
+  language?: 'FR' | 'EN'
+  resourceLabel: string
+  links: ResourceLink[]
 }) {
-  await recordEvent({ type: 'brochure', ...d })
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey || !opts.email) return
+  const result = await sendResourceDeliveryEmail({
+    apiKey,
+    to: opts.email,
+    firstName: opts.firstName,
+    language: opts.language,
+    resourceLabel: opts.resourceLabel,
+    links: opts.links,
+  })
+  if (!result.ok) {
+    console.error(`resource-delivery error (${opts.formName}, ${opts.email}):`, result.error)
+  }
+}
+
+async function handleBrochure(d: {
+  firstName: string; lastName: string; email: string; company: string; phone: string; lang: 'FR' | 'EN'
+}) {
+  await recordEvent({ type: 'brochure', firstName: d.firstName, lastName: d.lastName, email: d.email, company: d.company, phone: d.phone })
+
+  await deliverResource({
+    formName: 'brochure',
+    email: d.email,
+    firstName: d.firstName,
+    language: d.lang,
+    resourceLabel: d.lang === 'EN' ? 'the services brochure (PDF)' : 'la brochure des services (PDF)',
+    links: [{
+      label: d.lang === 'EN' ? 'Download the brochure' : 'Télécharger la brochure',
+      url: `${SITE_URL}/CPO-Services-2026.pdf`,
+    }],
+  })
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
@@ -142,6 +190,14 @@ async function handleJournalistes(d: {
     }, 'Lead'),
   ])
   await addPendingNps(d.email, 'journalistes', 'Liste journalistes santé')
+
+  await deliverResource({
+    formName: 'journalistes',
+    email: d.email,
+    firstName: d.firstName,
+    resourceLabel: 'la liste des journalistes santé français',
+    links: [{ label: 'Ouvrir la liste', url: JOURNALISTES_SHEET_URL }],
+  })
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
@@ -212,6 +268,14 @@ async function handleDecideursHospitaliers(d: {
   ])
   await addPendingNps(d.email, 'decideurs-hospitaliers', 'Base décideurs hospitaliers')
 
+  await deliverResource({
+    formName: 'decideurs-hospitaliers',
+    email: d.email,
+    firstName: d.firstName,
+    resourceLabel: 'la base des décideurs hospitaliers',
+    links: [{ label: 'Ouvrir la base', url: DECIDEURS_HOSPITALIERS_SHEET_URL }],
+  })
+
   // No per-download alert — high-volume lead magnet. The morning recap from
   // scheduled-leads-digest.ts covers visibility without burning Resend quota.
   return { statusCode: 200, body: 'OK' }
@@ -247,6 +311,22 @@ async function handleDataDownload(d: {
     }, 'Lead'),
   ])
   await addPendingNps(d.email, d.slug || 'data-download', sourceLabel)
+
+  if (d.slug) {
+    await deliverResource({
+      formName: 'data-download',
+      email: d.email,
+      firstName: d.firstName,
+      // d.source is "Data Médecins Généralistes" — reword for the email body.
+      resourceLabel: d.source.startsWith('Data ')
+        ? `les données ${d.source.slice(5)}`
+        : (d.source || `les données ${d.slug}`),
+      links: [
+        { label: 'Télécharger le CSV', url: `${SITE_URL}/data/specialites/${d.slug}.csv` },
+        { label: 'Télécharger le XLSX', url: `${SITE_URL}/data/specialites/${d.slug}.xlsx` },
+      ],
+    })
+  }
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {

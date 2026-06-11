@@ -8,12 +8,13 @@ import { getStore } from '@netlify/blobs'
  * the fallback for any key that has never been saved.
  *
  * Placeholders ({{key}}) available in subject and body:
- *   {{firstName}}      — first name, or empty (use {{hello}} for a safe greeting)
- *   {{hello}}          — "Bonjour Marie," / "Bonjour," depending on data
- *   {{resourceLabel}}  — label of the first resource downloaded
- *   {{resourcesHtml}}  — <ul> of the OTHER available resources (J+3)
- *   {{bookingUrl}}     — absolute booking URL with src tracking
- *   {{siteUrl}}        — https://www.clempo.fr
+ *   {{firstName}}          — first name, or empty (use {{hello}} for a safe greeting)
+ *   {{hello}}              — "Bonjour Marie," / "Bonjour," depending on data
+ *   {{resourceLabel}}      — label of the first resource downloaded
+ *   {{resourcesHtml}}      — <ul> of the OTHER available resources (J+3)
+ *   {{resourceLinksHtml}}  — download button(s) of the resource (resource-delivery)
+ *   {{bookingUrl}}         — absolute booking URL with src tracking
+ *   {{siteUrl}}            — https://www.clempo.fr
  */
 
 const SITE_URL = 'https://www.clempo.fr'
@@ -30,15 +31,34 @@ export type EmailTemplate = {
 export type TemplateLangPair = { FR: EmailTemplate; EN: EmailTemplate }
 
 export type EmailTemplatesData = {
+  'resource-delivery': TemplateLangPair
   'nurture-j3': TemplateLangPair
   'nurture-j7': TemplateLangPair
   updatedAt?: string
 }
 
-export const TEMPLATE_KEYS = ['nurture-j3', 'nurture-j7'] as const
+export const TEMPLATE_KEYS = ['resource-delivery', 'nurture-j3', 'nurture-j7'] as const
 export type TemplateKey = (typeof TEMPLATE_KEYS)[number]
 
 export const DEFAULT_TEMPLATES: EmailTemplatesData = {
+  'resource-delivery': {
+    FR: {
+      subject: 'Votre ressource — {{resourceLabel}}',
+      body: `<p>{{hello}}</p>
+<p>Merci pour votre téléchargement. Comme promis, voici votre accès direct à <strong>{{resourceLabel}}</strong> :</p>
+{{resourceLinksHtml}}
+<p>Gardez cet email : le lien reste valable si vous perdez la page.</p>
+<p>Une question sur ces données ou sur votre marketing santé ? Répondez simplement à cet email.</p>`,
+    },
+    EN: {
+      subject: 'Your resource — {{resourceLabel}}',
+      body: `<p>{{hello}}</p>
+<p>Thanks for your download. As promised, here is your direct access to <strong>{{resourceLabel}}</strong>:</p>
+{{resourceLinksHtml}}
+<p>Keep this email: the link stays valid if you lose the page.</p>
+<p>Any question about this data or your healthcare marketing? Just reply to this email.</p>`,
+    },
+  },
   'nurture-j3': {
     FR: {
       subject: 'Les autres ressources clempo.fr (gratuites aussi)',
@@ -290,6 +310,65 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
     url: `${SITE_URL}/parts-de-marche-logiciels-medicaux`,
   },
 ]
+
+/* ── Resource delivery (transactional, sent at form submission) ── */
+
+export type ResourceLink = { label: string; url: string }
+
+/** Build the {{resourceLinksHtml}} block: one button-style link per file. */
+export function buildResourceLinksHtml(links: ResourceLink[]): string {
+  return links
+    .map(l => `<div style="margin:20px 0;"><a href="${l.url}" style="display:inline-block;padding:13px 24px;background:#1A1A6B;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">${l.label} →</a></div>`)
+    .join('\n')
+}
+
+/**
+ * Send the lead its resource by email right after a form submission, using
+ * the editable "resource-delivery" template. Never throws: lead-magnet
+ * delivery must not break the notification/CRM flow of submission-created.
+ */
+export async function sendResourceDeliveryEmail(opts: {
+  apiKey: string
+  to: string
+  firstName?: string
+  language?: 'FR' | 'EN'
+  resourceLabel: string
+  links: ResourceLink[]
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const language = opts.language === 'EN' ? 'EN' : 'FR'
+    const templates = await readEmailTemplates()
+    const tpl = templates['resource-delivery'][language]
+
+    const vars: Record<string, string> = {
+      firstName: opts.firstName || '',
+      hello: language === 'EN'
+        ? (opts.firstName ? `Hi ${opts.firstName},` : 'Hi,')
+        : (opts.firstName ? `Bonjour ${opts.firstName},` : 'Bonjour,'),
+      resourceLabel: opts.resourceLabel,
+      resourceLinksHtml: buildResourceLinksHtml(opts.links),
+      bookingUrl: `${SITE_URL}/booking?src=resource-delivery`,
+      siteUrl: SITE_URL,
+    }
+
+    const subject = renderTemplate(tpl.subject, vars)
+    // unsubscribeUrl needs NPS_SIGNING_SECRET; fall back to the site URL so a
+    // missing secret degrades the footer link instead of dropping the email.
+    let unsubUrl = SITE_URL
+    try { unsubUrl = unsubscribeUrl(opts.to) } catch { /* secret not set */ }
+    const html = buildEmailHtml({
+      bodyHtml: renderTemplate(tpl.body, vars),
+      subject,
+      language,
+      unsubUrl,
+      isDryRun: false,
+      realRecipient: opts.to,
+    })
+    return await sendNurtureEmail({ apiKey: opts.apiKey, to: opts.to, subject, html, unsubUrl, isDryRun: false })
+  } catch (err) {
+    return { ok: false, error: String(err) }
+  }
+}
 
 /** Build the {{resourcesHtml}} list: catalog entries the contact has NOT
  *  downloaded yet. Returns null when there is nothing new to offer. */

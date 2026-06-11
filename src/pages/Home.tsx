@@ -80,6 +80,7 @@ export default function Home() {
           'company': formData.company,
           'email': formData.email,
           'phone': formData.phone,
+          'lang': lang,
         }).toString(),
       })
       if (formData.email) setCidCookie(formData.email)
@@ -1318,6 +1319,7 @@ export default function Home() {
               <input type="text" name="company" />
               <input type="email" name="email" />
               <input type="tel" name="phone" />
+              <input type="text" name="lang" />
             </form>
 
             <div style={{ marginBottom: '2.5rem' }}>

@@ -59,7 +59,7 @@ export const translations = {
       submit: 'Recevoir la brochure →',
       submitting: 'Envoi en cours...',
       success_title: 'Brochure en cours de téléchargement !',
-      success_sub: "Si le téléchargement ne démarre pas automatiquement :",
+      success_sub: "📩 Elle vient aussi de vous être envoyée par email. Si le téléchargement ne démarre pas automatiquement :",
       success_cta: 'Télécharger la brochure →',
     },
     article_page: {
@@ -151,7 +151,7 @@ export const translations = {
       submit: 'Get the brochure →',
       submitting: 'Sending...',
       success_title: 'Your download is starting!',
-      success_sub: "If the download doesn't start automatically:",
+      success_sub: "📩 We've also just sent it to you by email. If the download doesn't start automatically:",
       success_cta: 'Download brochure →',
     },
     article_page: {

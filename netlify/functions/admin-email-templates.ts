@@ -5,6 +5,7 @@ import {
   OWNER_EMAIL,
   TEMPLATE_KEYS,
   buildEmailHtml,
+  buildResourceLinksHtml,
   buildResourcesHtml,
   readEmailTemplates,
   renderTemplate,
@@ -85,6 +86,10 @@ const handler: Handler = async (event) => {
         bookingUrl: 'https://www.clempo.fr/booking?src=nurture-j7',
         siteUrl: 'https://www.clempo.fr',
         resourcesHtml: buildResourcesHtml(['decideurs-hospitaliers'], language) || '',
+        resourceLinksHtml: buildResourceLinksHtml([{
+          label: language === 'EN' ? 'Open the database' : 'Ouvrir la base',
+          url: 'https://www.clempo.fr/decideurs-hospitaliers',
+        }]),
       }
 
       const subject = renderTemplate(tpl.subject, vars)

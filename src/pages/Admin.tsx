@@ -4150,9 +4150,11 @@ const newFieldStyle: React.CSSProperties = {
 /* ---------- Emails (nurture templates editor) ---------- */
 
 type EmailTemplate = { subject: string; body: string }
-type EmailTemplatesData = Record<'nurture-j3' | 'nurture-j7', { FR: EmailTemplate; EN: EmailTemplate }> & { updatedAt?: string }
+type EmailTemplateKey = 'resource-delivery' | 'nurture-j3' | 'nurture-j7'
+type EmailTemplatesData = Record<EmailTemplateKey, { FR: EmailTemplate; EN: EmailTemplate }> & { updatedAt?: string }
 
-const EMAIL_TEMPLATE_META: { key: 'nurture-j3' | 'nurture-j7'; label: string; hint: string }[] = [
+const EMAIL_TEMPLATE_META: { key: EmailTemplateKey; label: string; hint: string }[] = [
+  { key: 'resource-delivery', label: 'J0 — Livraison ressource', hint: "Envoyé immédiatement après le téléchargement, avec le(s) lien(s) d'accès direct à la ressource." },
   { key: 'nurture-j3', label: 'J+3 — Autres ressources', hint: "Envoyé 3 jours après le 1er téléchargement. Propose les lead magnets que le contact n'a pas encore pris." },
   { key: 'nurture-j7', label: 'J+7 — Mon offre', hint: 'Envoyé 7 jours après le 1er téléchargement. Présente Advisory / Part-Time CMO / transition + CTA brief.' },
 ]
@@ -4162,6 +4164,7 @@ const EMAIL_PLACEHOLDERS: { name: string; desc: string }[] = [
   { name: '{{firstName}}', desc: 'prénom seul (peut être vide)' },
   { name: '{{resourceLabel}}', desc: 'nom de la ressource téléchargée' },
   { name: '{{resourcesHtml}}', desc: 'liste <ul> des autres ressources (J+3 uniquement)' },
+  { name: '{{resourceLinksHtml}}', desc: "bouton(s) d'accès à la ressource (livraison uniquement)" },
   { name: '{{bookingUrl}}', desc: 'lien de prise de RDV tracké' },
   { name: '{{siteUrl}}', desc: 'https://www.clempo.fr' },
 ]
@@ -4171,6 +4174,7 @@ const EMAIL_SAMPLE_VARS: Record<string, string> = {
   firstName: 'Marie',
   resourceLabel: 'Base décideurs hospitaliers',
   resourcesHtml: '<ul style="padding-left:20px;margin:16px 0;"><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">La liste des journalistes santé français (pour vos RP)</a></li><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">Les parts de marché des logiciels médicaux, spécialité par spécialité</a></li></ul>',
+  resourceLinksHtml: '<p style="margin:16px 0;"><a href="#" style="display:inline-block;padding:12px 24px;background:#0A0A0B;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">📥 Télécharger la ressource</a></p>',
   bookingUrl: 'https://www.clempo.fr/booking?src=nurture-j7',
   siteUrl: 'https://www.clempo.fr',
 }
@@ -4184,6 +4188,13 @@ function renderEmailPreview(input: string): string {
  *  (feeding state back on every keystroke would reset the cursor). */
 function EmailRichEditor({ initialHtml, onChange }: { initialHtml: string; onChange: (html: string) => void }) {
   const ref = useRef<HTMLDivElement>(null)
+  // Freeze the mount-time value. Our own onChange feeds parent state, which
+  // re-renders this component with the updated html as `initialHtml` — if we
+  // passed that straight to dangerouslySetInnerHTML, React would rewrite the
+  // DOM on every keystroke and reset the caret to the start (text appears to
+  // type backwards). The frozen copy never changes, so React never touches
+  // the DOM after mount; template/lang switches remount via the `key` prop.
+  const [frozenHtml] = useState(initialHtml)
 
   useEffect(() => {
     // Enter → <p> (block emails render reliably) instead of <div>.
@@ -4226,7 +4237,7 @@ function EmailRichEditor({ initialHtml, onChange }: { initialHtml: string; onCha
         contentEditable
         suppressContentEditableWarning
         onInput={() => ref.current && onChange(ref.current.innerHTML)}
-        dangerouslySetInnerHTML={{ __html: initialHtml }}
+        dangerouslySetInnerHTML={{ __html: frozenHtml }}
         style={{
           minHeight: '300px', maxHeight: '460px', overflowY: 'auto',
           padding: '0.9rem 1rem', fontSize: '0.88rem', lineHeight: 1.55,
@@ -4240,7 +4251,7 @@ function EmailRichEditor({ initialHtml, onChange }: { initialHtml: string; onCha
 function EmailTemplatesView({ password }: { password: string }) {
   const [templates, setTemplates] = useState<EmailTemplatesData | null>(null)
   const [defaults, setDefaults] = useState<EmailTemplatesData | null>(null)
-  const [activeKey, setActiveKey] = useState<'nurture-j3' | 'nurture-j7'>('nurture-j3')
+  const [activeKey, setActiveKey] = useState<EmailTemplateKey>('resource-delivery')
   const [activeLang, setActiveLang] = useState<'FR' | 'EN'>('FR')
   const [editorMode, setEditorMode] = useState<'rich' | 'html'>('rich')
   /** Bumped on reset / external body change to remount the rich editor. */
