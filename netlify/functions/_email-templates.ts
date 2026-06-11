@@ -295,8 +295,8 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
     id: 'journalistes',
     slugs: s => s === 'journalistes',
     label: {
-      FR: 'La liste des journalistes santé français (pour vos RP)',
-      EN: 'The list of French healthcare journalists (for your PR)',
+      FR: 'La liste des journalistes santé français et américains (pour vos RP)',
+      EN: 'The list of French and US healthcare journalists (for your PR)',
     },
     url: `${SITE_URL}/#journalistes`,
   },
