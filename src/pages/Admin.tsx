@@ -4170,19 +4170,47 @@ const EMAIL_PLACEHOLDERS: { name: string; desc: string }[] = [
   { name: '{{siteUrl}}', desc: 'https://www.clempo.fr' },
 ]
 
-const EMAIL_SAMPLE_VARS: Record<string, string> = {
-  hello: 'Bonjour Marie,',
-  firstName: 'Marie',
-  resourceLabel: 'Base décideurs hospitaliers',
-  resourcesHtml: '<ul style="padding-left:20px;margin:16px 0;"><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">La liste des journalistes santé français et américains (pour vos RP)</a></li><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">Les parts de marché des logiciels médicaux, spécialité par spécialité</a></li><li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">Mes articles de blog dédiés aux acteurs de la santé</a></li></ul>',
-  resourceLinksHtml: '<p style="margin:16px 0;"><a href="#" style="display:inline-block;padding:12px 24px;background:#0A0A0B;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">📥 Télécharger la ressource</a></p>',
-  videoHtml: '<p style="margin:24px 0 8px;"><a href="https://www.youtube.com/watch?v=rdwcJ7gAyv0"><img src="https://img.youtube.com/vi/rdwcJ7gAyv0/maxresdefault.jpg" alt="Présentation en vidéo — Clément Pouget-Osmont" width="520" style="width:100%;max-width:520px;border-radius:8px;border:1px solid rgba(10,10,11,0.08);display:block;" /></a></p><p style="margin:0 0 24px;font-size:14px;"><a href="https://www.youtube.com/watch?v=rdwcJ7gAyv0" style="color:#1A1A6B;">▶ Regarder la vidéo de présentation</a></p>',
-  bookingUrl: 'https://www.clempo.fr/booking?src=nurture-j7',
-  siteUrl: 'https://www.clempo.fr',
+const resourcesListHtml = (items: string[]) =>
+  `<ul style="padding-left:20px;margin:16px 0;">${items.map(l => `<li style="margin:0 0 10px;"><a href="#" style="color:#1A1A6B;">${l}</a></li>`).join('')}</ul>`
+
+const videoSampleHtml = (alt: string, caption: string) =>
+  `<p style="margin:24px 0 8px;"><a href="https://www.youtube.com/watch?v=rdwcJ7gAyv0"><img src="https://img.youtube.com/vi/rdwcJ7gAyv0/maxresdefault.jpg" alt="${alt}" width="520" style="width:100%;max-width:520px;border-radius:8px;border:1px solid rgba(10,10,11,0.08);display:block;" /></a></p><p style="margin:0 0 24px;font-size:14px;"><a href="https://www.youtube.com/watch?v=rdwcJ7gAyv0" style="color:#1A1A6B;">▶ ${caption}</a></p>`
+
+/** Sample data per language — mirrors what the cron generates for a real
+ *  contact, so the EN preview shows EN variables (and FR shows FR). */
+const EMAIL_SAMPLE_VARS: Record<'FR' | 'EN', Record<string, string>> = {
+  FR: {
+    hello: 'Bonjour Marie,',
+    firstName: 'Marie',
+    resourceLabel: 'Base décideurs hospitaliers',
+    resourcesHtml: resourcesListHtml([
+      'La liste des journalistes santé français et américains (pour vos RP)',
+      'Les parts de marché des logiciels médicaux, spécialité par spécialité',
+      'Mes articles de blog dédiés aux acteurs de la santé',
+    ]),
+    resourceLinksHtml: '<p style="margin:16px 0;"><a href="#" style="display:inline-block;padding:12px 24px;background:#0A0A0B;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">📥 Télécharger la ressource</a></p>',
+    videoHtml: videoSampleHtml('Présentation en vidéo — Clément Pouget-Osmont', 'Regarder la vidéo de présentation'),
+    bookingUrl: 'https://www.clempo.fr/booking?src=nurture-j7',
+    siteUrl: 'https://www.clempo.fr',
+  },
+  EN: {
+    hello: 'Hi Marie,',
+    firstName: 'Marie',
+    resourceLabel: 'The hospital decision-makers database (CEOs, CIOs, CME presidents)',
+    resourcesHtml: resourcesListHtml([
+      'The list of French and US healthcare journalists (for your PR)',
+      'Medical software market shares, specialty by specialty',
+      'My blog articles for healthcare players',
+    ]),
+    resourceLinksHtml: '<p style="margin:16px 0;"><a href="#" style="display:inline-block;padding:12px 24px;background:#0A0A0B;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">📥 Download the resource</a></p>',
+    videoHtml: videoSampleHtml('Video introduction — Clément Pouget-Osmont', 'Watch the intro video'),
+    bookingUrl: 'https://www.clempo.fr/booking?src=nurture-j7',
+    siteUrl: 'https://www.clempo.fr',
+  },
 }
 
-function renderEmailPreview(input: string): string {
-  return input.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, key) => EMAIL_SAMPLE_VARS[key] ?? m)
+function renderEmailPreview(input: string, lang: 'FR' | 'EN'): string {
+  return input.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, key) => EMAIL_SAMPLE_VARS[lang][key] ?? m)
 }
 
 /** Zero-dependency rich text editor on contentEditable + execCommand.
@@ -4468,11 +4496,11 @@ function EmailTemplatesView({ password }: { password: string }) {
           </label>
           <div style={{ border: '1px solid #eee', borderRadius: '10px', overflow: 'hidden' }}>
             <div style={{ padding: '0.7rem 1rem', borderBottom: '1px solid #eee', background: '#fafafa', fontSize: '0.8rem', color: '#333' }}>
-              <strong>Sujet :</strong> {renderEmailPreview(tpl.subject)}
+              <strong>Sujet :</strong> {renderEmailPreview(tpl.subject, activeLang)}
             </div>
             <div
               style={{ padding: '1.25rem', background: '#fff', fontSize: '0.85rem', lineHeight: 1.55, color: '#0a0a0a', maxHeight: '480px', overflowY: 'auto' }}
-              dangerouslySetInnerHTML={{ __html: renderEmailPreview(tpl.body) }}
+              dangerouslySetInnerHTML={{ __html: renderEmailPreview(tpl.body, activeLang) }}
             />
             <div style={{ padding: '0.7rem 1rem', borderTop: '1px solid #eee', background: '#fafafa', fontSize: '0.72rem', color: '#999' }}>
               Clément Pouget-Osmont · clempo.fr · <span style={{ textDecoration: 'underline' }}>Ne plus recevoir ces emails</span> (ajouté automatiquement)

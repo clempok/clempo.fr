@@ -1,6 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { recordEvent } from './_analytics'
-import { upsertContact, addPendingNps } from './_crm'
+import { upsertContact, addPendingNps, detectLanguage } from './_crm'
 import { JOURNALISTES_SHEET_URL } from './_journalistes'
 import { DECIDEURS_HOSPITALIERS_SHEET_URL } from './_decideurs-hospitaliers'
 import { sendResourceDeliveryEmail } from './_email-templates'
@@ -191,13 +191,19 @@ async function handleJournalistes(d: {
   ])
   await addPendingNps(d.email, 'journalistes', 'Liste journalistes santé')
 
-  await deliverResource({
-    formName: 'journalistes',
-    email: d.email,
-    firstName: d.firstName,
-    resourceLabel: 'la liste des journalistes santé français',
-    links: [{ label: 'Ouvrir la liste', url: JOURNALISTES_SHEET_URL }],
-  })
+  {
+    const lang = detectLanguage({ email: d.email, firstName: d.firstName })
+    await deliverResource({
+      formName: 'journalistes',
+      email: d.email,
+      firstName: d.firstName,
+      language: lang,
+      resourceLabel: lang === 'EN'
+        ? 'the list of French and US healthcare journalists'
+        : 'la liste des journalistes santé français et américains',
+      links: [{ label: lang === 'EN' ? 'Open the list' : 'Ouvrir la liste', url: JOURNALISTES_SHEET_URL }],
+    })
+  }
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
@@ -268,13 +274,19 @@ async function handleDecideursHospitaliers(d: {
   ])
   await addPendingNps(d.email, 'decideurs-hospitaliers', 'Base décideurs hospitaliers')
 
-  await deliverResource({
-    formName: 'decideurs-hospitaliers',
-    email: d.email,
-    firstName: d.firstName,
-    resourceLabel: 'la base des décideurs hospitaliers',
-    links: [{ label: 'Ouvrir la base', url: DECIDEURS_HOSPITALIERS_SHEET_URL }],
-  })
+  {
+    const lang = detectLanguage({ email: d.email, firstName: d.firstName })
+    await deliverResource({
+      formName: 'decideurs-hospitaliers',
+      email: d.email,
+      firstName: d.firstName,
+      language: lang,
+      resourceLabel: lang === 'EN'
+        ? 'the hospital decision-makers database'
+        : 'la base des décideurs hospitaliers',
+      links: [{ label: lang === 'EN' ? 'Open the database' : 'Ouvrir la base', url: DECIDEURS_HOSPITALIERS_SHEET_URL }],
+    })
+  }
 
   // No per-download alert — high-volume lead magnet. The morning recap from
   // scheduled-leads-digest.ts covers visibility without burning Resend quota.
@@ -313,17 +325,21 @@ async function handleDataDownload(d: {
   await addPendingNps(d.email, d.slug || 'data-download', sourceLabel)
 
   if (d.slug) {
+    const lang = detectLanguage({ email: d.email, firstName: d.firstName })
+    // d.source is "Data Médecins Généralistes" — reword for the email body.
+    // Specialty names stay in French (no EN dataset names exist).
+    const specialty = d.source.startsWith('Data ') ? d.source.slice(5) : ''
     await deliverResource({
       formName: 'data-download',
       email: d.email,
       firstName: d.firstName,
-      // d.source is "Data Médecins Généralistes" — reword for the email body.
-      resourceLabel: d.source.startsWith('Data ')
-        ? `les données ${d.source.slice(5)}`
-        : (d.source || `les données ${d.slug}`),
+      language: lang,
+      resourceLabel: lang === 'EN'
+        ? (specialty ? `the "${specialty}" market-share data` : `the ${d.slug} data`)
+        : (specialty ? `les données ${specialty}` : (d.source || `les données ${d.slug}`)),
       links: [
-        { label: 'Télécharger le CSV', url: `${SITE_URL}/data/specialites/${d.slug}.csv` },
-        { label: 'Télécharger le XLSX', url: `${SITE_URL}/data/specialites/${d.slug}.xlsx` },
+        { label: lang === 'EN' ? 'Download the CSV' : 'Télécharger le CSV', url: `${SITE_URL}/data/specialites/${d.slug}.csv` },
+        { label: lang === 'EN' ? 'Download the XLSX' : 'Télécharger le XLSX', url: `${SITE_URL}/data/specialites/${d.slug}.xlsx` },
       ],
     })
   }

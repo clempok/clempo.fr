@@ -6,6 +6,7 @@ import {
   buildResourcesHtml,
   buildVideoHtml,
   readEmailTemplates,
+  resourceLabelFor,
   renderTemplate,
   sendNurtureEmail,
   unsubscribeUrl,
@@ -118,7 +119,8 @@ export default async () => {
             hello: language === 'EN'
               ? (contact.firstName ? `Hi ${contact.firstName},` : 'Hi,')
               : (contact.firstName ? `Bonjour ${contact.firstName},` : 'Bonjour,'),
-            resourceLabel,
+            // Labels are stored in FR at download time — translate for EN contacts.
+            resourceLabel: resourceLabelFor(firstEntry?.resource || '', resourceLabel, language),
             bookingUrl: `${SITE_URL}/booking?src=nurture-j7`,
             siteUrl: SITE_URL,
             videoHtml: buildVideoHtml(language),

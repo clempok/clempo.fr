@@ -326,6 +326,15 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
   },
 ]
 
+/** Best label for a resource in the given language. Labels are stored in
+ *  French in the CRM at download time; for EN contacts, translate through the
+ *  catalog when the resource is known, else fall back to the stored label. */
+export function resourceLabelFor(slug: string, storedLabel: string, language: 'FR' | 'EN'): string {
+  if (language === 'FR') return storedLabel
+  const entry = RESOURCE_CATALOG.find(e => e.slugs(slug))
+  return entry ? entry.label.EN : storedLabel
+}
+
 /* ── Intro video (same video as the Home booking block) ── */
 
 const VIDEO_URL = 'https://www.youtube.com/watch?v=rdwcJ7gAyv0'
