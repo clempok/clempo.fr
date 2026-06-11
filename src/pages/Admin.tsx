@@ -4188,15 +4188,17 @@ function renderEmailPreview(input: string): string {
  *  (feeding state back on every keystroke would reset the cursor). */
 function EmailRichEditor({ initialHtml, onChange }: { initialHtml: string; onChange: (html: string) => void }) {
   const ref = useRef<HTMLDivElement>(null)
-  // Freeze the mount-time value. Our own onChange feeds parent state, which
-  // re-renders this component with the updated html as `initialHtml` — if we
-  // passed that straight to dangerouslySetInnerHTML, React would rewrite the
-  // DOM on every keystroke and reset the caret to the start (text appears to
-  // type backwards). The frozen copy never changes, so React never touches
-  // the DOM after mount; template/lang switches remount via the `key` prop.
-  const [frozenHtml] = useState(initialHtml)
+  // The content is set imperatively ONCE at mount and React never renders it:
+  // no dangerouslySetInnerHTML, no children. Under React 19, an (even
+  // unchanged) dangerouslySetInnerHTML gets re-applied on parent re-renders,
+  // which rewrites the DOM on every keystroke — caret jumps to the start and
+  // text appears to type backwards. Keeping React fully out of the content
+  // makes the editor truly uncontrolled; template/lang switches remount via
+  // the `key` prop and re-run this effect with the then-current value.
+  const initialRef = useRef(initialHtml)
 
   useEffect(() => {
+    if (ref.current) ref.current.innerHTML = initialRef.current
     // Enter → <p> (block emails render reliably) instead of <div>.
     try { document.execCommand('defaultParagraphSeparator', false, 'p') } catch { /* older engines */ }
   }, [])
@@ -4237,7 +4239,6 @@ function EmailRichEditor({ initialHtml, onChange }: { initialHtml: string; onCha
         contentEditable
         suppressContentEditableWarning
         onInput={() => ref.current && onChange(ref.current.innerHTML)}
-        dangerouslySetInnerHTML={{ __html: frozenHtml }}
         style={{
           minHeight: '300px', maxHeight: '460px', overflowY: 'auto',
           padding: '0.9rem 1rem', fontSize: '0.88rem', lineHeight: 1.55,
