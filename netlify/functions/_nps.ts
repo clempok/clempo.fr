@@ -86,6 +86,7 @@ const COPY = {
     legendHigh: '10 — Très probablement',
     footer: 'Cliquez sur une note ci-dessus, vous pourrez ajouter un commentaire ensuite. Merci !',
     signature: 'Clément Pouget-Osmont',
+    signatureCta: 'Échangeons',
   },
   EN: {
     subject: (label: string) => `Quick question about "${label}" 🙏`,
@@ -99,6 +100,7 @@ const COPY = {
     legendHigh: '10 — Very likely',
     footer: 'Click a score above — you can add a comment afterward. Thanks!',
     signature: 'Clément Pouget-Osmont',
+    signatureCta: "Let's talk",
   },
 } as const
 
@@ -149,7 +151,7 @@ export function buildNpsEmailHtml(opts: {
       </tr>
     </table>
     <p style="font-size:13px;line-height:1.55;color:#71717a;margin:32px 0 0;">${t.footer}</p>
-    <p style="font-size:14px;margin:24px 0 0;">${t.signature}<br><a href="${SITE_URL}" style="color:#1A1A6B;">clempo.fr</a></p>
+    <p style="font-size:14px;margin:24px 0 0;">${t.signature}<br><a href="${SITE_URL}/booking" style="color:#1A1A6B;">${t.signatureCta}</a></p>
   </div>
 </body>
 </html>`

@@ -222,6 +222,7 @@ export function buildEmailHtml(opts: {
   const unsubLabel = opts.language === 'EN'
     ? 'Unsubscribe from these emails'
     : 'Ne plus recevoir ces emails'
+  const signatureCta = opts.language === 'EN' ? "Let's talk" : 'Échangeons'
 
   // Deliberately bare chrome: white background, left-aligned, no card/container
   // — the email should read like a personal message typed in Gmail, not a
@@ -233,7 +234,7 @@ export function buildEmailHtml(opts: {
   <div style="max-width:640px;padding:16px;font-family:Arial,Helvetica,sans-serif;color:#222222;font-size:14px;line-height:1.5;text-align:left;">
     ${dryRunBanner}
     ${opts.bodyHtml}
-    <p style="font-size:14px;margin:24px 0 0;">Clément Pouget-Osmont<br><a href="${SITE_URL}" style="color:#1A1A6B;">clempo.fr</a></p>
+    <p style="font-size:14px;margin:24px 0 0;">Clément Pouget-Osmont<br><a href="${SITE_URL}/booking" style="color:#1A1A6B;">${signatureCta}</a></p>
     <p style="font-size:12px;color:#a1a1aa;margin:32px 0 0;">
       <a href="${opts.unsubUrl}" style="color:#a1a1aa;">${unsubLabel}</a>
     </p>

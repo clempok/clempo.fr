@@ -4723,7 +4723,7 @@ function EmailTemplatesView({ password }: { password: string }) {
               dangerouslySetInnerHTML={{ __html: renderEmailPreview(tpl.body, activeLang) }}
             />
             <div style={{ padding: '0.7rem 1rem', borderTop: '1px solid #eee', background: '#fafafa', fontSize: '0.72rem', color: '#999' }}>
-              Clément Pouget-Osmont · clempo.fr · <span style={{ textDecoration: 'underline' }}>Ne plus recevoir ces emails</span> (ajouté automatiquement)
+              Clément Pouget-Osmont · <span style={{ textDecoration: 'underline' }}>Échangeons</span> (→ /booking) · <span style={{ textDecoration: 'underline' }}>Ne plus recevoir ces emails</span> (ajouté automatiquement)
             </div>
           </div>
         </div>
