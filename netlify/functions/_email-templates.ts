@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 import { instrumentEmailHtml, newSendId, saveSendRecord } from './_email-tracking'
+import { JOURNALISTES_SHEET_URL } from './_journalistes'
 
 /**
  * Editable email templates for the nurture sequence, stored in Netlify Blobs
@@ -338,7 +339,9 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
       FR: 'La liste des journalistes santé français et américains (pour vos RP)',
       EN: 'The list of French and US healthcare journalists (for your PR)',
     },
-    url: `${SITE_URL}/#journalistes`,
+    // Direct Gsheet access: the J+3 recipient is already a lead, no point
+    // sending them back through the form on the site.
+    url: JOURNALISTES_SHEET_URL,
   },
   {
     id: 'data-specialites',
