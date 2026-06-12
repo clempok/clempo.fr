@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 
 const REPO = 'clempok/clempo.fr'
 const FILE_PATH = 'public/content.json'
@@ -4213,6 +4213,200 @@ function renderEmailPreview(input: string, lang: 'FR' | 'EN'): string {
   return input.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, key) => EMAIL_SAMPLE_VARS[lang][key] ?? m)
 }
 
+/* ---------- Emails — statistiques ouvertures / clics ---------- */
+
+type EmailSendStats = {
+  id: string
+  templateKey: string
+  language: 'FR' | 'EN'
+  to: string
+  recipientName?: string
+  company?: string
+  subject: string
+  sentAt: string
+  opens: number
+  firstOpenAt?: string
+  lastOpenAt?: string
+  totalClicks: number
+  clicks: { url: string; count: number; lastAt: string }[]
+}
+
+type EmailStatsData = {
+  totals: Record<string, { sent: number; opened: number; clicked: number }>
+  sends: EmailSendStats[]
+}
+
+const EMAIL_TEMPLATE_SHORT: Record<string, string> = {
+  'resource-delivery': 'J0 — Livraison',
+  'nurture-j3': 'J+3 — Ressources',
+  'nurture-j7': 'J+7 — Offre',
+}
+
+const fmtEmailDate = (iso: string) =>
+  new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+
+const pctOf = (n: number, total: number) => (total === 0 ? '—' : `${Math.round((n / total) * 100)}%`)
+
+/** Strip protocol/www for compact link display in the click detail. */
+const shortUrl = (url: string) => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
+
+function EmailStatsView({ password }: { password: string }) {
+  const [data, setData] = useState<EmailStatsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [filterKey, setFilterKey] = useState<string>('all')
+
+  useEffect(() => {
+    fetch('/.netlify/functions/admin-email-stats', { headers: { Authorization: `Bearer ${password}` } })
+      .then(async r => {
+        if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`)
+        return r.json()
+      })
+      .then(setData)
+      .catch(err => setError(String(err)))
+      .finally(() => setLoading(false))
+  }, [password])
+
+  if (loading) return <div style={{ padding: '3rem', color: '#666' }}>Chargement…</div>
+  if (!data) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error || 'stats indisponibles'}</div>
+
+  const sends = filterKey === 'all' ? data.sends : data.sends.filter(s => s.templateKey === filterKey)
+
+  const cardStyle: React.CSSProperties = {
+    flex: '1 1 180px', padding: '0.9rem 1.1rem', border: '1px solid #eee',
+    borderRadius: '10px', background: '#fff', minWidth: '180px',
+  }
+  const metricStyle: React.CSSProperties = { fontSize: '1.15rem', fontWeight: 700, color: '#111' }
+  const metricLabelStyle: React.CSSProperties = { fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em' }
+  const thStyle: React.CSSProperties = {
+    textAlign: 'left', padding: '0.5rem 0.75rem', fontSize: '0.65rem', fontWeight: 600,
+    color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #eee',
+  }
+  const tdStyle: React.CSSProperties = { padding: '0.55rem 0.75rem', fontSize: '0.8rem', color: '#333', borderBottom: '1px solid #f3f3f3', verticalAlign: 'top' }
+  const pillStyle = (active: boolean): React.CSSProperties => ({
+    padding: '0.35rem 0.75rem', border: `1px solid ${active ? ACCENT : '#e0e0e0'}`,
+    borderRadius: '8px', background: active ? ACCENT : '#fff',
+    color: active ? '#fff' : '#555', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+  })
+
+  return (
+    <div>
+      {/* Per-template summary */}
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+        {EMAIL_TEMPLATE_META.map(m => {
+          const t = data.totals[m.key] || { sent: 0, opened: 0, clicked: 0 }
+          return (
+            <div key={m.key} style={cardStyle}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '0 0 0.6rem' }}>{EMAIL_TEMPLATE_SHORT[m.key] || m.key}</p>
+              <div style={{ display: 'flex', gap: '1.1rem' }}>
+                <div><div style={metricStyle}>{t.sent}</div><div style={metricLabelStyle}>Envoyés</div></div>
+                <div><div style={metricStyle}>{pctOf(t.opened, t.sent)}</div><div style={metricLabelStyle}>Ouverture</div></div>
+                <div><div style={metricStyle}>{pctOf(t.clicked, t.sent)}</div><div style={metricLabelStyle}>Clic</div></div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.9rem', flexWrap: 'wrap' }}>
+        <button onClick={() => setFilterKey('all')} style={pillStyle(filterKey === 'all')}>Tous</button>
+        {EMAIL_TEMPLATE_META.map(m => (
+          <button key={m.key} onClick={() => setFilterKey(m.key)} style={pillStyle(filterKey === m.key)}>
+            {EMAIL_TEMPLATE_SHORT[m.key] || m.key}
+          </button>
+        ))}
+      </div>
+
+      {sends.length === 0 ? (
+        <div style={{ padding: '2rem', border: '1px dashed #e0e0e0', borderRadius: '10px', color: '#888', fontSize: '0.85rem' }}>
+          Aucun envoi tracké pour le moment. Le tracking démarre avec les prochains envois réels
+          (les tests admin et les dry-runs ne sont pas comptés).
+        </div>
+      ) : (
+        <div style={{ border: '1px solid #eee', borderRadius: '10px', overflow: 'hidden', background: '#fff' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Date</th>
+                <th style={thStyle}>Destinataire</th>
+                <th style={thStyle}>Email</th>
+                <th style={thStyle}>Ouvert</th>
+                <th style={thStyle}>Clics</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sends.map(s => {
+                const expanded = expandedId === s.id
+                return (
+                  <Fragment key={s.id}>
+                    <tr
+                      onClick={() => setExpandedId(expanded ? null : s.id)}
+                      style={{ cursor: 'pointer', background: expanded ? '#fafafa' : undefined }}
+                    >
+                      <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>{fmtEmailDate(s.sentAt)}</td>
+                      <td style={tdStyle}>
+                        <div style={{ fontWeight: s.recipientName ? 600 : 400 }}>{s.recipientName || s.to}</div>
+                        {s.recipientName && <div style={{ fontSize: '0.72rem', color: '#999' }}>{s.to}</div>}
+                        {s.company && <div style={{ fontSize: '0.72rem', color: '#999' }}>{s.company}</div>}
+                      </td>
+                      <td style={tdStyle}>
+                        {EMAIL_TEMPLATE_SHORT[s.templateKey] || s.templateKey}
+                        <span style={{ color: '#bbb', fontSize: '0.72rem' }}> · {s.language}</span>
+                      </td>
+                      <td style={tdStyle}>
+                        {s.opens > 0
+                          ? <span style={{ color: '#059669', fontWeight: 600 }}>✓ {s.opens > 1 ? `${s.opens}×` : ''}</span>
+                          : <span style={{ color: '#bbb' }}>—</span>}
+                      </td>
+                      <td style={tdStyle}>
+                        {s.totalClicks > 0
+                          ? <span style={{ color: ACCENT, fontWeight: 600 }}>{s.totalClicks}</span>
+                          : <span style={{ color: '#bbb' }}>—</span>}
+                      </td>
+                    </tr>
+                    {expanded && (
+                      <tr>
+                        <td colSpan={5} style={{ ...tdStyle, background: '#fafafa', fontSize: '0.78rem' }}>
+                          <p style={{ margin: '0 0 0.4rem', color: '#555' }}><strong>Sujet :</strong> {s.subject}</p>
+                          <p style={{ margin: '0 0 0.4rem', color: '#555' }}>
+                            <strong>Ouvertures :</strong>{' '}
+                            {s.opens === 0
+                              ? 'aucune (ou images bloquées par le client mail)'
+                              : `${s.opens} — première le ${fmtEmailDate(s.firstOpenAt!)}${s.opens > 1 ? `, dernière le ${fmtEmailDate(s.lastOpenAt!)}` : ''}`}
+                          </p>
+                          <div style={{ color: '#555' }}>
+                            <strong>Liens cliqués :</strong>
+                            {s.clicks.length === 0 ? ' aucun' : (
+                              <ul style={{ margin: '0.3rem 0 0', paddingLeft: '1.2rem' }}>
+                                {s.clicks.map((c, i) => (
+                                  <li key={i} style={{ margin: '0 0 0.2rem' }}>
+                                    <a href={c.url} target="_blank" rel="noreferrer" style={{ color: ACCENT }}>{shortUrl(c.url)}</a>
+                                    {' '}— {c.count} clic{c.count > 1 ? 's' : ''} (dernier le {fmtEmailDate(c.lastAt)})
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p style={{ fontSize: '0.7rem', color: '#999', margin: '0.75rem 0 0' }}>
+        Les taux d'ouverture sont une borne haute (Apple Mail et le proxy images de Gmail préchargent
+        le pixel) — les clics sont le signal fiable. Tests admin et dry-runs exclus.
+      </p>
+    </div>
+  )
+}
+
 /** Zero-dependency rich text editor on contentEditable + execCommand.
  *  Uncontrolled by design: the DOM is initialized once per `key` remount
  *  (feeding state back on every keystroke would reset the cursor). */
@@ -4282,6 +4476,7 @@ function EmailRichEditor({ initialHtml, onChange }: { initialHtml: string; onCha
 function EmailTemplatesView({ password }: { password: string }) {
   const [templates, setTemplates] = useState<EmailTemplatesData | null>(null)
   const [defaults, setDefaults] = useState<EmailTemplatesData | null>(null)
+  const [subTab, setSubTab] = useState<'templates' | 'stats'>('templates')
   const [activeKey, setActiveKey] = useState<EmailTemplateKey>('resource-delivery')
   const [activeLang, setActiveLang] = useState<'FR' | 'EN'>('FR')
   const [editorMode, setEditorMode] = useState<'rich' | 'html'>('rich')
@@ -4373,27 +4568,49 @@ function EmailTemplatesView({ password }: { password: string }) {
     flash('Template réinitialisé au défaut — pensez à sauvegarder.')
   }
 
-  if (loading) return <div style={{ padding: '3rem', color: '#666' }}>Chargement…</div>
-  if (!templates) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error || 'templates indisponibles'}</div>
-
-  const tpl = templates[activeKey][activeLang]
-  const meta = EMAIL_TEMPLATE_META.find(m => m.key === activeKey)!
-
   const pillStyle = (active: boolean): React.CSSProperties => ({
     padding: '0.45rem 0.9rem', border: `1px solid ${active ? ACCENT : '#e0e0e0'}`,
     borderRadius: '8px', background: active ? ACCENT : '#fff',
     color: active ? '#fff' : '#555', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer',
   })
 
+  const header = (
+    <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', margin: 0 }}>Emails</h2>
+        <div style={{ display: 'flex', gap: '0.35rem' }}>
+          <button onClick={() => setSubTab('templates')} style={pillStyle(subTab === 'templates')}>✏️ Templates</button>
+          <button onClick={() => setSubTab('stats')} style={pillStyle(subTab === 'stats')}>📊 Statistiques</button>
+        </div>
+      </div>
+      <p style={{ fontSize: '0.75rem', color: '#999', margin: '0.25rem 0 0' }}>
+        {subTab === 'stats'
+          ? 'Ouvertures et clics des emails envoyés (livraison + séquence nurture). Cliquez sur une ligne pour le détail par lien.'
+          : <>Templates de la séquence nurture (cron quotidien 9h30 UTC). Modifications prises en compte au prochain envoi, sans redéploiement.
+            {templates?.updatedAt && ` · Dernière sauvegarde : ${new Date(templates.updatedAt).toLocaleString('fr-FR')}`}</>}
+      </p>
+    </div>
+  )
+
+  // Stats don't depend on the templates fetch — render even if it failed.
+  if (subTab === 'stats') {
+    return (
+      <div style={{ padding: '2rem 3rem', maxWidth: '1200px' }}>
+        {header}
+        <EmailStatsView password={password} />
+      </div>
+    )
+  }
+
+  if (loading) return <div style={{ padding: '3rem', color: '#666' }}>Chargement…</div>
+  if (!templates) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error || 'templates indisponibles'}</div>
+
+  const tpl = templates[activeKey][activeLang]
+  const meta = EMAIL_TEMPLATE_META.find(m => m.key === activeKey)!
+
   return (
     <div style={{ padding: '2rem 3rem', maxWidth: '1200px' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111', margin: 0 }}>Emails</h2>
-        <p style={{ fontSize: '0.75rem', color: '#999', margin: '0.25rem 0 0' }}>
-          Templates de la séquence nurture (cron quotidien 9h30 UTC). Modifications prises en compte au prochain envoi, sans redéploiement.
-          {templates.updatedAt && ` · Dernière sauvegarde : ${new Date(templates.updatedAt).toLocaleString('fr-FR')}`}
-        </p>
-      </div>
+      {header}
 
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
         {EMAIL_TEMPLATE_META.map(m => (

@@ -146,7 +146,20 @@ export default async () => {
             realRecipient: contact.email,
           })
 
-          const result = await sendNurtureEmail({ apiKey, to: contact.email, subject, html, unsubUrl, isDryRun })
+          const result = await sendNurtureEmail({
+            apiKey,
+            to: contact.email,
+            subject,
+            html,
+            unsubUrl,
+            isDryRun,
+            tracking: {
+              templateKey: step.key,
+              language,
+              recipientName: [contact.firstName, contact.lastName].filter(Boolean).join(' ') || undefined,
+              company: co.name,
+            },
+          })
           if (!result.ok) {
             console.error(`[scheduled-nurture] send error (${contact.email}, ${step.key}):`, result.error)
             errors += 1

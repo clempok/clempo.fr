@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { getStore } from '@netlify/blobs'
+import { instrumentEmailHtml, newSendId, saveSendRecord } from './_email-tracking'
 
 /**
  * Editable email templates for the nurture sequence, stored in Netlify Blobs
@@ -212,23 +213,24 @@ export function buildEmailHtml(opts: {
   realRecipient: string
 }): string {
   const dryRunBanner = opts.isDryRun
-    ? `<div style="margin:0 0 24px;padding:12px 16px;background:#fee2e2;border:1px solid #dc2626;border-radius:8px;color:#7f1d1d;font-size:13px;font-family:Arial,Helvetica,sans-serif;">
-        <strong>TEST DRY-RUN</strong> · destinataire réel : <code>${opts.realRecipient}</code>
-      </div>`
+    ? `<p style="margin:0 0 20px;color:#b91c1c;font-size:13px;">[TEST DRY-RUN — destinataire réel : ${opts.realRecipient}]</p>`
     : ''
   const unsubLabel = opts.language === 'EN'
     ? 'Unsubscribe from these emails'
     : 'Ne plus recevoir ces emails'
 
+  // Deliberately bare chrome: white background, left-aligned, no card/container
+  // — the email should read like a personal message typed in Gmail, not a
+  // marketing template.
   return `<!doctype html>
 <html lang="${opts.language.toLowerCase()}">
 <head><meta charset="utf-8"><title>${opts.subject}</title></head>
-<body style="margin:0;padding:0;background:#f8f8f6;">
-  <div style="max-width:560px;margin:0 auto;padding:32px 20px;font-family:Arial,Helvetica,sans-serif;color:#0a0a0a;font-size:16px;line-height:1.55;">
+<body style="margin:0;padding:0;background:#ffffff;">
+  <div style="max-width:640px;padding:16px;font-family:Arial,Helvetica,sans-serif;color:#222222;font-size:14px;line-height:1.5;text-align:left;">
     ${dryRunBanner}
     ${opts.bodyHtml}
     <p style="font-size:14px;margin:24px 0 0;">Clément Pouget-Osmont<br><a href="${SITE_URL}" style="color:#1A1A6B;">clempo.fr</a></p>
-    <p style="font-size:12px;color:#a1a1aa;margin:32px 0 0;border-top:1px solid #e4e4e7;padding-top:16px;">
+    <p style="font-size:12px;color:#a1a1aa;margin:32px 0 0;">
       <a href="${opts.unsubUrl}" style="color:#a1a1aa;">${unsubLabel}</a>
     </p>
   </div>
@@ -236,7 +238,10 @@ export function buildEmailHtml(opts: {
 </html>`
 }
 
-/** Send a rendered nurture email via Resend, with List-Unsubscribe headers. */
+/** Send a rendered nurture email via Resend, with List-Unsubscribe headers.
+ *  When `tracking` is provided (and the send is live, not dry-run), the HTML
+ *  is instrumented for open/click tracking and a send record is stored for
+ *  the admin "Emails → Statistiques" view. */
 export async function sendNurtureEmail(opts: {
   apiKey: string
   to: string
@@ -244,8 +249,38 @@ export async function sendNurtureEmail(opts: {
   html: string
   unsubUrl: string
   isDryRun: boolean
+  tracking?: {
+    templateKey: string
+    language: 'FR' | 'EN'
+    recipientName?: string
+    company?: string
+  }
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const recipient = opts.isDryRun ? OWNER_EMAIL : opts.to
+
+  let html = opts.html
+  if (opts.tracking && !opts.isDryRun) {
+    // Tracking must never block delivery: on any blob error, send untracked.
+    try {
+      const sendId = newSendId()
+      const instrumented = instrumentEmailHtml(html, sendId, [opts.unsubUrl])
+      await saveSendRecord({
+        id: sendId,
+        templateKey: opts.tracking.templateKey,
+        language: opts.tracking.language,
+        to: opts.to,
+        recipientName: opts.tracking.recipientName,
+        company: opts.tracking.company,
+        subject: opts.subject,
+        sentAt: new Date().toISOString(),
+        links: instrumented.links,
+      })
+      html = instrumented.html
+    } catch (err) {
+      console.error('[sendNurtureEmail] tracking setup failed, sending untracked:', err)
+    }
+  }
+
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -258,7 +293,7 @@ export async function sendNurtureEmail(opts: {
         to: [recipient],
         reply_to: OWNER_EMAIL,
         subject: opts.isDryRun ? `[TEST] ${opts.subject}` : opts.subject,
-        html: opts.html,
+        html,
         headers: {
           'List-Unsubscribe': `<${opts.unsubUrl}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
@@ -404,7 +439,15 @@ export async function sendResourceDeliveryEmail(opts: {
       isDryRun: false,
       realRecipient: opts.to,
     })
-    return await sendNurtureEmail({ apiKey: opts.apiKey, to: opts.to, subject, html, unsubUrl, isDryRun: false })
+    return await sendNurtureEmail({
+      apiKey: opts.apiKey,
+      to: opts.to,
+      subject,
+      html,
+      unsubUrl,
+      isDryRun: false,
+      tracking: { templateKey: 'resource-delivery', language, recipientName: opts.firstName },
+    })
   } catch (err) {
     return { ok: false, error: String(err) }
   }
