@@ -5,13 +5,17 @@ import { sendNpsEmailFor } from './_nps'
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 const TTL_DAYS = 7
 /**
- * Hard cap on real Resend sends per run. Keeps a ~20 email/day buffer in the
- * Resend free-tier quota (100/day) for the daily digest, per-download alerts,
+ * Hard cap on real Resend sends per run. Keeps a buffer in the Resend
+ * free-tier quota (100/day) for the daily digest, per-download alerts,
  * and other transactional emails. Anything above the cap stays pending and
  * gets picked up by the next day's cron — the 7-day TTL leaves margin to
- * drain a spike over a week.
+ * drain a spike over a week. Overridable via NPS_MAX_SENDS, to rebalance
+ * the quota when the nurture cron (NURTURE_MAX_SENDS) needs more room.
  */
-const MAX_SENDS_PER_RUN = 80
+const MAX_SENDS_PER_RUN = (() => {
+  const n = Number(process.env.NPS_MAX_SENDS)
+  return Number.isInteger(n) && n >= 1 && n <= 95 ? n : 80
+})()
 
 /**
  * Daily NPS solicitation cron. Scans every contact's npsResponses, picks

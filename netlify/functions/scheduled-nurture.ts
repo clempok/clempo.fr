@@ -24,9 +24,16 @@ const STEP3_MAX_DAYS = 10
 const STEP7_MIN_DAYS = 7
 const STEP7_MAX_DAYS = 14
 
-/** Shares the Resend free-tier quota (100/day) with the NPS cron (capped at
- *  80) and transactional sends. Keep the combined ceiling well under 100. */
-const MAX_SENDS_PER_RUN = 30
+/** Shares the Resend free-tier quota (100/day) with the NPS cron and
+ *  transactional sends — keep NURTURE_MAX_SENDS + NPS_MAX_SENDS well under
+ *  100. Overridable via env (no redeploy of code needed, just env + deploy)
+ *  to drain a download spike faster, e.g. NURTURE_MAX_SENDS=70. */
+const MAX_SENDS_PER_RUN = envCap('NURTURE_MAX_SENDS', 30)
+
+function envCap(name: string, fallback: number): number {
+  const n = Number(process.env[name])
+  return Number.isInteger(n) && n >= 1 && n <= 95 ? n : fallback
+}
 
 /** Companies already engaged (or dead) are excluded: someone in Opportunité
  *  or Client doesn't need a "here is what I offer" email, and Lost means stop. */
