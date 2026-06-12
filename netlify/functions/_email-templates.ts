@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 import { instrumentEmailHtml, newSendId, saveSendRecord } from './_email-tracking'
 import { JOURNALISTES_SHEET_URL } from './_journalistes'
+import { DECIDEURS_HOSPITALIERS_SHEET_URL } from './_decideurs-hospitaliers'
 
 /**
  * Editable email templates for the nurture sequence, stored in Netlify Blobs
@@ -13,6 +14,8 @@ import { JOURNALISTES_SHEET_URL } from './_journalistes'
  *   {{firstName}}          — first name, or empty (use {{hello}} for a safe greeting)
  *   {{hello}}              — "Bonjour Marie," / "Bonjour," depending on data
  *   {{resourceLabel}}      — label of the first resource downloaded
+ *   {{resourceUrl}}        — direct re-access link to that resource (same
+ *                            destination as the J0 delivery email)
  *   {{resourcesHtml}}      — <ul> of the OTHER available resources (J+3)
  *   {{resourceLinksHtml}}  — download button(s) of the resource (resource-delivery)
  *   {{videoHtml}}          — clickable YouTube thumbnail of the intro video
@@ -66,7 +69,7 @@ export const DEFAULT_TEMPLATES: EmailTemplatesData = {
     FR: {
       subject: 'Les autres ressources clempo.fr (gratuites aussi)',
       body: `<p>{{hello}}</p>
-<p>Vous avez téléchargé <strong>{{resourceLabel}}</strong> il y a quelques jours. Si elle vous a été utile, ces autres ressources devraient vous intéresser — même logique : des données et des listes actionnables, sans blabla.</p>
+<p>Vous avez téléchargé <strong>{{resourceLabel}}</strong> (<a href="{{resourceUrl}}">y accéder de nouveau</a>) il y a quelques jours. Si elle vous a été utile, ces autres ressources devraient vous intéresser — même logique : des données et des listes actionnables, sans blabla.</p>
 {{resourcesHtml}}
 <p>Tout est gratuit, sans formulaire supplémentaire pour vous.</p>
 <p>Et si vous préférez les analyses de fond, le blog couvre les systèmes de santé du monde entier et le marketing santé appliqué : <a href="{{siteUrl}}/articles">clempo.fr/articles</a>.</p>`,
@@ -74,7 +77,7 @@ export const DEFAULT_TEMPLATES: EmailTemplatesData = {
     EN: {
       subject: 'The other clempo.fr resources (also free)',
       body: `<p>{{hello}}</p>
-<p>You downloaded <strong>{{resourceLabel}}</strong> a few days ago. If it was useful, these other resources should interest you — same logic: actionable data and lists, no fluff.</p>
+<p>You downloaded <strong>{{resourceLabel}}</strong> (<a href="{{resourceUrl}}">access it again</a>) a few days ago. If it was useful, these other resources should interest you — same logic: actionable data and lists, no fluff.</p>
 {{resourcesHtml}}
 <p>Everything is free, with no extra form for you.</p>
 <p>And if you prefer in-depth analyses, the blog covers healthcare systems worldwide and applied healthcare marketing: <a href="{{siteUrl}}/articles">clempo.fr/articles</a>.</p>`,
@@ -364,6 +367,18 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
   },
 ]
 
+/** Direct re-access URL for a downloaded resource (slug as stored in the CRM
+ *  at download time) — same destinations as the J0 delivery email, so the
+ *  J+3 follow-up can hand back the original resource. */
+export function resourceAccessUrl(slug: string): string {
+  if (slug === 'journalistes') return JOURNALISTES_SHEET_URL
+  if (slug === 'decideurs-hospitaliers') return DECIDEURS_HOSPITALIERS_SHEET_URL
+  // Data downloads store the specialty slug (one XLSX per specialty); the
+  // legacy generic 'data-download' slug has no file — fall back to the page.
+  if (slug && slug !== 'data-download') return `${SITE_URL}/data/specialites/${slug}.xlsx`
+  return `${SITE_URL}/parts-de-marche-logiciels-medicaux`
+}
+
 /** Best label for a resource in the given language. Labels are stored in
  *  French in the CRM at download time; for EN contacts, translate through the
  *  catalog when the resource is known, else fall back to the stored label. */
@@ -424,6 +439,7 @@ export async function sendResourceDeliveryEmail(opts: {
         ? (opts.firstName ? `Hi ${opts.firstName},` : 'Hi,')
         : (opts.firstName ? `Bonjour ${opts.firstName},` : 'Bonjour,'),
       resourceLabel: opts.resourceLabel,
+      resourceUrl: opts.links[0]?.url || SITE_URL,
       resourceLinksHtml: buildResourceLinksHtml(opts.links),
       bookingUrl: `${SITE_URL}/booking?src=resource-delivery`,
       siteUrl: SITE_URL,

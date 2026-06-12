@@ -4163,6 +4163,7 @@ const EMAIL_PLACEHOLDERS: { name: string; desc: string }[] = [
   { name: '{{hello}}', desc: '« Bonjour Marie, » ou « Bonjour, » selon les données' },
   { name: '{{firstName}}', desc: 'prénom seul (peut être vide)' },
   { name: '{{resourceLabel}}', desc: 'nom de la ressource téléchargée' },
+  { name: '{{resourceUrl}}', desc: "lien d'accès direct à la ressource téléchargée (Gsheet / fichier, comme l'email J0)" },
   { name: '{{resourcesHtml}}', desc: 'liste <ul> des autres ressources (J+3 uniquement)' },
   { name: '{{resourceLinksHtml}}', desc: "bouton(s) d'accès à la ressource (livraison uniquement)" },
   { name: '{{videoHtml}}', desc: 'miniature cliquable de la vidéo de présentation (→ YouTube)' },
@@ -4183,6 +4184,7 @@ const EMAIL_SAMPLE_VARS: Record<'FR' | 'EN', Record<string, string>> = {
     hello: 'Bonjour Marie,',
     firstName: 'Marie',
     resourceLabel: 'Base décideurs hospitaliers',
+    resourceUrl: 'https://docs.google.com/spreadsheets/d/147n3ARYM5gH2RAMlMelvXIqEJsII1u-d/edit?usp=sharing',
     resourcesHtml: resourcesListHtml([
       'La liste des journalistes santé français et américains (pour vos RP)',
       'Les parts de marché des logiciels médicaux, spécialité par spécialité',
@@ -4197,6 +4199,7 @@ const EMAIL_SAMPLE_VARS: Record<'FR' | 'EN', Record<string, string>> = {
     hello: 'Hi Marie,',
     firstName: 'Marie',
     resourceLabel: 'The hospital decision-makers database (CEOs, CIOs, CME presidents)',
+    resourceUrl: 'https://docs.google.com/spreadsheets/d/147n3ARYM5gH2RAMlMelvXIqEJsII1u-d/edit?usp=sharing',
     resourcesHtml: resourcesListHtml([
       'The list of French and US healthcare journalists (for your PR)',
       'Medical software market shares, specialty by specialty',
