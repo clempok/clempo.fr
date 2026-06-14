@@ -4551,6 +4551,196 @@ function EmailStatsView({ password }: { password: string }) {
   )
 }
 
+type ScheduledEmail = {
+  id: string
+  templateKey: 'nps-ask' | 'nurture-j3' | 'nurture-j7'
+  language: 'FR' | 'EN'
+  to: string
+  recipientName?: string
+  company?: string
+  resourceLabel?: string
+  anchorAt: string
+  plannedSendAt: string
+  status: 'scheduled' | 'pending'
+}
+type ScheduledData = {
+  generatedAt: string
+  live: { nurture: boolean; nps: boolean }
+  caps: { nurture: number; nps: number }
+  counts: { total: number; scheduled: number; pending: number }
+  upcoming: ScheduledEmail[]
+}
+
+const SCHED_LABEL: Record<string, string> = {
+  'nps-ask': 'J+1 — NPS',
+  'nurture-j3': 'J+3 — Ressources',
+  'nurture-j7': 'J+7 — Offre',
+}
+
+const fmtSchedDate = (iso: string) =>
+  new Date(iso).toLocaleString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+
+const relSchedDay = (iso: string) => {
+  const days = Math.round((Date.parse(iso) - Date.now()) / 86_400_000)
+  if (days <= 0) return "aujourd'hui"
+  if (days === 1) return 'demain'
+  return `dans ${days} j`
+}
+
+function ScheduledEmailsView({ password }: { password: string }) {
+  const [data, setData] = useState<ScheduledData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const { sort, toggle } = useSort({ key: 'planned', dir: 'asc' })
+  const [nameQuery, setNameQuery] = useState('')
+  const [tplFilter, setTplFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  useEffect(() => {
+    fetch('/.netlify/functions/admin-scheduled-emails', { headers: { Authorization: `Bearer ${password}` } })
+      .then(async r => {
+        if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`)
+        return r.json()
+      })
+      .then(setData)
+      .catch(err => setError(String(err)))
+      .finally(() => setLoading(false))
+  }, [password])
+
+  if (loading) return <div style={{ padding: '3rem', color: '#666' }}>Chargement…</div>
+  if (!data) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error || 'indisponible'}</div>
+
+  const thStyle: React.CSSProperties = {
+    textAlign: 'left', padding: '0.5rem 0.75rem', fontSize: '0.65rem', fontWeight: 600,
+    color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #eee',
+  }
+  const tdStyle: React.CSSProperties = { padding: '0.55rem 0.75rem', fontSize: '0.8rem', color: '#333', borderBottom: '1px solid #f3f3f3', verticalAlign: 'top' }
+  const cardStyle: React.CSSProperties = {
+    flex: '1 1 150px', padding: '0.9rem 1.1rem', border: '1px solid #eee',
+    borderRadius: '10px', background: '#fff', minWidth: '150px',
+  }
+
+  const q = nameQuery.trim().toLowerCase()
+  const filtered = data.upcoming.filter(u => {
+    if (tplFilter !== 'all' && u.templateKey !== tplFilter) return false
+    if (statusFilter !== 'all' && u.status !== statusFilter) return false
+    if (q && !`${u.recipientName || ''} ${u.to} ${u.company || ''}`.toLowerCase().includes(q)) return false
+    return true
+  })
+  const rows = sortRows(filtered, sort, {
+    planned: u => u.plannedSendAt,
+    recipient: u => (u.recipientName || u.to).toLowerCase(),
+    template: u => SCHED_LABEL[u.templateKey] || u.templateKey,
+    status: u => u.status,
+  })
+
+  // Dry-run = l'email part vers le owner, pas vers le contact → à signaler.
+  const dryWarn: string[] = []
+  if (!data.live.nurture) dryWarn.push('nurture J+3/J+7')
+  if (!data.live.nps) dryWarn.push('NPS J+1')
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <div style={cardStyle}>
+          <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#111' }}>{data.counts.total}</div>
+          <div style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em' }}>À venir</div>
+        </div>
+        <div style={cardStyle}>
+          <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#b45309' }}>{data.counts.pending}</div>
+          <div style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em' }}>En attente (prochain run)</div>
+        </div>
+        <div style={cardStyle}>
+          <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#111' }}>{data.counts.scheduled}</div>
+          <div style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Programmés (futur)</div>
+        </div>
+        <div style={cardStyle}>
+          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#111' }}>{data.caps.nurture} / {data.caps.nps}</div>
+          <div style={{ fontSize: '0.65rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Plafond/jour nurture / NPS</div>
+        </div>
+      </div>
+
+      {dryWarn.length > 0 && (
+        <div style={{ padding: '0.7rem 1rem', marginBottom: '1rem', borderRadius: '10px', background: '#fef3c7', border: '1px solid #fde68a', color: '#92400e', fontSize: '0.78rem' }}>
+          ⚠️ Mode DRY-RUN actif pour {dryWarn.join(' et ')} : ces emails partent vers le owner (pas le contact réel) tant que le flag live n'est pas activé.
+        </div>
+      )}
+
+      {data.upcoming.length === 0 ? (
+        <div style={{ padding: '2rem', border: '1px dashed #e0e0e0', borderRadius: '10px', color: '#888', fontSize: '0.85rem' }}>
+          Aucun email programmé à venir. Les emails apparaissent ici dès qu'un contact a téléchargé une ressource et entre dans une fenêtre d'envoi (J+1, J+3, J+7).
+        </div>
+      ) : (
+        <div style={{ border: '1px solid #eee', borderRadius: '10px', overflow: 'hidden', background: '#fff' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <Th label="Envoi prévu" thStyle={thStyle} sortKey="planned" sort={sort} onSort={toggle} />
+                <Th
+                  label="Destinataire" thStyle={thStyle} sortKey="recipient" sort={sort} onSort={toggle}
+                  filterActive={!!q}
+                  filter={<FilterSearch value={nameQuery} onChange={setNameQuery} placeholder="Nom, email, société…" />}
+                />
+                <Th
+                  label="Email" thStyle={thStyle} sortKey="template" sort={sort} onSort={toggle}
+                  filterActive={tplFilter !== 'all'}
+                  filter={<FilterChoices value={tplFilter} onChange={setTplFilter} options={[
+                    { value: 'all', label: 'Tous' },
+                    { value: 'nps-ask', label: 'J+1 — NPS' },
+                    { value: 'nurture-j3', label: 'J+3 — Ressources' },
+                    { value: 'nurture-j7', label: 'J+7 — Offre' },
+                  ]} />}
+                />
+                <th style={thStyle}>Ressource</th>
+                <Th
+                  label="Statut" thStyle={thStyle} sortKey="status" sort={sort} onSort={toggle}
+                  filterActive={statusFilter !== 'all'}
+                  filter={<FilterChoices value={statusFilter} onChange={setStatusFilter} options={[
+                    { value: 'all', label: 'Tous' },
+                    { value: 'pending', label: 'En attente (dû)' },
+                    { value: 'scheduled', label: 'Programmé (futur)' },
+                  ]} />}
+                />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(u => (
+                <tr key={u.id}>
+                  <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
+                    {fmtSchedDate(u.plannedSendAt)}
+                    <span style={{ color: '#bbb', fontSize: '0.72rem' }}> · {relSchedDay(u.plannedSendAt)}</span>
+                  </td>
+                  <td style={tdStyle}>
+                    <div style={{ fontWeight: u.recipientName ? 600 : 400 }}>{u.recipientName || u.to}</div>
+                    {u.recipientName && <div style={{ fontSize: '0.72rem', color: '#999' }}>{u.to}</div>}
+                    {u.company && <div style={{ fontSize: '0.72rem', color: '#999' }}>{u.company}</div>}
+                  </td>
+                  <td style={tdStyle}>
+                    {SCHED_LABEL[u.templateKey] || u.templateKey}
+                    <span style={{ color: '#bbb', fontSize: '0.72rem' }}> · {u.language}</span>
+                  </td>
+                  <td style={{ ...tdStyle, color: '#666' }}>{u.resourceLabel || '—'}</td>
+                  <td style={tdStyle}>
+                    {u.status === 'pending'
+                      ? <span style={{ color: '#b45309', fontWeight: 600 }}>⏳ En attente</span>
+                      : <span style={{ color: '#2563eb', fontWeight: 600 }}>📅 Programmé</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p style={{ fontSize: '0.7rem', color: '#999', margin: '0.75rem 0 0' }}>
+        Dates théoriques au plus tôt (prochain run du cron : nurture 9h30 UTC, NPS 10h UTC).
+        « En attente » = déjà dans la fenêtre d'envoi, partira au prochain run si le plafond Resend du jour le permet — sinon +24h.
+        Généré le {new Date(data.generatedAt).toLocaleString('fr-FR')}.
+      </p>
+    </div>
+  )
+}
+
 /** Zero-dependency rich text editor on contentEditable + execCommand.
  *  Uncontrolled by design: the DOM is initialized once per `key` remount
  *  (feeding state back on every keystroke would reset the cursor). */
@@ -4620,7 +4810,7 @@ function EmailRichEditor({ initialHtml, onChange }: { initialHtml: string; onCha
 function EmailTemplatesView({ password }: { password: string }) {
   const [templates, setTemplates] = useState<EmailTemplatesData | null>(null)
   const [defaults, setDefaults] = useState<EmailTemplatesData | null>(null)
-  const [subTab, setSubTab] = useState<'templates' | 'stats'>('templates')
+  const [subTab, setSubTab] = useState<'templates' | 'stats' | 'scheduled'>('templates')
   const [activeKey, setActiveKey] = useState<EmailTemplateKey>('resource-delivery')
   const [activeLang, setActiveLang] = useState<'FR' | 'EN'>('FR')
   const [editorMode, setEditorMode] = useState<'rich' | 'html'>('rich')
@@ -4725,23 +4915,34 @@ function EmailTemplatesView({ password }: { password: string }) {
         <div style={{ display: 'flex', gap: '0.35rem' }}>
           <button onClick={() => setSubTab('templates')} style={pillStyle(subTab === 'templates')}>✏️ Templates</button>
           <button onClick={() => setSubTab('stats')} style={pillStyle(subTab === 'stats')}>📊 Statistiques</button>
+          <button onClick={() => setSubTab('scheduled')} style={pillStyle(subTab === 'scheduled')}>📅 Programmés</button>
         </div>
       </div>
       <p style={{ fontSize: '0.75rem', color: '#999', margin: '0.25rem 0 0' }}>
         {subTab === 'stats'
           ? 'Ouvertures et clics des emails envoyés (livraison + séquence nurture). Cliquez sur une ligne pour le détail par lien.'
-          : <>Templates de la séquence nurture (cron quotidien 9h30 UTC). Modifications prises en compte au prochain envoi, sans redéploiement.
-            {templates?.updatedAt && ` · Dernière sauvegarde : ${new Date(templates.updatedAt).toLocaleString('fr-FR')}`}</>}
+          : subTab === 'scheduled'
+            ? 'Emails programmés à venir (J+1 NPS, J+3, J+7) calculés depuis les téléchargements du CRM. Les dates sont théoriques : si le plafond Resend du jour est atteint, l’envoi glisse de 24h.'
+            : <>Templates de la séquence nurture (cron quotidien 9h30 UTC). Modifications prises en compte au prochain envoi, sans redéploiement.
+              {templates?.updatedAt && ` · Dernière sauvegarde : ${new Date(templates.updatedAt).toLocaleString('fr-FR')}`}</>}
       </p>
     </div>
   )
 
-  // Stats don't depend on the templates fetch — render even if it failed.
+  // Stats / Programmés don't depend on the templates fetch — render even if it failed.
   if (subTab === 'stats') {
     return (
       <div style={{ padding: '2rem 3rem', maxWidth: '1200px' }}>
         {header}
         <EmailStatsView password={password} />
+      </div>
+    )
+  }
+  if (subTab === 'scheduled') {
+    return (
+      <div style={{ padding: '2rem 3rem', maxWidth: '1200px' }}>
+        {header}
+        <ScheduledEmailsView password={password} />
       </div>
     )
   }
