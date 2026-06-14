@@ -1,4 +1,5 @@
 import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useSort, sortRows, Th, FilterSearch, FilterChoices } from './adminTable'
 
 const REPO = 'clempok/clempo.fr'
 const FILE_PATH = 'public/content.json'
@@ -617,6 +618,11 @@ function AnalyticsView({ password }: { password: string }) {
   const [liValue, setLiValue] = useState('')
   const [liStatus, setLiStatus] = useState<{ ok: boolean; msg: string } | null>(null)
   const [liSaving, setLiSaving] = useState(false)
+  const { sort: evSort, toggle: evToggle } = useSort()
+  const [evTypeFilter, setEvTypeFilter] = useState('all')
+  const [evStatusFilter, setEvStatusFilter] = useState('all')
+  const [evNameQuery, setEvNameQuery] = useState('')
+  const [evEmailQuery, setEvEmailQuery] = useState('')
 
   const saveManualImpressions = useCallback(async (periodKey: string, valueRaw: string) => {
     const trimmed = valueRaw.trim()
@@ -863,6 +869,24 @@ function AnalyticsView({ password }: { password: string }) {
   if (!data || !stats) return null
 
   const maxVisits = Math.max(1, ...stats.visitsByDay.map(v => v.count))
+
+  // Table « Derniers contacts » — filtres de colonnes + tri (cap à 100 lignes après filtrage)
+  const evNameQ = evNameQuery.trim().toLowerCase()
+  const evEmailQ = evEmailQuery.trim().toLowerCase()
+  const filteredEvents = data.events.filter(ev => {
+    if (evTypeFilter !== 'all' && ev.type !== evTypeFilter) return false
+    if (evStatusFilter !== 'all' && (ev.bookingStatus || 'none') !== evStatusFilter) return false
+    if (evNameQ && ![ev.firstName, ev.lastName].filter(Boolean).join(' ').toLowerCase().includes(evNameQ)) return false
+    if (evEmailQ && !(ev.email || '').toLowerCase().includes(evEmailQ)) return false
+    return true
+  })
+  const sortedEvents = sortRows(filteredEvents, evSort, {
+    type: ev => ev.type,
+    status: ev => ev.bookingStatus || '',
+    date: ev => ev.ts,
+    name: ev => [ev.firstName, ev.lastName].filter(Boolean).join(' ').toLowerCase(),
+    email: ev => (ev.email || '').toLowerCase(),
+  }).slice(0, 100)
 
   return (
     <div style={{ padding: '2rem 3rem', maxWidth: '1100px' }}>
@@ -1210,16 +1234,43 @@ function AnalyticsView({ password }: { password: string }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
             <thead>
               <tr style={{ background: '#fafafa', borderBottom: '1px solid #eee' }}>
-                <th style={thStyle}>Type</th>
-                <th style={thStyle}>Statut</th>
-                <th style={thStyle}>Date</th>
-                <th style={thStyle}>Nom</th>
-                <th style={thStyle}>Email</th>
+                <Th
+                  label="Type" thStyle={thStyle} sortKey="type" sort={evSort} onSort={evToggle}
+                  filterActive={evTypeFilter !== 'all'}
+                  filter={<FilterChoices value={evTypeFilter} onChange={setEvTypeFilter} options={[
+                    { value: 'all', label: 'Tous' },
+                    { value: 'booking', label: 'RDV' },
+                    { value: 'journalistes', label: 'Lead journaliste' },
+                    { value: 'data-download', label: 'Data' },
+                    { value: 'brochure', label: 'Brochure' },
+                  ]} />}
+                />
+                <Th
+                  label="Statut" thStyle={thStyle} sortKey="status" sort={evSort} onSort={evToggle}
+                  filterActive={evStatusFilter !== 'all'}
+                  filter={<FilterChoices value={evStatusFilter} onChange={setEvStatusFilter} options={[
+                    { value: 'all', label: 'Tous' },
+                    { value: 'success', label: '✓ OK' },
+                    { value: 'failed', label: '✗ Échec' },
+                    { value: 'pending', label: '⋯ En cours' },
+                  ]} />}
+                />
+                <Th label="Date" thStyle={thStyle} sortKey="date" sort={evSort} onSort={evToggle} />
+                <Th
+                  label="Nom" thStyle={thStyle} sortKey="name" sort={evSort} onSort={evToggle}
+                  filterActive={!!evNameQ}
+                  filter={<FilterSearch value={evNameQuery} onChange={setEvNameQuery} placeholder="Nom…" />}
+                />
+                <Th
+                  label="Email" thStyle={thStyle} sortKey="email" sort={evSort} onSort={evToggle}
+                  filterActive={!!evEmailQ}
+                  filter={<FilterSearch value={evEmailQuery} onChange={setEvEmailQuery} placeholder="Email…" />}
+                />
                 <th style={thStyle}>Détails</th>
               </tr>
             </thead>
             <tbody>
-              {data.events.slice(0, 100).map(ev => {
+              {sortedEvents.map(ev => {
                 const status = ev.bookingStatus
                 const statusColor =
                   status === 'success' ? { bg: '#dcfce7', fg: '#166534' }
@@ -1548,6 +1599,9 @@ function SeoView({ password }: { password: string }) {
   const [newVolume, setNewVolume] = useState('')
   const [checking, setChecking] = useState(false)
   const [checkResult, setCheckResult] = useState('')
+  const { sort, toggle } = useSort()
+  const [kwQuery, setKwQuery] = useState('')
+  const [targetQuery, setTargetQuery] = useState('')
 
   const refresh = useCallback(() => {
     setLoading(true)
@@ -1613,13 +1667,30 @@ function SeoView({ password }: { password: string }) {
 
   const keywords = data.keywords || []
 
-  // Sort: best position first, then alphabetical
-  const sorted = [...keywords].sort((a, b) => {
+  const kwQ = kwQuery.trim().toLowerCase()
+  const targetQ = targetQuery.trim().toLowerCase()
+  const filteredKeywords = keywords.filter(k => {
+    if (kwQ && !k.keyword.toLowerCase().includes(kwQ)) return false
+    if (targetQ && !k.targetPage.toLowerCase().includes(targetQ)) return false
+    return true
+  })
+
+  // Tri par défaut : meilleure position d'abord, puis alphabétique.
+  const defaultSorted = [...filteredKeywords].sort((a, b) => {
     const aPos = a.history.length ? (a.history[a.history.length - 1].position ?? 999) : 999
     const bPos = b.history.length ? (b.history[b.history.length - 1].position ?? 999) : 999
     if (aPos !== bPos) return aPos - bPos
     return a.keyword.localeCompare(b.keyword)
   })
+  // Tri par colonne s'il est actif, sinon le tri par défaut.
+  const sorted = sort.key
+    ? sortRows(filteredKeywords, sort, {
+        keyword: k => k.keyword.toLowerCase(),
+        position: k => (k.history.length ? k.history[k.history.length - 1].position : null),
+        volume: k => k.volume,
+        target: k => k.targetPage.toLowerCase(),
+      })
+    : defaultSorted
 
   // Stats
   const tracked = keywords.length
@@ -1774,11 +1845,19 @@ function SeoView({ password }: { password: string }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #eee' }}>
-                <th style={thStyle}>Mot-clé</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Position</th>
+                <Th
+                  label="Mot-clé" thStyle={thStyle} sortKey="keyword" sort={sort} onSort={toggle}
+                  filterActive={!!kwQ}
+                  filter={<FilterSearch value={kwQuery} onChange={setKwQuery} placeholder="Mot-clé…" />}
+                />
+                <Th label="Position" thStyle={thStyle} align="center" sortKey="position" sort={sort} onSort={toggle} />
                 <th style={{ ...thStyle, textAlign: 'center' }}>Tendance</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Volume</th>
-                <th style={thStyle}>Page cible</th>
+                <Th label="Volume" thStyle={thStyle} align="center" sortKey="volume" sort={sort} onSort={toggle} />
+                <Th
+                  label="Page cible" thStyle={thStyle} sortKey="target" sort={sort} onSort={toggle}
+                  filterActive={!!targetQ}
+                  filter={<FilterSearch value={targetQuery} onChange={setTargetQuery} placeholder="/page…" />}
+                />
                 <th style={{ ...thStyle, textAlign: 'center' }}>Historique (8 sem.)</th>
                 <th style={{ ...thStyle, width: '40px' }}></th>
               </tr>
@@ -3214,6 +3293,8 @@ function NpsView({ password }: { password: string }) {
   const [error, setError] = useState('')
   const [resourceFilter, setResourceFilter] = useState<string>('all')
   const [scoreFilter, setScoreFilter] = useState<'all' | 'promoters' | 'passives' | 'detractors'>('all')
+  const { sort: npsSort, toggle: npsToggle } = useSort()
+  const [npsLabelQuery, setNpsLabelQuery] = useState('')
   const [backlogDays, setBacklogDays] = useState(15)
   const [backlogState, setBacklogState] = useState<'idle' | 'previewing' | 'preview-ready' | 'sending' | 'done' | 'err'>('idle')
   const [backlogPreview, setBacklogPreview] = useState<{ count: number; dryRun: boolean; eligibles: Array<{ contactId: string; email: string; fullName: string; resourceLabel: string; downloadedAt: string; hasExistingEntry: boolean; kind: 'fresh' | 'test-resend' }> } | null>(null)
@@ -3373,6 +3454,21 @@ function NpsView({ password }: { password: string }) {
 
   if (loading && !companies) return <div style={{ padding: '3rem' }}>Chargement…</div>
   if (error && !companies) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error}</div>
+
+  const npsLabelQ = npsLabelQuery.trim().toLowerCase()
+  const perResourceFiltered = npsLabelQ
+    ? perResource.filter(r => r.label.toLowerCase().includes(npsLabelQ))
+    : perResource
+  const perResourceView = npsSort.key
+    ? sortRows(perResourceFiltered, npsSort, {
+        label: r => r.label.toLowerCase(),
+        nps: r => r.nps,
+        scored: r => r.scored,
+        sent: r => r.sent,
+        rate: r => r.rate,
+        comments: r => r.comments,
+      })
+    : perResourceFiltered
 
   const formatPct = (n: number | null, digits = 0) => n === null ? '—' : `${(n * 100).toFixed(digits)}%`
   const formatNps = (n: number | null) => n === null ? '—' : (n > 0 ? `+${n}` : `${n}`)
@@ -3590,17 +3686,21 @@ function NpsView({ password }: { password: string }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
             <thead style={{ background: '#fafafa', textAlign: 'left' }}>
               <tr>
-                <th style={npsThStyle}>Contenu</th>
-                <th style={{ ...npsThStyle, textAlign: 'right' }}>NPS</th>
-                <th style={{ ...npsThStyle, textAlign: 'right' }}>Notes</th>
-                <th style={{ ...npsThStyle, textAlign: 'right' }}>Envoyés</th>
-                <th style={{ ...npsThStyle, textAlign: 'right' }}>Taux réponse</th>
+                <Th
+                  label="Contenu" thStyle={npsThStyle} sortKey="label" sort={npsSort} onSort={npsToggle}
+                  filterActive={!!npsLabelQ}
+                  filter={<FilterSearch value={npsLabelQuery} onChange={setNpsLabelQuery} placeholder="Contenu…" />}
+                />
+                <Th label="NPS" thStyle={npsThStyle} align="right" sortKey="nps" sort={npsSort} onSort={npsToggle} />
+                <Th label="Notes" thStyle={npsThStyle} align="right" sortKey="scored" sort={npsSort} onSort={npsToggle} />
+                <Th label="Envoyés" thStyle={npsThStyle} align="right" sortKey="sent" sort={npsSort} onSort={npsToggle} />
+                <Th label="Taux réponse" thStyle={npsThStyle} align="right" sortKey="rate" sort={npsSort} onSort={npsToggle} />
                 <th style={{ ...npsThStyle, textAlign: 'right' }}>Prom. / Pass. / Détr.</th>
-                <th style={{ ...npsThStyle, textAlign: 'right' }}>Comm.</th>
+                <Th label="Comm." thStyle={npsThStyle} align="right" sortKey="comments" sort={npsSort} onSort={npsToggle} />
               </tr>
             </thead>
             <tbody>
-              {perResource.map(row => (
+              {perResourceView.map(row => (
                 <tr key={row.slug} style={{ borderTop: '1px solid #f0f0f0' }}>
                   <td style={npsTdStyle}>{row.label}</td>
                   <td style={{ ...npsTdStyle, textAlign: 'right', fontWeight: 700, color: npsHeadlineColor(row.nps) }}>
@@ -4259,6 +4359,10 @@ function EmailStatsView({ password }: { password: string }) {
   const [error, setError] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [filterKey, setFilterKey] = useState<string>('all')
+  const { sort, toggle } = useSort()
+  const [nameQuery, setNameQuery] = useState('')
+  const [openFilter, setOpenFilter] = useState<'all' | 'yes' | 'no'>('all')
+  const [clickFilter, setClickFilter] = useState<'all' | 'yes' | 'no'>('all')
 
   useEffect(() => {
     fetch('/.netlify/functions/admin-email-stats', { headers: { Authorization: `Bearer ${password}` } })
@@ -4274,7 +4378,23 @@ function EmailStatsView({ password }: { password: string }) {
   if (loading) return <div style={{ padding: '3rem', color: '#666' }}>Chargement…</div>
   if (!data) return <div style={{ padding: '3rem', color: '#dc2626' }}>Erreur : {error || 'stats indisponibles'}</div>
 
-  const sends = filterKey === 'all' ? data.sends : data.sends.filter(s => s.templateKey === filterKey)
+  const q = nameQuery.trim().toLowerCase()
+  const filteredSends = data.sends.filter(s => {
+    if (filterKey !== 'all' && s.templateKey !== filterKey) return false
+    if (q && !`${s.recipientName || ''} ${s.to || ''} ${s.company || ''}`.toLowerCase().includes(q)) return false
+    if (openFilter === 'yes' && !(s.opens > 0)) return false
+    if (openFilter === 'no' && s.opens > 0) return false
+    if (clickFilter === 'yes' && !(s.totalClicks > 0)) return false
+    if (clickFilter === 'no' && s.totalClicks > 0) return false
+    return true
+  })
+  const sends = sortRows(filteredSends, sort, {
+    date: s => s.sentAt,
+    recipient: s => (s.recipientName || s.to || '').toLowerCase(),
+    template: s => EMAIL_TEMPLATE_SHORT[s.templateKey] || s.templateKey,
+    opens: s => s.opens,
+    clicks: s => s.totalClicks,
+  })
 
   const cardStyle: React.CSSProperties = {
     flex: '1 1 180px', padding: '0.9rem 1.1rem', border: '1px solid #eee',
@@ -4323,19 +4443,40 @@ function EmailStatsView({ password }: { password: string }) {
 
       {sends.length === 0 ? (
         <div style={{ padding: '2rem', border: '1px dashed #e0e0e0', borderRadius: '10px', color: '#888', fontSize: '0.85rem' }}>
-          Aucun envoi tracké pour le moment. Le tracking démarre avec les prochains envois réels
-          (les tests admin et les dry-runs ne sont pas comptés).
+          {data.sends.length === 0
+            ? 'Aucun envoi tracké pour le moment. Le tracking démarre avec les prochains envois réels (les tests admin et les dry-runs ne sont pas comptés).'
+            : 'Aucun envoi ne correspond à ces filtres.'}
         </div>
       ) : (
         <div style={{ border: '1px solid #eee', borderRadius: '10px', overflow: 'hidden', background: '#fff' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={thStyle}>Date</th>
-                <th style={thStyle}>Destinataire</th>
-                <th style={thStyle}>Email</th>
-                <th style={thStyle}>Ouvert</th>
-                <th style={thStyle}>Clics</th>
+                <Th label="Date" thStyle={thStyle} sortKey="date" sort={sort} onSort={toggle} />
+                <Th
+                  label="Destinataire" thStyle={thStyle} sortKey="recipient" sort={sort} onSort={toggle}
+                  filterActive={!!q}
+                  filter={<FilterSearch value={nameQuery} onChange={setNameQuery} placeholder="Nom, email, société…" />}
+                />
+                <Th label="Email" thStyle={thStyle} sortKey="template" sort={sort} onSort={toggle} />
+                <Th
+                  label="Ouvert" thStyle={thStyle} sortKey="opens" sort={sort} onSort={toggle}
+                  filterActive={openFilter !== 'all'}
+                  filter={<FilterChoices value={openFilter} onChange={v => setOpenFilter(v as 'all' | 'yes' | 'no')} options={[
+                    { value: 'all', label: 'Tous' },
+                    { value: 'yes', label: 'Ouverts uniquement' },
+                    { value: 'no', label: 'Non ouverts' },
+                  ]} />}
+                />
+                <Th
+                  label="Clics" thStyle={thStyle} sortKey="clicks" sort={sort} onSort={toggle}
+                  filterActive={clickFilter !== 'all'}
+                  filter={<FilterChoices value={clickFilter} onChange={v => setClickFilter(v as 'all' | 'yes' | 'no')} options={[
+                    { value: 'all', label: 'Tous' },
+                    { value: 'yes', label: 'Cliqués uniquement' },
+                    { value: 'no', label: 'Sans clic' },
+                  ]} />}
+                />
               </tr>
             </thead>
             <tbody>
