@@ -4250,13 +4250,14 @@ const newFieldStyle: React.CSSProperties = {
 /* ---------- Emails (nurture templates editor) ---------- */
 
 type EmailTemplate = { subject: string; body: string }
-type EmailTemplateKey = 'resource-delivery' | 'nurture-j3' | 'nurture-j7'
+type EmailTemplateKey = 'resource-delivery' | 'nurture-j3' | 'nurture-j7' | 'appointment-reminder'
 type EmailTemplatesData = Record<EmailTemplateKey, { FR: EmailTemplate; EN: EmailTemplate }> & { updatedAt?: string }
 
 const EMAIL_TEMPLATE_META: { key: EmailTemplateKey; label: string; hint: string }[] = [
   { key: 'resource-delivery', label: 'J0 — Livraison ressource', hint: "Envoyé immédiatement après le téléchargement, avec le(s) lien(s) d'accès direct à la ressource." },
   { key: 'nurture-j3', label: 'J+3 — Autres ressources', hint: "Envoyé 3 jours après le 1er téléchargement. Propose les lead magnets que le contact n'a pas encore pris." },
   { key: 'nurture-j7', label: 'J+7 — Mon offre', hint: 'Envoyé 7 jours après le 1er téléchargement. Présente Advisory / Part-Time CMO / transition + CTA brief.' },
+  { key: 'appointment-reminder', label: 'RDV — Rappel J-1', hint: 'Envoyé la veille de chaque RDV pris sur /booking (cron quotidien 8h UTC). Redonne le lien de réservation pour décaler le créneau si besoin.' },
 ]
 
 const EMAIL_PLACEHOLDERS: { name: string; desc: string }[] = [
@@ -4267,8 +4268,10 @@ const EMAIL_PLACEHOLDERS: { name: string; desc: string }[] = [
   { name: '{{resourcesHtml}}', desc: 'liste <ul> des autres ressources (J+3 uniquement)' },
   { name: '{{resourceLinksHtml}}', desc: "bouton(s) d'accès à la ressource (livraison uniquement)" },
   { name: '{{videoHtml}}', desc: 'miniature cliquable de la vidéo de présentation (→ YouTube)' },
-  { name: '{{bookingUrl}}', desc: 'lien de prise de RDV tracké' },
+  { name: '{{bookingUrl}}', desc: 'lien de prise de RDV tracké (sert aussi à décaler — rappel J-1)' },
   { name: '{{siteUrl}}', desc: 'https://www.clempo.fr' },
+  { name: '{{appointmentDate}}', desc: 'date du RDV en toutes lettres, heure de Paris (rappel J-1)' },
+  { name: '{{appointmentTime}}', desc: 'heure de début du RDV, HH:MM Paris (rappel J-1)' },
 ]
 
 const resourcesListHtml = (items: string[]) =>
@@ -4294,6 +4297,8 @@ const EMAIL_SAMPLE_VARS: Record<'FR' | 'EN', Record<string, string>> = {
     videoHtml: videoSampleHtml('Présentation en vidéo — Clément Pouget-Osmont', 'Regarder la vidéo de présentation'),
     bookingUrl: 'https://www.clempo.fr/booking?src=nurture-j7',
     siteUrl: 'https://www.clempo.fr',
+    appointmentDate: 'lundi 16 juin 2026',
+    appointmentTime: '14:30',
   },
   EN: {
     hello: 'Hi Marie,',
@@ -4309,6 +4314,8 @@ const EMAIL_SAMPLE_VARS: Record<'FR' | 'EN', Record<string, string>> = {
     videoHtml: videoSampleHtml('Video introduction — Clément Pouget-Osmont', 'Watch the intro video'),
     bookingUrl: 'https://www.clempo.fr/booking?src=nurture-j7',
     siteUrl: 'https://www.clempo.fr',
+    appointmentDate: 'Monday 16 June 2026',
+    appointmentTime: '14:30',
   },
 }
 
@@ -4343,6 +4350,7 @@ const EMAIL_TEMPLATE_SHORT: Record<string, string> = {
   'resource-delivery': 'J0 — Livraison',
   'nurture-j3': 'J+3 — Ressources',
   'nurture-j7': 'J+7 — Offre',
+  'appointment-reminder': 'RDV — Rappel J-1',
 }
 
 const fmtEmailDate = (iso: string) =>
@@ -4553,7 +4561,7 @@ function EmailStatsView({ password }: { password: string }) {
 
 type ScheduledEmail = {
   id: string
-  templateKey: 'nps-ask' | 'nurture-j3' | 'nurture-j7'
+  templateKey: 'nps-ask' | 'nurture-j3' | 'nurture-j7' | 'appointment-reminder'
   language: 'FR' | 'EN'
   to: string
   recipientName?: string
@@ -4565,7 +4573,7 @@ type ScheduledEmail = {
 }
 type ScheduledData = {
   generatedAt: string
-  live: { nurture: boolean; nps: boolean }
+  live: { nurture: boolean; nps: boolean; appointment: boolean }
   caps: { nurture: number; nps: number }
   counts: { total: number; scheduled: number; pending: number }
   upcoming: ScheduledEmail[]
@@ -4575,6 +4583,7 @@ const SCHED_LABEL: Record<string, string> = {
   'nps-ask': 'J+1 — NPS',
   'nurture-j3': 'J+3 — Ressources',
   'nurture-j7': 'J+7 — Offre',
+  'appointment-reminder': 'RDV — Rappel J-1',
 }
 
 const fmtSchedDate = (iso: string) =>
@@ -4638,6 +4647,7 @@ function ScheduledEmailsView({ password }: { password: string }) {
   const dryWarn: string[] = []
   if (!data.live.nurture) dryWarn.push('nurture J+3/J+7')
   if (!data.live.nps) dryWarn.push('NPS J+1')
+  if (!data.live.appointment) dryWarn.push('rappel RDV J-1')
 
   return (
     <div>
@@ -4668,7 +4678,7 @@ function ScheduledEmailsView({ password }: { password: string }) {
 
       {data.upcoming.length === 0 ? (
         <div style={{ padding: '2rem', border: '1px dashed #e0e0e0', borderRadius: '10px', color: '#888', fontSize: '0.85rem' }}>
-          Aucun email programmé à venir. Les emails apparaissent ici dès qu'un contact a téléchargé une ressource et entre dans une fenêtre d'envoi (J+1, J+3, J+7).
+          Aucun email programmé à venir. Les emails apparaissent ici dès qu'un contact entre dans une fenêtre d'envoi : J+1, J+3, J+7 après un téléchargement, ou le rappel J-1 d'un RDV à venir.
         </div>
       ) : (
         <div style={{ border: '1px solid #eee', borderRadius: '10px', overflow: 'hidden', background: '#fff' }}>
@@ -4689,6 +4699,7 @@ function ScheduledEmailsView({ password }: { password: string }) {
                     { value: 'nps-ask', label: 'J+1 — NPS' },
                     { value: 'nurture-j3', label: 'J+3 — Ressources' },
                     { value: 'nurture-j7', label: 'J+7 — Offre' },
+                    { value: 'appointment-reminder', label: 'RDV — Rappel J-1' },
                   ]} />}
                 />
                 <th style={thStyle}>Ressource</th>
@@ -4922,7 +4933,7 @@ function EmailTemplatesView({ password }: { password: string }) {
         {subTab === 'stats'
           ? 'Ouvertures et clics des emails envoyés (livraison + séquence nurture). Cliquez sur une ligne pour le détail par lien.'
           : subTab === 'scheduled'
-            ? 'Emails programmés à venir (J+1 NPS, J+3, J+7) calculés depuis les téléchargements du CRM. Les dates sont théoriques : si le plafond Resend du jour est atteint, l’envoi glisse de 24h.'
+            ? 'Emails programmés à venir (J+1 NPS, J+3, J+7 depuis les téléchargements ; rappel J-1 depuis les RDV pris). Les dates sont théoriques : si le plafond Resend du jour est atteint, l’envoi glisse de 24h.'
             : <>Templates de la séquence nurture (cron quotidien 9h30 UTC). Modifications prises en compte au prochain envoi, sans redéploiement.
               {templates?.updatedAt && ` · Dernière sauvegarde : ${new Date(templates.updatedAt).toLocaleString('fr-FR')}`}</>}
       </p>

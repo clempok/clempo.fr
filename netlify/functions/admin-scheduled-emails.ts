@@ -1,5 +1,5 @@
 import type { Handler } from '@netlify/functions'
-import { checkAuth } from './_analytics'
+import { checkAuth, readData } from './_analytics'
 import { readCrm } from './_crm'
 import type { CrmStatus } from './_crm'
 import { buildResourcesHtml, resourceLabelFor } from './_email-templates'
@@ -55,7 +55,7 @@ function nextCronUTC(afterMs: number, h: number, m: number): string {
 export type ScheduledEmail = {
   /** Stable key: contactId + step. */
   id: string
-  templateKey: 'nps-ask' | 'nurture-j3' | 'nurture-j7'
+  templateKey: 'nps-ask' | 'nurture-j3' | 'nurture-j7' | 'appointment-reminder'
   language: 'FR' | 'EN'
   to: string
   recipientName?: string
@@ -82,6 +82,7 @@ const handler: Handler = async (event) => {
     const now = Date.now()
     const nurtureLive = process.env.NURTURE_LIVE === '1'
     const npsLive = process.env.NPS_DRY_RUN !== '1'
+    const appointmentLive = process.env.APPOINTMENT_REMINDER_LIVE === '1'
 
     const upcoming: ScheduledEmail[] = []
 
@@ -171,6 +172,43 @@ const handler: Handler = async (event) => {
       }
     }
 
+    // ── J-1 appointment reminders — projected from booking events (mirrors
+    //    scheduled-appointment-reminders.ts: target = day before, cron 0 8 * * *) ──
+    const pad = (n: number) => n.toString().padStart(2, '0')
+    const todayParis = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
+    try {
+      const analytics = await readData()
+      for (const ev of analytics.events) {
+        if (ev.type !== 'booking' || ev.bookingStatus !== 'success') continue
+        if (!ev.email || !ev.date || ev.hour === undefined || ev.minute === undefined) continue
+        if (ev.date <= todayParis) continue // past or same-day: no J-1 reminder
+        // Already reminded for real (a prior dry-run is re-sent once live flips on).
+        if (ev.reminderSentAt && !(ev.reminderDryRun && appointmentLive)) continue
+
+        // Cron sends at 08:00 UTC the day before the appointment.
+        const dayBefore = new Date(`${ev.date}T12:00:00Z`)
+        dayBefore.setUTCDate(dayBefore.getUTCDate() - 1)
+        const plannedSendAt = `${dayBefore.toISOString().slice(0, 10)}T08:00:00Z`
+        const status: 'scheduled' | 'pending' = Date.parse(plannedSendAt) > now ? 'scheduled' : 'pending'
+        const language: 'FR' | 'EN' = ev.lang === 'en' ? 'EN' : 'FR'
+
+        upcoming.push({
+          id: `booking:${ev.id}:reminder`,
+          templateKey: 'appointment-reminder',
+          language,
+          to: ev.email,
+          recipientName: [ev.firstName, ev.lastName].filter(Boolean).join(' ') || undefined,
+          company: ev.company,
+          resourceLabel: `RDV ${pad(ev.hour)}:${pad(ev.minute)}`,
+          anchorAt: `${ev.date}T${pad(ev.hour)}:${pad(ev.minute)}:00`,
+          plannedSendAt,
+          status,
+        })
+      }
+    } catch (err) {
+      console.error('[admin-scheduled-emails] reminders projection failed:', err)
+    }
+
     upcoming.sort((a, b) => a.plannedSendAt.localeCompare(b.plannedSendAt))
 
     const counts = {
@@ -184,7 +222,7 @@ const handler: Handler = async (event) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         generatedAt: new Date(now).toISOString(),
-        live: { nurture: nurtureLive, nps: npsLive },
+        live: { nurture: nurtureLive, nps: npsLive, appointment: appointmentLive },
         caps: { nurture: envCap('NURTURE_MAX_SENDS', 30), nps: envCap('NPS_MAX_SENDS', 80) },
         counts,
         upcoming,

@@ -21,6 +21,8 @@ import { DECIDEURS_HOSPITALIERS_SHEET_URL } from './_decideurs-hospitaliers'
  *   {{videoHtml}}          — clickable YouTube thumbnail of the intro video
  *   {{bookingUrl}}         — absolute booking URL with src tracking
  *   {{siteUrl}}            — https://www.clempo.fr
+ *   {{appointmentDate}}    — appointment date, long form Paris time (J-1 reminder)
+ *   {{appointmentTime}}    — appointment start time HH:MM Paris (J-1 reminder)
  */
 
 const SITE_URL = 'https://www.clempo.fr'
@@ -40,10 +42,11 @@ export type EmailTemplatesData = {
   'resource-delivery': TemplateLangPair
   'nurture-j3': TemplateLangPair
   'nurture-j7': TemplateLangPair
+  'appointment-reminder': TemplateLangPair
   updatedAt?: string
 }
 
-export const TEMPLATE_KEYS = ['resource-delivery', 'nurture-j3', 'nurture-j7'] as const
+export const TEMPLATE_KEYS = ['resource-delivery', 'nurture-j3', 'nurture-j7', 'appointment-reminder'] as const
 export type TemplateKey = (typeof TEMPLATE_KEYS)[number]
 
 export const DEFAULT_TEMPLATES: EmailTemplatesData = {
@@ -113,6 +116,24 @@ export const DEFAULT_TEMPLATES: EmailTemplatesData = {
 {{videoHtml}}
 <p>If a marketing topic is on your mind right now, the simplest step is a free 30-minute brief with no strings attached: <a href="{{bookingUrl}}">book a slot</a>.</p>
 <p>And if now is not the time, no worries — the resources stay free and I keep publishing more.</p>`,
+    },
+  },
+  'appointment-reminder': {
+    FR: {
+      subject: 'Rappel — notre rendez-vous demain à {{appointmentTime}}',
+      body: `<p>{{hello}}</p>
+<p>Petit rappel : nous avons rendez-vous <strong>{{appointmentDate}} à {{appointmentTime}}</strong> (heure de Paris). J'ai hâte d'échanger.</p>
+<p>Le lien de visioconférence se trouve dans l'invitation Google Agenda reçue lors de la réservation.</p>
+<p>Un imprévu ? Vous pouvez choisir un autre créneau en un clic : <a href="{{bookingUrl}}">décaler le rendez-vous</a>.</p>
+<p>À demain,</p>`,
+    },
+    EN: {
+      subject: 'Reminder — our call tomorrow at {{appointmentTime}}',
+      body: `<p>{{hello}}</p>
+<p>A quick reminder: we have a call <strong>{{appointmentDate}} at {{appointmentTime}}</strong> (Paris time). Looking forward to it.</p>
+<p>The video link is in the Google Calendar invitation you received when you booked.</p>
+<p>Something came up? You can pick another slot in one click: <a href="{{bookingUrl}}">reschedule the meeting</a>.</p>
+<p>See you tomorrow,</p>`,
     },
   },
 }
@@ -467,6 +488,81 @@ export async function sendResourceDeliveryEmail(opts: {
       unsubUrl,
       isDryRun: false,
       tracking: { templateKey: 'resource-delivery', language, recipientName: opts.firstName },
+    })
+  } catch (err) {
+    return { ok: false, error: String(err) }
+  }
+}
+
+/* ── Appointment J-1 reminder (cron, day before a booked meeting) ── */
+
+function pad2(n: number): string {
+  return n.toString().padStart(2, '0')
+}
+
+/** Long-form appointment date in Paris time, localized. */
+function formatAppointmentDate(date: string, language: 'FR' | 'EN'): string {
+  const d = new Date(`${date}T12:00:00Z`)
+  return d.toLocaleDateString(language === 'EN' ? 'en-GB' : 'fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Europe/Paris',
+  })
+}
+
+/**
+ * Send the J-1 reminder for a booked meeting, using the editable
+ * "appointment-reminder" template. Transactional (about the recipient's own
+ * meeting) so it is sent regardless of marketing opt-out. Never throws.
+ */
+export async function sendAppointmentReminderEmail(opts: {
+  apiKey: string
+  to: string
+  firstName?: string
+  language?: 'FR' | 'EN'
+  /** YYYY-MM-DD of the appointment (Paris local date the contact picked). */
+  date: string
+  hour: number
+  minute: number
+  isDryRun: boolean
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const language = opts.language === 'EN' ? 'EN' : 'FR'
+    const templates = await readEmailTemplates()
+    const tpl = templates['appointment-reminder'][language]
+
+    const vars: Record<string, string> = {
+      firstName: opts.firstName || '',
+      hello: language === 'EN'
+        ? (opts.firstName ? `Hi ${opts.firstName},` : 'Hi,')
+        : (opts.firstName ? `Bonjour ${opts.firstName},` : 'Bonjour,'),
+      appointmentDate: formatAppointmentDate(opts.date, language),
+      appointmentTime: `${pad2(opts.hour)}:${pad2(opts.minute)}`,
+      bookingUrl: `${SITE_URL}/booking?src=appointment-reminder`,
+      siteUrl: SITE_URL,
+    }
+
+    const subject = renderTemplate(tpl.subject, vars)
+    let unsubUrl = SITE_URL
+    try { unsubUrl = unsubscribeUrl(opts.to) } catch { /* secret not set */ }
+    const html = buildEmailHtml({
+      bodyHtml: renderTemplate(tpl.body, vars),
+      subject,
+      language,
+      unsubUrl,
+      isDryRun: opts.isDryRun,
+      realRecipient: opts.to,
+    })
+    return await sendNurtureEmail({
+      apiKey: opts.apiKey,
+      to: opts.to,
+      subject,
+      html,
+      unsubUrl,
+      isDryRun: opts.isDryRun,
+      tracking: { templateKey: 'appointment-reminder', language, recipientName: opts.firstName },
     })
   } catch (err) {
     return { ok: false, error: String(err) }

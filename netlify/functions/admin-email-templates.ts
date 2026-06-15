@@ -94,6 +94,8 @@ const handler: Handler = async (event) => {
           url: 'https://www.clempo.fr/decideurs-hospitaliers',
         }]),
         videoHtml: buildVideoHtml(language),
+        appointmentDate: language === 'EN' ? 'Monday 16 June 2026' : 'lundi 16 juin 2026',
+        appointmentTime: '14:30',
       }
 
       const subject = renderTemplate(tpl.subject, vars)

@@ -26,6 +26,9 @@ export type LeadEvent = {
   hangoutLink?: string
   notificationSent?: boolean
   notificationError?: string
+  // booking-only — J-1 reminder tracking (scheduled-appointment-reminders.ts)
+  reminderSentAt?: string
+  reminderDryRun?: boolean
 }
 
 export type AnalyticsData = {
