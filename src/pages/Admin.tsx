@@ -378,6 +378,57 @@ function scoreTier(total: number): 'top' | 'good' | 'mid' | 'low' {
   return 'low'
 }
 
+/**
+ * Collapse companies that share the same `id`. These are accidental duplicates:
+ * a company id is derived from the name (lowercased, non-alphanumerics collapsed),
+ * but the backend's dedup-on-create compared raw lowercased names. So a name
+ * variant ("Synapse  Medicine" with a double space, or punctuation differences)
+ * slipped past the name check yet normalized to the same id. The result was
+ * several CrmCompany records sharing one id → duplicate React keys in the list,
+ * which breaks reconciliation so filtered-out rows linger on screen regardless
+ * of the active filters. Merging by id restores unique keys and removes the
+ * phantom rows. (The backend create paths now normalize too, so this is mostly
+ * a safety net for records created before the fix.)
+ */
+function dedupeCompaniesById(companies: CrmCompany[]): CrmCompany[] {
+  const byId = new Map<string, CrmCompany>()
+  for (const co of companies) {
+    const existing = byId.get(co.id)
+    if (!existing) {
+      byId.set(co.id, { ...co, contacts: [...co.contacts], tasks: [...(co.tasks || [])] })
+      continue
+    }
+    // Merge contacts (dedupe by id, then by email)
+    const seenIds = new Set(existing.contacts.map(c => c.id))
+    const seenEmails = new Set(existing.contacts.map(c => c.email.toLowerCase()))
+    for (const c of co.contacts) {
+      if (seenIds.has(c.id) || seenEmails.has(c.email.toLowerCase())) continue
+      seenIds.add(c.id); seenEmails.add(c.email.toLowerCase())
+      existing.contacts.push(c)
+    }
+    // Merge tasks (dedupe by id)
+    if (co.tasks?.length) {
+      if (!existing.tasks) existing.tasks = []
+      const seenTasks = new Set(existing.tasks.map(t => t.id))
+      for (const t of co.tasks) {
+        if (seenTasks.has(t.id)) continue
+        seenTasks.add(t.id)
+        existing.tasks.push(t)
+      }
+    }
+    // Keep the most-advanced status and the richest metadata
+    if (CRM_STATUSES.indexOf(co.status) > CRM_STATUSES.indexOf(existing.status)) existing.status = co.status
+    if ((co.statusHistory?.length || 0) > (existing.statusHistory?.length || 0)) existing.statusHistory = co.statusHistory
+    if (co.updatedAt > existing.updatedAt) existing.updatedAt = co.updatedAt
+    if (co.notionPageId && !existing.notionPageId) existing.notionPageId = co.notionPageId
+    if (co.notes && !existing.notes) existing.notes = co.notes
+    if (co.size && !existing.size) existing.size = co.size
+    if (co.location && !existing.location) existing.location = co.location
+    if (co.sector && !existing.sector) existing.sector = co.sector
+  }
+  return [...byId.values()]
+}
+
 const SCORE_TIER_COLORS: Record<'top' | 'good' | 'mid' | 'low', { bg: string; fg: string; label: string }> = {
   top: { bg: '#d1fae5', fg: '#065f46', label: 'Top' },
   good: { bg: '#dbeafe', fg: '#1e40af', label: 'Bon' },
@@ -669,7 +720,7 @@ function AnalyticsView({ password }: { password: string }) {
     ])
       .then(([analytics, crm]) => {
         setData(analytics)
-        setCrmCompanies(crm.companies || [])
+        setCrmCompanies(dedupeCompaniesById(crm.companies || []))
         setLoading(false)
       })
       .catch(err => { setError(String(err)); setLoading(false) })
@@ -2006,7 +2057,7 @@ function CrmView({ password }: { password: string }) {
       const body = await res.text()
       if (!res.ok) throw new Error(`${res.status}: ${body}`)
       const json = JSON.parse(body)
-      setCompanies(json.companies)
+      setCompanies(dedupeCompaniesById(json.companies || []))
     } catch (err) {
       setError(String(err))
     } finally {
@@ -3314,7 +3365,7 @@ function NpsView({ password }: { password: string }) {
       const body = await res.text()
       if (!res.ok) throw new Error(`${res.status}: ${body}`)
       const json = JSON.parse(body)
-      setCompanies(json.companies)
+      setCompanies(dedupeCompaniesById(json.companies || []))
     } catch (err) {
       setError(String(err))
     } finally {
@@ -3887,7 +3938,7 @@ function ContentView({ password }: { password: string }) {
       const body = await res.text()
       if (!res.ok) throw new Error(`${res.status}: ${body}`)
       const json = JSON.parse(body)
-      setCompanies(json.companies)
+      setCompanies(dedupeCompaniesById(json.companies || []))
     } catch (err) {
       setError(String(err))
     } finally {

@@ -88,13 +88,16 @@ const handler: Handler = async (event) => {
           return { statusCode: 400, body: JSON.stringify({ error: 'Company name required' }) }
         }
         const name = fields.name.trim()
-        if (data.companies.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+        const companyId = 'co-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+        // Compare on the normalized id (not just the raw name) so whitespace /
+        // punctuation variants can't create a duplicate that collides on id.
+        if (data.companies.some(c => c.id === companyId || c.name.toLowerCase() === name.toLowerCase())) {
           return { statusCode: 409, body: JSON.stringify({ error: 'Company already exists' }) }
         }
         const now = new Date().toISOString()
         const initialStatus = (fields.status as CrmStatus) || 'Non qualifié'
         const company: CrmCompany = {
-          id: 'co-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+          id: companyId,
           name,
           status: initialStatus,
           contacts: [],

@@ -625,14 +625,20 @@ export async function upsertContact(
       const companyName = (input.company || '').trim()
       const status = forceStatus || input.status || 'Non qualifié'
 
+      const name = companyName || [input.firstName, input.lastName].filter(Boolean).join(' ') || email
+      const companyId = makeCompanyId(name)
+
+      // Match on the normalized id as well as the raw name, so name variants
+      // (extra whitespace, punctuation) reuse the existing company instead of
+      // creating a duplicate that collides on id.
       let company = companyName
         ? data.companies.find(co => co.name.toLowerCase() === companyName.toLowerCase())
         : undefined
+      if (!company) company = data.companies.find(co => co.id === companyId)
 
       if (!company) {
-        const name = companyName || [input.firstName, input.lastName].filter(Boolean).join(' ') || email
         company = {
-          id: makeCompanyId(name),
+          id: companyId,
           name,
           status,
           notes: '',
