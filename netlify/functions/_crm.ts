@@ -481,6 +481,105 @@ function mergeLemcalInto(data: CrmData): void {
   }
 }
 
+/** Merge the send/engagement state of a duplicate contact into the kept one.
+ *  Used when collapsing same-email contacts so a half-sent duplicate can never
+ *  resurrect a sequence: if ANY copy already received a step (for real), the
+ *  merged contact carries that flag and the crons skip it. */
+function mergeContactState(target: CrmContact, dup: CrmContact): void {
+  // Nurture: keep any real (non-dry-run) send timestamp from either copy.
+  const tn = target.nurture || {}
+  const dn = dup.nurture || {}
+  const pickSent = (
+    aAt?: string, aDry?: boolean, bAt?: string, bDry?: boolean,
+  ): { at?: string; dry?: boolean } => {
+    const aReal = aAt && !aDry
+    const bReal = bAt && !bDry
+    if (aReal) return { at: aAt, dry: false }
+    if (bReal) return { at: bAt, dry: false }
+    if (aAt) return { at: aAt, dry: aDry }
+    if (bAt) return { at: bAt, dry: bDry }
+    return {}
+  }
+  const s3 = pickSent(tn.step3SentAt, tn.step3DryRun, dn.step3SentAt, dn.step3DryRun)
+  const s7 = pickSent(tn.step7SentAt, tn.step7DryRun, dn.step7SentAt, dn.step7DryRun)
+  if (s3.at || s7.at) {
+    target.nurture = {
+      ...(s3.at ? { step3SentAt: s3.at, step3DryRun: s3.dry } : {}),
+      ...(s7.at ? { step7SentAt: s7.at, step7DryRun: s7.dry } : {}),
+    }
+  }
+  // NPS responses: union by resource, keeping whichever copy was already asked/scored.
+  if (dup.npsResponses?.length) {
+    if (!target.npsResponses) target.npsResponses = []
+    for (const r of dup.npsResponses) {
+      const existing = target.npsResponses.find(e => e.resource === r.resource)
+      if (!existing) { target.npsResponses.push(r); continue }
+      if (!existing.askedAt && r.askedAt) Object.assign(existing, r)
+      else if (existing.score === undefined && r.score !== undefined) Object.assign(existing, r)
+    }
+  }
+  // Opt-out is sticky: if either copy unsubscribed, the merged contact stays out.
+  if (dup.emailOptOut && !target.emailOptOut) target.emailOptOut = dup.emailOptOut
+  // Keep the richer metadata / most-recent activity.
+  if (dup.visits?.length && (dup.visits.length > (target.visits?.length || 0))) target.visits = dup.visits
+  if (dup.linkedIn && !target.linkedIn) target.linkedIn = dup.linkedIn
+  if (dup.jobTitle && !target.jobTitle) target.jobTitle = dup.jobTitle
+  if (dup.updatedAt > target.updatedAt) target.updatedAt = dup.updatedAt
+}
+
+/**
+ * Collapse companies that share the same normalized `id`, and same-email
+ * contacts within them. Company ids are derived from the name, but older
+ * create paths deduped on the raw name, so name variants (extra whitespace,
+ * punctuation) slipped past and produced several CrmCompany records sharing
+ * one id. The admin UI already merges these for display (dedupeCompaniesById),
+ * but the stored blob kept the duplicates — so the daily crons, which read the
+ * raw blob, iterated every copy and emailed each contact once PER duplicate.
+ * This is the server-side equivalent that actually cleans the data for every
+ * consumer (crons, Notion sync, funnel). Mutates `data` in place; returns the
+ * number of duplicate company records that were collapsed (0 = nothing to do).
+ */
+export function dedupeCrmData(data: CrmData): number {
+  const byId = new Map<string, CrmCompany>()
+  let collapsed = 0
+  for (const co of data.companies) {
+    const existing = byId.get(co.id)
+    if (!existing) {
+      byId.set(co.id, co)
+      continue
+    }
+    collapsed += 1
+    // Merge contacts by id, then by email — merging send-state on collision.
+    const byEmail = new Map<string, CrmContact>()
+    for (const c of existing.contacts) byEmail.set(c.email.toLowerCase(), c)
+    for (const c of co.contacts) {
+      const key = c.email.toLowerCase()
+      const kept = byEmail.get(key)
+      if (!kept) { existing.contacts.push(c); byEmail.set(key, c) }
+      else mergeContactState(kept, c)
+    }
+    if (co.tasks?.length) {
+      if (!existing.tasks) existing.tasks = []
+      const seenTasks = new Set(existing.tasks.map(t => t.id))
+      for (const t of co.tasks) {
+        if (seenTasks.has(t.id)) continue
+        seenTasks.add(t.id)
+        existing.tasks.push(t)
+      }
+    }
+    if (STATUS_PRIORITY[co.status] > STATUS_PRIORITY[existing.status]) existing.status = co.status
+    if ((co.statusHistory?.length || 0) > (existing.statusHistory?.length || 0)) existing.statusHistory = co.statusHistory
+    if (co.updatedAt > existing.updatedAt) existing.updatedAt = co.updatedAt
+    if (co.notionPageId && !existing.notionPageId) existing.notionPageId = co.notionPageId
+    if (co.notes && !existing.notes) existing.notes = co.notes
+    if (co.size && !existing.size) existing.size = co.size
+    if (co.location && !existing.location) existing.location = co.location
+    if (co.sector && !existing.sector) existing.sector = co.sector
+  }
+  if (collapsed > 0) data.companies = [...byId.values()]
+  return collapsed
+}
+
 export async function readCrm(): Promise<CrmData> {
   const store = getCrmStore()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -513,8 +612,17 @@ export async function readCrm(): Promise<CrmData> {
   }
 
   const data = raw as CrmData
-  // Backfill tasks array + statusHistory for companies that predate these features
+  // Collapse duplicate company records (colliding normalized ids) before any
+  // consumer reads them. Left behind by older create paths; the crons would
+  // otherwise email each contact once per duplicate. Idempotent: a no-op once
+  // the blob is clean.
   let needsWrite = false
+  const collapsed = dedupeCrmData(data)
+  if (collapsed > 0) {
+    needsWrite = true
+    console.log(`[readCrm] collapsed ${collapsed} duplicate company record(s)`)
+  }
+  // Backfill tasks array + statusHistory for companies that predate these features
   for (const co of data.companies) {
     if (!co.tasks) {
       co.tasks = []

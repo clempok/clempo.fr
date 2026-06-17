@@ -50,11 +50,27 @@ export default async () => {
     const data = await readCrm()
     const now = Date.now()
 
+    // Email-level dedup guard: a contact duplicated across records (same email)
+    // would otherwise be asked once per copy for the same resource. Seed from
+    // entries already asked, then mark as we send. Keyed on email+resource.
+    const askedByEmailResource = new Set<string>()
+    for (const co of data.companies) {
+      for (const c of co.contacts) {
+        const e = c.email?.toLowerCase()
+        if (!e || !c.npsResponses) continue
+        for (const r of c.npsResponses) {
+          if (r.askedAt && !r.askedDryRun) askedByEmailResource.add(`${e}|${r.resource}`)
+        }
+      }
+    }
+
     outer: for (const co of data.companies) {
       for (const contact of co.contacts) {
         if (!contact.npsResponses || contact.npsResponses.length === 0) continue
+        const emailKey = contact.email?.toLowerCase() || ''
         for (const np of contact.npsResponses) {
           if (np.askedAt) continue
+          if (emailKey && askedByEmailResource.has(`${emailKey}|${np.resource}`)) { skipped += 1; continue }
           // Defensive dedup: if a sibling entry for the same resource has
           // already been asked or scored (e.g. legacy duplicates from before
           // addPendingNps dedup was added), do not email again. The backlog
@@ -87,6 +103,7 @@ export default async () => {
           co.updatedAt = np.askedAt!
           dirty = true
           sent += 1
+          if (emailKey && !isDryRun) askedByEmailResource.add(`${emailKey}|${np.resource}`)
         }
       }
       if (capReached && pendingByCap > 200) break outer

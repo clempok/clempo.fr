@@ -76,6 +76,21 @@ export default async () => {
     const now = Date.now()
     const nowIso = new Date().toISOString()
 
+    // Email-level dedup guard. The per-contact nurture state lives on each
+    // contact OBJECT, so a contact duplicated across records (same email) would
+    // otherwise get each step once per copy. Seed from existing REAL sends, then
+    // mark as we go, so no email receives the same step twice — across this run
+    // or any prior one — regardless of how the blob is shaped.
+    const sentByEmail = { step3: new Set<string>(), step7: new Set<string>() }
+    for (const co of data.companies) {
+      for (const c of co.contacts) {
+        const e = c.email?.toLowerCase()
+        if (!e) continue
+        if (c.nurture?.step3SentAt && !c.nurture.step3DryRun) sentByEmail.step3.add(e)
+        if (c.nurture?.step7SentAt && !c.nurture.step7DryRun) sentByEmail.step7.add(e)
+      }
+    }
+
     outer: for (const co of data.companies) {
       if (SKIPPED_STATUSES.includes(co.status)) continue
 
@@ -119,6 +134,10 @@ export default async () => {
           // Already handled — unless it was only ever a dry-run and we are
           // live now: then the contact still deserves the real email.
           if (sentAt && !(wasDryRun && !isDryRun)) continue
+
+          // A duplicate of this contact (same email) already got this step.
+          const emailKey = contact.email.toLowerCase()
+          if (sentByEmail[step.state].has(emailKey)) { skipped += 1; continue }
 
           if (sent >= MAX_SENDS_PER_RUN) break outer
 
@@ -186,6 +205,7 @@ export default async () => {
           dirty = true
           sent += 1
           sentThisRunForContact = true
+          sentByEmail[step.state].add(emailKey)
         }
       }
     }
