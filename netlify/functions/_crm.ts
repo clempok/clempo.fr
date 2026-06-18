@@ -24,6 +24,13 @@ export type CompanyLocation = (typeof COMPANY_LOCATIONS)[number]
 export const COMPANY_SECTORS = ['LogicielsSante', 'MedTechBioPharma', 'SanteB2C', 'Autre'] as const
 export type CompanySector = (typeof COMPANY_SECTORS)[number]
 
+/** How the company entered the pipeline. Auto-set on two paths: 'Outbound' by
+ *  the linkedin-sync routine, 'Lead Magnet' on a resource download. The other
+ *  two ('LinkedIn', 'Réseau') are set manually in the admin. Stored as the
+ *  display string, like the other company enums. */
+export const COMPANY_ORIGINS = ['LinkedIn', 'Outbound', 'Réseau', 'Lead Magnet'] as const
+export type CompanyOrigin = (typeof COMPANY_ORIGINS)[number]
+
 /** Priority index: higher = more advanced in pipeline */
 const STATUS_PRIORITY: Record<CrmStatus, number> = {
   'Non qualifié': 0,
@@ -140,6 +147,9 @@ export type CrmCompany = {
   size?: CompanySize
   location?: CompanyLocation
   sector?: CompanySector
+  /** Acquisition origin. Auto-filled on the outbound (linkedin-sync) and
+   *  lead-magnet (resource download) paths; set manually for the rest. */
+  origin?: CompanyOrigin
   /**
    * Chronological log of status transitions, used by the Analytics funnel.
    * Back-filled on read for legacy companies created before this field existed
@@ -575,6 +585,7 @@ export function dedupeCrmData(data: CrmData): number {
     if (co.size && !existing.size) existing.size = co.size
     if (co.location && !existing.location) existing.location = co.location
     if (co.sector && !existing.sector) existing.sector = co.sector
+    if (co.origin && !existing.origin) existing.origin = co.origin
   }
   if (collapsed > 0) data.companies = [...byId.values()]
   return collapsed
@@ -692,6 +703,10 @@ export async function upsertContact(
     source?: string
     status?: CrmStatus
     notes?: string
+    /** Acquisition origin to stamp on the company. Never overwrites an origin
+     *  that is already set — only fills the blank (so a manually-set 'Réseau'
+     *  survives a later lead-magnet download). */
+    origin?: CompanyOrigin
   },
   forceStatus?: CrmStatus,
 ): Promise<void> {
@@ -707,6 +722,10 @@ export async function upsertContact(
     for (const co of data.companies) {
       const existing = co.contacts.find(c => c.email.toLowerCase() === email)
       if (existing) {
+        if (input.origin && !co.origin) {
+          co.origin = input.origin
+          co.updatedAt = now
+        }
         existing.firstName = existing.firstName || input.firstName || ''
         existing.lastName = existing.lastName || input.lastName || ''
         if (input.source && !existing.source.includes(input.source)) {
@@ -755,8 +774,13 @@ export async function upsertContact(
           createdAt: now,
           updatedAt: now,
           statusHistory: [{ status, at: now }],
+          ...(input.origin ? { origin: input.origin } : {}),
         }
         data.companies.push(company)
+      } else if (input.origin && !company.origin) {
+        // Existing company matched by name/id but with no origin yet → fill it.
+        company.origin = input.origin
+        company.updatedAt = now
       }
 
       if (forceStatus && company.status !== forceStatus) {

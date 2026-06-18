@@ -195,6 +195,9 @@ type CompanyLocation = (typeof COMPANY_LOCATIONS)[number]
 const COMPANY_SECTORS = ['LogicielsSante', 'MedTechBioPharma', 'SanteB2C', 'Autre'] as const
 type CompanySector = (typeof COMPANY_SECTORS)[number]
 
+const COMPANY_ORIGINS = ['LinkedIn', 'Outbound', 'Réseau', 'Lead Magnet'] as const
+type CompanyOrigin = (typeof COMPANY_ORIGINS)[number]
+
 const SIZE_LABELS: Record<CompanySize, string> = {
   Startup: 'Startup',
   Scaleup: 'Scaleup',
@@ -211,6 +214,12 @@ const SECTOR_LABELS: Record<CompanySector, string> = {
   MedTechBioPharma: 'MedTech / BioTech / Pharma',
   SanteB2C: 'Santé B2C',
   Autre: 'Autre',
+}
+const ORIGIN_COLORS: Record<CompanyOrigin, { bg: string; fg: string }> = {
+  LinkedIn: { bg: '#0a66c2', fg: '#fff' },
+  Outbound: { bg: '#7c3aed', fg: '#fff' },
+  'Réseau': { bg: '#0891b2', fg: '#fff' },
+  'Lead Magnet': { bg: '#ea580c', fg: '#fff' },
 }
 
 type CrmContactVisit = { ts: string; path: string }
@@ -280,6 +289,7 @@ type CrmCompany = {
   size?: CompanySize
   location?: CompanyLocation
   sector?: CompanySector
+  origin?: CompanyOrigin
 }
 
 const SIZE_PTS: Record<CompanySize, number> = { Startup: 4, Scaleup: 10, ETI: 16, 'Grand groupe': 20 }
@@ -2025,6 +2035,7 @@ function CrmView({ password }: { password: string }) {
   const [statusFilter, setStatusFilter] = useState<CrmStatus | 'all'>('all')
   const [tierFilter, setTierFilter] = useState<'all' | 'top' | 'good' | 'mid' | 'low'>('all')
   const [npsFilter, setNpsFilter] = useState<'all' | 'promoters' | 'passives' | 'detractors' | 'pending'>('all')
+  const [originFilter, setOriginFilter] = useState<CompanyOrigin | 'all' | 'none'>('all')
   const [sortBy, setSortBy] = useState<'name' | 'score'>('name')
   const [expandedCoId, setExpandedCoId] = useState<string | null>(null)
   const [expandedContactId, setExpandedContactId] = useState<string | null>(null)
@@ -2092,11 +2103,11 @@ function CrmView({ password }: { password: string }) {
     } catch (err) { alert(`Erreur : ${String(err)}`) }
   }
 
-  const createCompany = async (name: string, status: CrmStatus) => {
+  const createCompany = async (name: string, status: CrmStatus, origin?: CompanyOrigin) => {
     try {
       const res = await fetch('/.netlify/functions/admin-crm', {
         method: 'POST', headers: authHeaders,
-        body: JSON.stringify({ action: 'create-company', fields: { name, status } }),
+        body: JSON.stringify({ action: 'create-company', fields: { name, status, ...(origin ? { origin } : {}) } }),
       })
       const body = await res.text()
       if (!res.ok) throw new Error(body)
@@ -2465,6 +2476,11 @@ function CrmView({ password }: { password: string }) {
         return co.contacts.some(c => matchesNpsFilter(c, npsFilter))
       })
       .filter(({ co }) => {
+        if (originFilter === 'all') return true
+        if (originFilter === 'none') return !co.origin
+        return co.origin === originFilter
+      })
+      .filter(({ co }) => {
         if (!q) return true
         if (co.name.toLowerCase().includes(q)) return true
         return co.contacts.some(c =>
@@ -2477,7 +2493,19 @@ function CrmView({ password }: { password: string }) {
         if (sortBy === 'score') return b.score.total - a.score.total
         return a.co.name.toLowerCase() < b.co.name.toLowerCase() ? -1 : 1
       })
-  }, [companies, search, statusFilter, tierFilter, npsFilter, sortBy])
+  }, [companies, search, statusFilter, tierFilter, npsFilter, originFilter, sortBy])
+
+  const originCounts = useMemo(() => {
+    const c: Record<'all' | 'none' | CompanyOrigin, number> = {
+      all: companies?.length || 0, none: 0,
+      LinkedIn: 0, Outbound: 0, 'Réseau': 0, 'Lead Magnet': 0,
+    }
+    companies?.forEach(co => {
+      if (co.origin) c[co.origin] += 1
+      else c.none += 1
+    })
+    return c
+  }, [companies])
 
   const npsCounts = useMemo(() => {
     const c = { all: companies?.length || 0, promoters: 0, passives: 0, detractors: 0, pending: 0 }
@@ -2599,6 +2627,15 @@ function CrmView({ password }: { password: string }) {
         <FilterPill label={`Passifs 7-8 (${npsCounts.passives})`} active={npsFilter === 'passives'} onClick={() => setNpsFilter('passives')} color={{ bg: '#f59e0b', fg: '#fff' }} />
         <FilterPill label={`Détracteurs ≤6 (${npsCounts.detractors})`} active={npsFilter === 'detractors'} onClick={() => setNpsFilter('detractors')} color={{ bg: '#dc2626', fg: '#fff' }} />
         <FilterPill label={`En attente (${npsCounts.pending})`} active={npsFilter === 'pending'} onClick={() => setNpsFilter('pending')} color={{ bg: '#6366f1', fg: '#fff' }} />
+      </div>
+
+      {/* Origin filter pills */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+        <FilterPill label={`Origine : toutes (${originCounts.all})`} active={originFilter === 'all'} onClick={() => setOriginFilter('all')} />
+        {COMPANY_ORIGINS.map(o => (
+          <FilterPill key={o} label={`${o} (${originCounts[o]})`} active={originFilter === o} onClick={() => setOriginFilter(o)} color={ORIGIN_COLORS[o]} />
+        ))}
+        <FilterPill label={`Non renseignée (${originCounts.none})`} active={originFilter === 'none'} onClick={() => setOriginFilter('none')} color={{ bg: '#71717a', fg: '#fff' }} />
       </div>
 
       {/* Score tier filter + sort toggle */}
@@ -2723,7 +2760,17 @@ function CrmView({ password }: { password: string }) {
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: 700, color: '#111', fontSize: '0.85rem' }}>{co.name}</div>
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 700, color: '#111', fontSize: '0.85rem' }}>{co.name}</span>
+                      {co.origin && (
+                        <span style={{
+                          padding: '1px 6px', borderRadius: '5px', fontSize: '0.6rem', fontWeight: 700,
+                          background: ORIGIN_COLORS[co.origin].bg, color: ORIGIN_COLORS[co.origin].fg,
+                        }}>
+                          {co.origin}
+                        </span>
+                      )}
+                    </div>
                     <div style={{ color: '#999', fontSize: '0.7rem', marginTop: '2px', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                       <span>{co.contacts.length} contact{co.contacts.length > 1 ? 's' : ''}</span>
                       {co.notionPageId && (
@@ -2789,7 +2836,7 @@ function CrmView({ password }: { password: string }) {
                     </div>
 
                     {/* Scoring attributes */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                       <SelectField
                         label="Taille"
                         value={co.size || ''}
@@ -2807,6 +2854,12 @@ function CrmView({ password }: { password: string }) {
                         value={co.sector || ''}
                         options={COMPANY_SECTORS.map(s => ({ value: s, label: SECTOR_LABELS[s] }))}
                         onSave={v => updateCompany(co.id, { sector: (v || undefined) as CompanySector | undefined })}
+                      />
+                      <SelectField
+                        label="Origine"
+                        value={co.origin || ''}
+                        options={COMPANY_ORIGINS.map(o => ({ value: o, label: o }))}
+                        onSave={v => updateCompany(co.id, { origin: (v || undefined) as CompanyOrigin | undefined })}
                       />
                     </div>
 
@@ -4231,21 +4284,26 @@ function SelectField({ label, value, options, onSave, allowEmpty = true }: {
   )
 }
 
-function NewCompanyForm({ onSave, onCancel }: { onSave: (name: string, status: CrmStatus) => void; onCancel: () => void }) {
+function NewCompanyForm({ onSave, onCancel }: { onSave: (name: string, status: CrmStatus, origin?: CompanyOrigin) => void; onCancel: () => void }) {
   const [name, setName] = useState('')
   const [status, setStatus] = useState<CrmStatus>('Non qualifié')
+  const [origin, setOrigin] = useState<CompanyOrigin | ''>('')
   return (
     <div style={{ border: '1px solid #e0e0e0', borderRadius: '12px', padding: '1rem', marginBottom: '1rem', background: '#fafafa' }}>
       <p style={{ fontSize: '0.8rem', fontWeight: 600, color: ACCENT, margin: '0 0 0.75rem' }}>Nouvelle entreprise</p>
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.5rem' }}>
         <input placeholder="Nom de l'entreprise *" value={name} onChange={e => setName(e.target.value)} style={newFieldStyle} />
         <select value={status} onChange={e => setStatus(e.target.value as CrmStatus)} style={newFieldStyle}>
           {CRM_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+        <select value={origin} onChange={e => setOrigin(e.target.value as CompanyOrigin | '')} style={newFieldStyle}>
+          <option value="">Origine —</option>
+          {COMPANY_ORIGINS.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={{ padding: '0.45rem 0.9rem', border: '1px solid #e0e0e0', borderRadius: '8px', background: '#fff', color: '#555', fontSize: '0.75rem', cursor: 'pointer' }}>Annuler</button>
-        <button onClick={() => name.trim() && onSave(name.trim(), status)} disabled={!name.trim()}
+        <button onClick={() => name.trim() && onSave(name.trim(), status, origin || undefined)} disabled={!name.trim()}
           style={{ padding: '0.45rem 0.9rem', border: 'none', borderRadius: '8px', background: ACCENT, color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: name.trim() ? 'pointer' : 'not-allowed', opacity: name.trim() ? 1 : 0.5 }}>
           Créer
         </button>

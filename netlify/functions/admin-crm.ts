@@ -2,10 +2,10 @@ import type { Handler } from '@netlify/functions'
 import { checkAuth } from './_analytics'
 import {
   readCrm, writeCrm,
-  CRM_STATUSES, CONTACT_LANGUAGES, COMPANY_SIZES, COMPANY_LOCATIONS, COMPANY_SECTORS,
+  CRM_STATUSES, CONTACT_LANGUAGES, COMPANY_SIZES, COMPANY_LOCATIONS, COMPANY_SECTORS, COMPANY_ORIGINS,
   detectLanguage,
   type CrmStatus, type CrmContact, type CrmCompany, type CrmTask,
-  type ContactLanguage, type CompanySize, type CompanyLocation, type CompanySector,
+  type ContactLanguage, type CompanySize, type CompanyLocation, type CompanySector, type CompanyOrigin,
 } from './_crm'
 import { buildInputFromContact, submitDropcontactSearch } from './_dropcontact'
 
@@ -20,7 +20,7 @@ const handler: Handler = async (event) => {
       return {
         statusCode: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companies: data.companies, statuses: CRM_STATUSES }),
+        body: JSON.stringify({ companies: data.companies, statuses: CRM_STATUSES, origins: COMPANY_ORIGINS }),
       }
     }
 
@@ -49,6 +49,9 @@ const handler: Handler = async (event) => {
         if (fields.sector !== undefined && fields.sector !== null && !COMPANY_SECTORS.includes(fields.sector as CompanySector)) {
           return { statusCode: 400, body: JSON.stringify({ error: 'Invalid sector' }) }
         }
+        if (fields.origin !== undefined && fields.origin !== null && !COMPANY_ORIGINS.includes(fields.origin as CompanyOrigin)) {
+          return { statusCode: 400, body: JSON.stringify({ error: 'Invalid origin' }) }
+        }
         const now = new Date().toISOString()
         if (fields.name !== undefined) company.name = fields.name
         if (fields.status !== undefined) {
@@ -66,6 +69,7 @@ const handler: Handler = async (event) => {
         if (fields.size !== undefined) company.size = fields.size || undefined
         if (fields.location !== undefined) company.location = fields.location || undefined
         if (fields.sector !== undefined) company.sector = fields.sector || undefined
+        if (fields.origin !== undefined) company.origin = fields.origin || undefined
         company.updatedAt = now
         await writeCrm(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true, company }) }
@@ -83,9 +87,12 @@ const handler: Handler = async (event) => {
       }
 
       if (action === 'create-company') {
-        const { fields } = body as { fields: { name: string; status?: CrmStatus; notes?: string } }
+        const { fields } = body as { fields: { name: string; status?: CrmStatus; notes?: string; origin?: CompanyOrigin } }
         if (!fields.name?.trim()) {
           return { statusCode: 400, body: JSON.stringify({ error: 'Company name required' }) }
+        }
+        if (fields.origin !== undefined && fields.origin !== null && !COMPANY_ORIGINS.includes(fields.origin as CompanyOrigin)) {
+          return { statusCode: 400, body: JSON.stringify({ error: 'Invalid origin' }) }
         }
         const name = fields.name.trim()
         const companyId = 'co-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -105,6 +112,7 @@ const handler: Handler = async (event) => {
           createdAt: now,
           updatedAt: now,
           statusHistory: [{ status: initialStatus, at: now }],
+          ...(fields.origin ? { origin: fields.origin } : {}),
         }
         data.companies.push(company)
         await writeCrm(data)

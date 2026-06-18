@@ -187,6 +187,7 @@ async function handleJournalistes(d: {
       lastName: d.lastName,
       source: d.source ? `Journalistes (${d.source})` : 'Journalistes',
       status: 'Lead',
+      origin: 'Lead Magnet',
     }, 'Lead'),
   ])
   await addPendingNps(d.email, 'journalistes', 'Liste journalistes santé')
@@ -270,6 +271,7 @@ async function handleDecideursHospitaliers(d: {
       company: d.company,
       source: d.source ? `Décideurs hospitaliers (${d.source})` : 'Décideurs hospitaliers',
       status: 'Lead',
+      origin: 'Lead Magnet',
     }, 'Lead'),
   ])
   await addPendingNps(d.email, 'decideurs-hospitaliers', 'Base décideurs hospitaliers')
@@ -320,6 +322,7 @@ async function handleDataDownload(d: {
       source: sourceLabel,
       notes,
       status: 'Lead',
+      origin: 'Lead Magnet',
     }, 'Lead'),
   ])
   await addPendingNps(d.email, d.slug || 'data-download', sourceLabel)
