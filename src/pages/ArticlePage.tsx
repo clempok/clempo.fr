@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { ChevronRight, List, X } from 'lucide-react'
-import { articles } from '../data/articles'
+import { articles, type Article } from '../data/articles'
 import { useLang } from '../contexts/LangContext'
 import SEO from '../components/SEO'
 import Eyebrow from '../components/Eyebrow'
@@ -303,6 +303,68 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+// Nettoie le markdown inline pour le texte des données structurées (pas de **, *, [texte](url))
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\[(.+?)\]\((.+?)\)/g, '$1')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+// Construit le JSON-LD complet d'un article : Article + BreadcrumbList + FAQPage (si FAQ présente)
+function buildArticleJsonLd(article: Article): object {
+  const url = `https://www.clempo.fr/articles/${article.slug}`
+  const faqs = parseMarkdown(article.content).filter(
+    b => b.type === 'faq' && b.question && b.answer
+  )
+
+  const graph: object[] = [
+    {
+      '@type': 'Article',
+      headline: article.title,
+      description: article.metaDescription,
+      image: article.heroImage,
+      datePublished: article.date,
+      dateModified: article.date,
+      author: {
+        '@type': 'Person',
+        '@id': 'https://www.clempo.fr/#person',
+        name: 'Clément Pouget-Osmont',
+        url: 'https://www.clempo.fr',
+      },
+      publisher: {
+        '@type': 'Person',
+        name: 'Clément Pouget-Osmont',
+        url: 'https://www.clempo.fr',
+      },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://www.clempo.fr' },
+        { '@type': 'ListItem', position: 2, name: 'Articles', item: 'https://www.clempo.fr/articles' },
+        { '@type': 'ListItem', position: 3, name: article.title, item: url },
+      ],
+    },
+  ]
+
+  if (faqs.length > 0) {
+    graph.push({
+      '@type': 'FAQPage',
+      mainEntity: faqs.map(f => ({
+        '@type': 'Question',
+        name: stripMarkdown(f.question as string),
+        acceptedAnswer: { '@type': 'Answer', text: stripMarkdown(f.answer as string) },
+      })),
+    })
+  }
+
+  return { '@context': 'https://schema.org', '@graph': graph }
+}
+
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>()
   const article = articles.find(a => a.slug === slug)
@@ -326,29 +388,7 @@ export default function ArticlePage() {
         ogImage={article.heroImage}
         ogType="article"
         articlePublishedTime={article.date}
-        jsonLd={{
-          '@context': 'https://schema.org',
-          '@type': 'Article',
-          headline: article.title,
-          description: article.metaDescription,
-          image: article.heroImage,
-          datePublished: article.date,
-          author: {
-            '@type': 'Person',
-            '@id': 'https://www.clempo.fr/#person',
-            name: 'Clément Pouget-Osmont',
-            url: 'https://www.clempo.fr',
-          },
-          publisher: {
-            '@type': 'Person',
-            name: 'Clément Pouget-Osmont',
-            url: 'https://www.clempo.fr',
-          },
-          mainEntityOfPage: {
-            '@type': 'WebPage',
-            '@id': `https://www.clempo.fr/articles/${article.slug}`,
-          },
-        }}
+        jsonLd={buildArticleJsonLd(article)}
       />
       <div style={{
         paddingTop: '5rem',
