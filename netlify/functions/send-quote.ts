@@ -1,6 +1,7 @@
 import type { Handler } from '@netlify/functions'
 import { loadQuotes, saveQuotes, slugify } from './_quotes'
 import type { Quote } from './_quotes'
+import { isAdminToken } from './_analytics'
 
 function escapeHtml(str: string): string {
   return str
@@ -64,10 +65,9 @@ const handler: Handler = async (event) => {
     const { token, data, previewOnly } = body as { token: string; data: any; previewOnly?: boolean }
     const isDraft = data?.draft === true
 
-    // Auth — accept QUOTE_SECRET or ADMIN_PASSWORD
+    // Auth — accept QUOTE_SECRET or any admin password (principal + stagiaire)
     const secret = process.env.QUOTE_SECRET
-    const adminPw = process.env.ADMIN_PASSWORD
-    const validToken = (secret && token === secret) || (adminPw && token === adminPw)
+    const validToken = (secret && token === secret) || isAdminToken(token)
     if (!validToken) {
       return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) }
     }

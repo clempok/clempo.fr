@@ -1,6 +1,7 @@
 import type { Handler } from '@netlify/functions'
 import { loadQuotes, saveQuotes } from './_quotes'
 import type { Quote, QuoteStatus } from './_quotes'
+import { isAdminToken } from './_analytics'
 
 const handler: Handler = async (event) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' }
@@ -10,9 +11,7 @@ const handler: Handler = async (event) => {
   }
 
   // Auth
-  const auth = event.headers.authorization?.replace('Bearer ', '')
-  const pw = process.env.ADMIN_PASSWORD || 'Ch4!pitron'
-  if (auth !== pw) {
+  if (!isAdminToken(event.headers.authorization || '')) {
     return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) }
   }
 

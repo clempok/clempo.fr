@@ -122,9 +122,26 @@ export async function recordVisit(dateKey: string): Promise<void> {
   }
 }
 
+/**
+ * Returns the list of accepted admin passwords.
+ * - ADMIN_PASSWORD (fallback 'Ch4!pitron') → accès principal (Clément)
+ * - ADMIN_PASSWORD_INTERN (optionnel)       → accès stagiaire, révocable seul
+ *   en supprimant la variable dans Netlify, sans impacter l'accès principal.
+ */
+export function adminTokens(): string[] {
+  const tokens = [process.env.ADMIN_PASSWORD || 'Ch4!pitron']
+  const intern = process.env.ADMIN_PASSWORD_INTERN
+  if (intern) tokens.push(intern)
+  return tokens
+}
+
+/** True if `token` matches any accepted admin password. */
+export function isAdminToken(token: string): boolean {
+  const t = token.replace(/^Bearer\s+/i, '').trim()
+  return t.length > 0 && adminTokens().includes(t)
+}
+
 export function checkAuth(headers: Record<string, string | undefined>): boolean {
-  const expected = process.env.ADMIN_PASSWORD || 'Ch4!pitron'
   const auth = headers['authorization'] || headers['Authorization'] || ''
-  const token = auth.replace(/^Bearer\s+/i, '').trim()
-  return token === expected
+  return isAdminToken(auth)
 }
