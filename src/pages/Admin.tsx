@@ -53,7 +53,7 @@ function setNestedValue(obj: any, path: string, value: any): any {
 
 type LeadEvent = {
   id: string
-  type: 'booking' | 'brochure' | 'journalistes' | 'data-download'
+  type: 'booking' | 'brochure' | 'journalistes' | 'data-download' | 'decideurs-hospitaliers' | 'hiring'
   ts: string
   firstName?: string
   lastName?: string
@@ -827,11 +827,12 @@ function AnalyticsView({ password }: { password: string }) {
     const brochures = eventsInRange.filter(e => e.type === 'brochure').length
     const dataDownloads = eventsInRange.filter(e => e.type === 'data-download').length
     const journalistes = eventsInRange.filter(e => e.type === 'journalistes').length
-    const conversions = bookings + brochures + dataDownloads + journalistes
+    const decideurs = eventsInRange.filter(e => e.type === 'decideurs-hospitaliers').length
+    const conversions = bookings + brochures + dataDownloads + journalistes + decideurs
     const rate = totalVisits > 0 ? (conversions / totalVisits) * 100 : 0
 
     return {
-      visitsByDay, totalVisits, bookings, brochures, dataDownloads, journalistes, conversions, rate,
+      visitsByDay, totalVisits, bookings, brochures, dataDownloads, journalistes, decideurs, conversions, rate,
       byRef, bySrc, byPath, refTotal, srcTotal, pathTotal,
     }
   }, [data, range])
@@ -1010,6 +1011,7 @@ function AnalyticsView({ password }: { password: string }) {
         <StatCard label="Rendez-vous" value={stats.bookings.toString()} />
         <StatCard label="Brochures" value={stats.brochures.toString()} />
         <StatCard label="Data download" value={stats.dataDownloads.toString()} />
+        <StatCard label="Base décideurs" value={stats.decideurs.toString()} />
         <StatCard label="Journalistes" value={stats.journalistes.toString()} />
         <StatCard
           label="Taux de conversion"
@@ -1303,6 +1305,7 @@ function AnalyticsView({ password }: { password: string }) {
                     { value: 'booking', label: 'RDV' },
                     { value: 'journalistes', label: 'Lead journaliste' },
                     { value: 'data-download', label: 'Data' },
+                    { value: 'decideurs-hospitaliers', label: 'Base décideurs' },
                     { value: 'brochure', label: 'Brochure' },
                   ]} />}
                 />
@@ -1342,20 +1345,20 @@ function AnalyticsView({ password }: { password: string }) {
                 <tr key={ev.id} style={{ borderBottom: '1px solid #f4f4f5' }} title={ev.bookingError || ''}>
                   <td style={tdStyle}>
                     {(() => {
-                      // data-download events carry a `source` like "Data Médecins Généralistes"
-                      // — show that verbatim so each row tells which spécialité was downloaded.
-                      const isData = ev.type === 'data-download'
-                      const isBooking = ev.type === 'booking'
-                      const isJourno = ev.type === 'journalistes'
-                      const bg = isBooking ? '#dbeafe' : isJourno ? '#dcfce7' : isData ? '#ede9fe' : '#fef3c7'
-                      const fg = isBooking ? '#1e40af' : isJourno ? '#166534' : isData ? '#5b21b6' : '#92400e'
-                      const label = isBooking
-                        ? 'RDV'
-                        : isJourno
-                          ? 'Lead journaliste'
-                          : isData
-                            ? (ev.source || (ev.slug ? `Data ${ev.slug}` : 'Data download'))
-                            : 'Brochure'
+                      // One badge per event type. `data-download` shows its `source`
+                      // ("Data Médecins Généralistes") verbatim so each row tells which
+                      // spécialité was downloaded. The décideurs base is its OWN type —
+                      // it used to fall through to the "Brochure" fallback and get
+                      // mislabelled. Annotated Record → adding a new type is a compile error.
+                      const badges: Record<LeadEvent['type'], { bg: string; fg: string; label: string }> = {
+                        booking:                  { bg: '#dbeafe', fg: '#1e40af', label: 'RDV' },
+                        journalistes:             { bg: '#dcfce7', fg: '#166534', label: 'Lead journaliste' },
+                        'data-download':          { bg: '#ede9fe', fg: '#5b21b6', label: ev.source || (ev.slug ? `Data ${ev.slug}` : 'Data download') },
+                        'decideurs-hospitaliers': { bg: '#cffafe', fg: '#155e75', label: 'Base décideurs' },
+                        hiring:                   { bg: '#fce7f3', fg: '#9d174f', label: 'Recrutement' },
+                        brochure:                 { bg: '#fef3c7', fg: '#92400e', label: 'Brochure' },
+                      }
+                      const { bg, fg, label } = badges[ev.type] ?? { bg: '#f4f4f5', fg: '#71717a', label: ev.type }
                       return (
                         <span style={{
                           display: 'inline-block', padding: '2px 8px', borderRadius: '6px',
