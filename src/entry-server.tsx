@@ -16,6 +16,7 @@ import Specialites from './pages/Specialites'
 import SpecialitePage from './pages/SpecialitePage'
 import Hiring from './pages/Hiring'
 import DecideursHospitaliers from './pages/DecideursHospitaliers'
+import InfluenceursSante from './pages/InfluenceursSante'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const HelmetProviderAny = HelmetProvider as any
@@ -42,6 +43,7 @@ export function render(url: string) {
               <Route path="/specialites/:slug" element={<SpecialitePage />} />
               <Route path="/hiring" element={<Hiring />} />
               <Route path="/decideurs-hospitaliers" element={<DecideursHospitaliers />} />
+              <Route path="/influenceurs-sante" element={<InfluenceursSante />} />
             </Routes>
             <Footer />
           </div>

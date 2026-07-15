@@ -53,7 +53,7 @@ function setNestedValue(obj: any, path: string, value: any): any {
 
 type LeadEvent = {
   id: string
-  type: 'booking' | 'brochure' | 'journalistes' | 'data-download' | 'decideurs-hospitaliers' | 'hiring'
+  type: 'booking' | 'brochure' | 'journalistes' | 'data-download' | 'decideurs-hospitaliers' | 'influenceurs-sante' | 'hiring'
   ts: string
   firstName?: string
   lastName?: string
@@ -870,11 +870,12 @@ function AnalyticsView({ password }: { password: string }) {
     const dataDownloads = eventsInRange.filter(e => e.type === 'data-download').length
     const journalistes = eventsInRange.filter(e => e.type === 'journalistes').length
     const decideurs = eventsInRange.filter(e => e.type === 'decideurs-hospitaliers').length
-    const conversions = bookings + brochures + dataDownloads + journalistes + decideurs
+    const influenceurs = eventsInRange.filter(e => e.type === 'influenceurs-sante').length
+    const conversions = bookings + brochures + dataDownloads + journalistes + decideurs + influenceurs
     const rate = totalVisits > 0 ? (conversions / totalVisits) * 100 : 0
 
     return {
-      visitsByDay, totalVisits, bookings, brochures, dataDownloads, journalistes, decideurs, conversions, rate,
+      visitsByDay, totalVisits, bookings, brochures, dataDownloads, journalistes, decideurs, influenceurs, conversions, rate,
       byRef, bySrc, byPath, refTotal, srcTotal, pathTotal, botsBlocked, botReasons,
     }
   }, [data, range, selectedDay])
@@ -1054,6 +1055,7 @@ function AnalyticsView({ password }: { password: string }) {
         <StatCard label="Brochures" value={stats.brochures.toString()} />
         <StatCard label="Data download" value={stats.dataDownloads.toString()} />
         <StatCard label="Base décideurs" value={stats.decideurs.toString()} />
+        <StatCard label="Base influenceurs" value={stats.influenceurs.toString()} />
         <StatCard label="Journalistes" value={stats.journalistes.toString()} />
         <StatCard
           label="Taux de conversion"
@@ -1388,6 +1390,7 @@ function AnalyticsView({ password }: { password: string }) {
                     { value: 'journalistes', label: 'Lead journaliste' },
                     { value: 'data-download', label: 'Data' },
                     { value: 'decideurs-hospitaliers', label: 'Base décideurs' },
+                    { value: 'influenceurs-sante', label: 'Base influenceurs' },
                     { value: 'brochure', label: 'Brochure' },
                   ]} />}
                 />
@@ -1437,6 +1440,7 @@ function AnalyticsView({ password }: { password: string }) {
                         journalistes:             { bg: '#dcfce7', fg: '#166534', label: 'Lead journaliste' },
                         'data-download':          { bg: '#ede9fe', fg: '#5b21b6', label: ev.source || (ev.slug ? `Data ${ev.slug}` : 'Data download') },
                         'decideurs-hospitaliers': { bg: '#cffafe', fg: '#155e75', label: 'Base décideurs' },
+                        'influenceurs-sante': { bg: '#fae8ff', fg: '#86198f', label: 'Base influenceurs' },
                         hiring:                   { bg: '#fce7f3', fg: '#9d174f', label: 'Recrutement' },
                         brochure:                 { bg: '#fef3c7', fg: '#92400e', label: 'Brochure' },
                       }

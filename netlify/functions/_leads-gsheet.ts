@@ -22,6 +22,8 @@ const DOWNLOAD_SOURCE_HINTS = [
   'journalistes',
   'décideurs hospitaliers',
   'decideurs hospitaliers',
+  'influenceurs santé',
+  'influenceurs sante',
   'data ',
   'data-download',
 ]
@@ -37,6 +39,7 @@ function labelFromSource(source: string): string {
   if (s.includes('brochure')) return 'Brochure CPO Services'
   if (s.includes('journalistes')) return 'Liste journalistes santé'
   if (s.includes('décideurs') || s.includes('decideurs')) return 'Base décideurs hospitaliers'
+  if (s.includes('influenceurs')) return 'Base influenceurs santé'
   if (s.startsWith('data ') || s.includes('data-')) return source.replace(/^Data\s*/i, 'Data — ')
   return source
 }

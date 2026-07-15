@@ -5,16 +5,17 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY
 const TO_EMAIL = 'clement.pougetosmont@gmail.com'
 const WINDOW_HOURS = 24
 
-type DigestType = 'decideurs-hospitaliers' | 'data-download' | 'journalistes' | 'brochure' | 'hiring'
+type DigestType = 'decideurs-hospitaliers' | 'influenceurs-sante' | 'data-download' | 'journalistes' | 'brochure' | 'hiring'
 
 const SECTION_META: Record<DigestType, { emoji: string; label: string }> = {
   'decideurs-hospitaliers': { emoji: '🏥', label: 'Base décideurs hospitaliers' },
+  'influenceurs-sante':     { emoji: '📱', label: 'Base influenceurs santé' },
   'data-download':          { emoji: '📊', label: 'Data santé' },
   'journalistes':           { emoji: '📋', label: 'Liste journalistes' },
   'brochure':               { emoji: '📥', label: 'Brochure services' },
   'hiring':                 { emoji: '🎓', label: 'Candidatures stage' },
 }
-const SECTION_ORDER: DigestType[] = ['decideurs-hospitaliers', 'data-download', 'journalistes', 'brochure', 'hiring']
+const SECTION_ORDER: DigestType[] = ['decideurs-hospitaliers', 'influenceurs-sante', 'data-download', 'journalistes', 'brochure', 'hiring']
 
 /**
  * Daily recap of all lead-magnet submissions from the last 24h, sent in a single

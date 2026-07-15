@@ -3,6 +3,7 @@ import { getStore } from '@netlify/blobs'
 import { instrumentEmailHtml, newSendId, saveSendRecord } from './_email-tracking'
 import { JOURNALISTES_SHEET_URL } from './_journalistes'
 import { DECIDEURS_HOSPITALIERS_SHEET_URL } from './_decideurs-hospitaliers'
+import { INFLUENCEURS_SANTE_SHEET_URL } from './_influenceurs-sante'
 
 /**
  * Editable email templates for the nurture sequence, stored in Netlify Blobs
@@ -369,8 +370,17 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
     url: JOURNALISTES_SHEET_URL,
   },
   {
+    id: 'influenceurs-sante',
+    slugs: s => s === 'influenceurs-sante',
+    label: {
+      FR: 'La base des influenceurs santé sur Instagram & TikTok (845 soignants créateurs)',
+      EN: 'The health creators database on Instagram & TikTok (845 practitioners)',
+    },
+    url: `${SITE_URL}/influenceurs-sante`,
+  },
+  {
     id: 'data-specialites',
-    slugs: s => s === 'data-download' || !['decideurs-hospitaliers', 'journalistes'].includes(s),
+    slugs: s => s === 'data-download' || !['decideurs-hospitaliers', 'journalistes', 'influenceurs-sante'].includes(s),
     label: {
       FR: 'Les parts de marché des logiciels médicaux, spécialité par spécialité',
       EN: 'Medical software market shares, specialty by specialty',
@@ -395,6 +405,7 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
 export function resourceAccessUrl(slug: string): string {
   if (slug === 'journalistes') return JOURNALISTES_SHEET_URL
   if (slug === 'decideurs-hospitaliers') return DECIDEURS_HOSPITALIERS_SHEET_URL
+  if (slug === 'influenceurs-sante') return INFLUENCEURS_SANTE_SHEET_URL
   // Data downloads store the specialty slug (one XLSX per specialty); the
   // legacy generic 'data-download' slug has no file — fall back to the page.
   if (slug && slug !== 'data-download') return `${SITE_URL}/data/specialites/${slug}.xlsx`

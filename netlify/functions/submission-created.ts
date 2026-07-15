@@ -3,6 +3,7 @@ import { recordEvent } from './_analytics'
 import { upsertContact, addPendingNps, detectLanguage } from './_crm'
 import { JOURNALISTES_SHEET_URL } from './_journalistes'
 import { DECIDEURS_HOSPITALIERS_SHEET_URL } from './_decideurs-hospitaliers'
+import { INFLUENCEURS_SANTE_SHEET_URL } from './_influenceurs-sante'
 import { sendResourceDeliveryEmail } from './_email-templates'
 import type { ResourceLink } from './_email-templates'
 
@@ -60,6 +61,9 @@ const handler: Handler = async (event) => {
     }
     if (formName === 'decideurs-hospitaliers') {
       return handleDecideursHospitaliers({ firstName, lastName, email, company, source })
+    }
+    if (formName === 'influenceurs-sante') {
+      return handleInfluenceursSante({ firstName, lastName, email, company, source })
     }
     if (formName === 'brochure') {
       return handleBrochure({ firstName, lastName, email, company, phone, lang })
@@ -292,6 +296,49 @@ async function handleDecideursHospitaliers(d: {
 
   // No per-download alert — high-volume lead magnet. The morning recap from
   // scheduled-leads-digest.ts covers visibility without burning Resend quota.
+  return { statusCode: 200, body: 'OK' }
+}
+
+async function handleInfluenceursSante(d: {
+  firstName: string; lastName: string; email: string; company: string; source: string
+}) {
+  if (!d.email) return { statusCode: 400, body: 'Missing email' }
+
+  await Promise.all([
+    recordEvent({
+      type: 'influenceurs-sante',
+      firstName: d.firstName,
+      lastName: d.lastName,
+      email: d.email,
+      company: d.company,
+    }),
+    upsertContact({
+      email: d.email,
+      firstName: d.firstName,
+      lastName: d.lastName,
+      company: d.company,
+      source: d.source ? `Influenceurs santé (${d.source})` : 'Influenceurs santé',
+      status: 'Lead',
+      origin: 'Lead Magnet',
+    }, 'Lead'),
+  ])
+  await addPendingNps(d.email, 'influenceurs-sante', 'Base influenceurs santé')
+
+  {
+    const lang = detectLanguage({ email: d.email, firstName: d.firstName })
+    await deliverResource({
+      formName: 'influenceurs-sante',
+      email: d.email,
+      firstName: d.firstName,
+      language: lang,
+      resourceLabel: lang === 'EN'
+        ? 'the health creators database (Instagram & TikTok)'
+        : 'la base des influenceurs santé (Instagram & TikTok)',
+      links: [{ label: lang === 'EN' ? 'Open the database' : 'Ouvrir la base', url: INFLUENCEURS_SANTE_SHEET_URL }],
+    })
+  }
+
+  // No per-download alert — same rationale as the décideurs base above.
   return { statusCode: 200, body: 'OK' }
 }
 

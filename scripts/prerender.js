@@ -49,6 +49,7 @@ const routes = [
   '/parts-de-marche-logiciels-medicaux',
   '/hiring',
   '/decideurs-hospitaliers',
+  '/influenceurs-sante',
   ...slugs.map(s => `/articles/${s}`),
   ...specialiteSlugs.map(s => `/specialites/${s}`),
 ]

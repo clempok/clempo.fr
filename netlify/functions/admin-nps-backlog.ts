@@ -28,6 +28,7 @@ type Eligible = {
  *   - "Journalistes" / "Journalistes (...)"
  *   - "Data <specialty>" (set by handleDataDownload in submission-created.ts)
  *   - "Décideurs hospitaliers" / "Décideurs hospitaliers (...)"
+ *   - "Influenceurs santé" / "Influenceurs santé (...)"
  * Brochure downloads are intentionally excluded.
  */
 function detectResource(source: string | undefined): { slug: string; label: string } | null {
@@ -38,6 +39,9 @@ function detectResource(source: string | undefined): { slug: string; label: stri
   }
   if (lower.includes('décideurs') || lower.includes('decideurs')) {
     return { slug: 'decideurs-hospitaliers', label: 'Base décideurs hospitaliers' }
+  }
+  if (lower.includes('influenceurs')) {
+    return { slug: 'influenceurs-sante', label: 'Base influenceurs santé' }
   }
   const dataMatch = source.match(/(Data\s+[^,]+)/i)
   if (dataMatch) {
