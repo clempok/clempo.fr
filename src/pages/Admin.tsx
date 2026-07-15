@@ -88,12 +88,40 @@ type AnalyticsResponse = {
   // (e.g. "month:2026-04", "week:2026-W19"). Takes precedence over the
   // rolling-7d snapshot when displaying the funnel.
   linkedin_impressions_manual?: Record<string, number>
+  // Requests rejected by the server-side filter (netlify/functions/_bot-filter.ts),
+  // keyed by day. Absent for days before the filter shipped.
+  bots_blocked?: Record<string, { total: number; byReason: Record<string, number>; uaSample: Record<string, number> }>
+}
+
+// First day fully covered by the server-side bot filter. Visit counts before this
+// are inflated by bot traffic that spoofed document.referrer as google.com —
+// Search Console recorded 50 real clicks over 07-13/07 while this dashboard
+// showed 737. The raw data is kept (a backup lives outside the repo), but it
+// cannot be cleaned retroactively: no UA or IP was stored per visit, so there is
+// no principled way to tell which individual visits were fake. Hence a marker
+// rather than a deletion.
+const DATA_QUALITY_CUTOFF = '2026-07-16'
+
+const BOT_REASON_LABELS: Record<string, string> = {
+  'bot-ua': 'Bot déclaré (user-agent)',
+  'non-browser-ua': 'Script (pas un navigateur)',
+  'no-ua': 'User-agent absent',
+  'short-ua': 'User-agent tronqué',
+  'no-origin': 'Origine absente',
+  'bad-origin': 'Origine étrangère au site',
+  'no-accept-language': 'Aucune langue négociée',
+  'rate-limit': 'Trop de vues (même IP)',
 }
 
 // Friendly labels for referrer keys emitted by normalizeRef() in App.tsx.
 const REF_LABELS: Record<string, string> = {
   direct: 'Accès direct / bookmark',
-  google: 'Google',
+  google: 'Google (recherche)',
+  gmail: 'Gmail',
+  'google-translate': 'Google Traduction',
+  'google-news': 'Google Actualités',
+  'google-groups': 'Google Groups',
+  'google-workspace': 'Google Docs / Drive',
   bing: 'Bing',
   duckduckgo: 'DuckDuckGo',
   yahoo: 'Yahoo',
@@ -671,6 +699,9 @@ function AnalyticsView({ password }: { password: string }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [range, setRange] = useState<7 | 30 | 90>(30)
+  // When set, the source/CTA/page breakdowns describe this single day instead of
+  // the whole range — a one-day spike is invisible once averaged into 30 days.
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [funnelPeriod, setFunnelPeriod] = useState<'week' | 'month'>('week')
   const [diag, setDiag] = useState('')
   const [editingImpressionsKey, setEditingImpressionsKey] = useState<string | null>(null)
@@ -799,11 +830,13 @@ function AnalyticsView({ password }: { password: string }) {
     const visitsByDay = dates.map(d => ({ date: d, count: data.visits[d] || 0 }))
     const totalVisits = visitsByDay.reduce((s, x) => s + x.count, 0)
 
-    // Aggregate per-day breakdowns (path/src/ref) across the selected range.
+    // Aggregate per-day breakdowns (path/src/ref). Scoped to `selectedDay` when
+    // the user clicks a bar, otherwise across the whole range.
+    const aggDates = selectedDay && dates.includes(selectedDay) ? [selectedDay] : dates
     const aggregate = (buckets?: Record<string, Record<string, number>>): { key: string; count: number }[] => {
       if (!buckets) return []
       const totals: Record<string, number> = {}
-      for (const d of dates) {
+      for (const d of aggDates) {
         const day = buckets[d]
         if (!day) continue
         for (const [k, v] of Object.entries(day)) {
@@ -818,6 +851,15 @@ function AnalyticsView({ password }: { password: string }) {
     const byRef = aggregate(data.visits_by_ref)
     const bySrc = aggregate(data.visits_by_src)
     const byPath = aggregate(data.visits_by_path)
+    const botsBlocked = aggDates.reduce((s, d) => s + (data.bots_blocked?.[d]?.total || 0), 0)
+    const botReasons = Object.entries(
+      aggDates.reduce((acc: Record<string, number>, d) => {
+        for (const [r, n] of Object.entries(data.bots_blocked?.[d]?.byReason || {})) acc[r] = (acc[r] || 0) + n
+        return acc
+      }, {}),
+    )
+      .map(([key, count]) => ({ key, count }))
+      .sort((a, b) => b.count - a.count)
     const refTotal = byRef.reduce((s, x) => s + x.count, 0)
     const srcTotal = bySrc.reduce((s, x) => s + x.count, 0)
     const pathTotal = byPath.reduce((s, x) => s + x.count, 0)
@@ -833,9 +875,9 @@ function AnalyticsView({ password }: { password: string }) {
 
     return {
       visitsByDay, totalVisits, bookings, brochures, dataDownloads, journalistes, decideurs, conversions, rate,
-      byRef, bySrc, byPath, refTotal, srcTotal, pathTotal,
+      byRef, bySrc, byPath, refTotal, srcTotal, pathTotal, botsBlocked, botReasons,
     }
-  }, [data, range])
+  }, [data, range, selectedDay])
 
   // Funnel over time — weekly or monthly. Decoupled from `range` because the
   // funnel has its own time granularity (always shows last 8 periods).
@@ -1217,16 +1259,24 @@ function AnalyticsView({ password }: { password: string }) {
 
       {/* Visits chart */}
       <div style={{ background: '#fafafa', border: '1px solid #eee', borderRadius: '14px', padding: '1.5rem', marginBottom: '2rem' }}>
-        <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#555', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Visites par jour
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: 600, color: '#555', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+            Visites par jour
+          </h3>
+          <span style={{ fontSize: '0.7rem', color: '#999' }}>
+            {selectedDay ? `Analyse isolée sur le ${selectedDay}` : 'Cliquez une barre pour isoler une journée'}
+          </span>
+        </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '160px' }}>
           {stats.visitsByDay.map(v => {
             const h = (v.count / maxVisits) * 100
+            const isSelected = selectedDay === v.date
+            const dimmed = selectedDay !== null && !isSelected
             return (
               <div
                 key={v.date}
-                title={`${v.date}: ${v.count} visites`}
+                onClick={() => setSelectedDay(isSelected ? null : v.date)}
+                title={`${v.date} : ${v.count} visites — cliquer pour ${isSelected ? 'revenir à la période' : 'isoler ce jour'}`}
                 style={{
                   flex: 1,
                   height: '100%',
@@ -1235,10 +1285,11 @@ function AnalyticsView({ password }: { password: string }) {
                   justifyContent: 'flex-end',
                   alignItems: 'center',
                   gap: '2px',
-                  cursor: 'default',
+                  cursor: 'pointer',
+                  opacity: dimmed ? 0.35 : 1,
                 }}
               >
-                <span style={{ fontSize: '0.6rem', color: v.count > 0 ? '#555' : '#ccc', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                <span style={{ fontSize: '0.6rem', color: v.count > 0 ? '#555' : '#ccc', fontVariantNumeric: 'tabular-nums', lineHeight: 1, fontWeight: isSelected ? 700 : 400 }}>
                   {v.count > 0 ? v.count : ''}
                 </span>
                 <div
@@ -1247,6 +1298,8 @@ function AnalyticsView({ password }: { password: string }) {
                     height: `${Math.max(2, h)}%`,
                     background: v.count > 0 ? ACCENT : '#e5e5e5',
                     borderRadius: '3px 3px 0 0',
+                    outline: isSelected ? `2px solid ${ACCENT}` : 'none',
+                    outlineOffset: '2px',
                   }}
                 />
               </div>
@@ -1257,7 +1310,29 @@ function AnalyticsView({ password }: { password: string }) {
           <span>{stats.visitsByDay[0]?.date}</span>
           <span>{stats.visitsByDay[stats.visitsByDay.length - 1]?.date}</span>
         </div>
+        {selectedDay && (
+          <button
+            onClick={() => setSelectedDay(null)}
+            style={{
+              marginTop: '0.75rem', fontSize: '0.7rem', fontWeight: 600, padding: '0.3rem 0.75rem',
+              border: '1px solid #ddd', borderRadius: '6px', background: '#fff', color: '#555', cursor: 'pointer',
+            }}
+          >
+            ← Revenir aux {range} derniers jours
+          </button>
+        )}
       </div>
+
+      {/* Data quality — visits before the bot filter shipped are inflated. */}
+      {stats.visitsByDay.some(v => v.date < DATA_QUALITY_CUTOFF && v.count > 0) && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '2rem', fontSize: '0.75rem', color: '#78350f', lineHeight: 1.5 }}>
+          <strong>Visites antérieures au {DATA_QUALITY_CUTOFF} : surestimées.</strong> Des bots falsifiaient leur
+          provenance en « google » et n'étaient pas filtrés. Repère : la Search Console comptait 50 clics réels
+          du 07 au 13/07 quand ce tableau en affichait 737. Les chiffres à partir du {DATA_QUALITY_CUTOFF} sont
+          filtrés côté serveur. L'historique est conservé tel quel : aucun user-agent ni IP n'ayant été stocké par
+          visite, il n'existe aucun moyen fiable de distinguer après coup les fausses visites des vraies.
+        </div>
+      )}
 
       {/* Sources de trafic */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
@@ -1277,10 +1352,17 @@ function AnalyticsView({ password }: { password: string }) {
         />
         <SourceBreakdown
           title="Top pages visitées"
-          hint="Pages les plus vues sur la période"
+          hint={selectedDay ? `Pages les plus vues le ${selectedDay}` : 'Pages les plus vues sur la période'}
           rows={stats.byPath.slice(0, 20).map(r => ({ key: r.key, label: r.key, count: r.count }))}
           total={stats.pathTotal}
           emptyMsg="Pas encore de visites tracées par page."
+        />
+        <SourceBreakdown
+          title={`Bots bloqués (${stats.botsBlocked})`}
+          hint="Requêtes rejetées côté serveur, jamais comptées comme visites"
+          rows={stats.botReasons.map(r => ({ key: r.key, label: BOT_REASON_LABELS[r.key] || r.key, count: r.count }))}
+          total={stats.botsBlocked}
+          emptyMsg="Aucun bot bloqué sur la période."
         />
       </div>
 

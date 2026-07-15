@@ -1,5 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { checkAuth, getAnalyticsStore } from './_analytics'
+import { readBlockedLog } from './_bot-filter'
 
 const handler: Handler = async (event) => {
   if (!checkAuth(event.headers as Record<string, string | undefined>)) {
@@ -282,6 +283,7 @@ const handler: Handler = async (event) => {
     const visits_by_ref = data.visits_by_ref || {}
     const linkedin_impressions = data.linkedin_impressions || {}
     const linkedin_impressions_manual = data.linkedin_impressions_manual || {}
+    const bots_blocked = await readBlockedLog()
     const sorted = [...events].sort((a, b) => ((a.ts || '') < (b.ts || '') ? 1 : -1))
     return {
       statusCode: 200,
@@ -294,6 +296,7 @@ const handler: Handler = async (event) => {
         visits_by_ref,
         linkedin_impressions,
         linkedin_impressions_manual,
+        bots_blocked,
         ...(debug || testWrite ? { diag } : {}),
       }),
     }

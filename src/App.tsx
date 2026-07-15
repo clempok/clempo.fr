@@ -26,8 +26,24 @@ import DecideursHospitaliers from './pages/DecideursHospitaliers'
 
 // Normalize a referrer hostname into a short stable label so the admin dashboard
 // can group "www.google.fr", "google.com", "www.google.co.uk" under "google".
+//
+// Order matters: the Google subdomains MUST be tested before the generic
+// `google.` catch-all. They used to sit after it, which made the Gemini branch
+// dead code and lumped every non-Search Google surface into `google`.
+//
+// The split isn't cosmetic. Only `google` (Search) appears in Search Console, so
+// keeping Gmail/Translate/Groups separate is what makes the "does my referrer
+// data match GSC?" cross-check meaningful — the check that exposed the fake
+// traffic on 2026-07-14.
 function normalizeRef(host: string): string {
   const h = host.toLowerCase().replace(/^www\./, '')
+  // Google, most specific first.
+  if (h === 'gemini.google.com' || h === 'bard.google.com') return 'gemini'
+  if (h === 'mail.google.com') return 'gmail'
+  if (h === 'translate.google.com') return 'google-translate'
+  if (h === 'news.google.com') return 'google-news'
+  if (h === 'groups.google.com') return 'google-groups'
+  if (/^(docs|drive|sites|calendar|meet|chat|classroom)\.google\./.test(h)) return 'google-workspace'
   if (/(^|\.)google\./.test(h)) return 'google'
   if (/(^|\.)bing\./.test(h)) return 'bing'
   if (/(^|\.)duckduckgo\./.test(h)) return 'duckduckgo'
@@ -43,7 +59,6 @@ function normalizeRef(host: string): string {
   if (h.includes('chatgpt.com') || h.includes('chat.openai.com')) return 'chatgpt'
   if (h.includes('claude.ai')) return 'claude'
   if (h.includes('perplexity.')) return 'perplexity'
-  if (h.includes('gemini.google.com') || h === 'bard.google.com') return 'gemini'
   return h.slice(0, 64)
 }
 

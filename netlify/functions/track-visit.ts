@@ -1,5 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { getAnalyticsStore } from './_analytics'
+import { screenRequest, clientIp, underRateLimit, recordBlocked } from './_bot-filter'
 
 const handler: Handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -16,6 +17,28 @@ const handler: Handler = async (event) => {
     const key = /^\d{4}-\d{2}-\d{2}$/.test(body.date || '')
       ? (body.date as string)
       : new Date().toISOString().slice(0, 10)
+
+    // Screen before any blob I/O — see _bot-filter.ts. A rejected request must
+    // never reach the `analytics` blob, which also holds the lead events.
+    const headers = event.headers as Record<string, string | undefined>
+    const verdict = screenRequest(headers)
+    if (!verdict.ok) {
+      await recordBlocked(key, verdict.reason, headers['user-agent'] || '')
+      return {
+        statusCode: 200,
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ok: true, counted: false, reason: verdict.reason }),
+      }
+    }
+
+    if (!(await underRateLimit(clientIp(headers), key))) {
+      await recordBlocked(key, 'rate-limit', headers['user-agent'] || '')
+      return {
+        statusCode: 200,
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ok: true, counted: false, reason: 'rate-limit' }),
+      }
+    }
 
     // Sanitize optional fields. Keep the function backward-compatible with old
     // clients that only send { date }.
