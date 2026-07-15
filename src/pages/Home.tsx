@@ -12,6 +12,14 @@ import { JOURNALISTES_TITLE, JOURNALISTES_SUB } from '../lib/journalistes'
 import DecideursHospitaliersForm, { DecideursHospitaliersNetlifyRegistration } from '../components/DecideursHospitaliersForm'
 import DecideursHospitaliersSheetPreview from '../components/DecideursHospitaliersSheetPreview'
 import { DECIDEURS_HOSPITALIERS_TITLE, DECIDEURS_HOSPITALIERS_SUB } from '../lib/decideurs-hospitaliers'
+import InfluenceursSanteForm, { InfluenceursSanteNetlifyRegistration } from '../components/InfluenceursSanteForm'
+import InfluenceursSanteSheetPreview from '../components/InfluenceursSanteSheetPreview'
+import {
+  INFLUENCEURS_SANTE_TITLE,
+  INFLUENCEURS_SANTE_SUB,
+  INFLUENCEURS_SANTE_INSTAGRAM,
+  INFLUENCEURS_SANTE_TIKTOK,
+} from '../lib/influenceurs-sante'
 import { bookingUrl } from '../lib/cta'
 import Booking from './Booking'
 import YouTubeFacade from '../components/YouTubeFacade'
@@ -103,6 +111,7 @@ export default function Home() {
   const revealArticles = useReveal()
   const revealJo = useReveal()
   const revealDh = useReveal()
+  const revealIs = useReveal()
   const revealBrochure = useReveal()
 
   // Form input styling — brand-book flat fields, radius 4px
@@ -1291,6 +1300,123 @@ export default function Home() {
               .dh-grid { grid-template-columns: 1fr; gap: 2.5rem; }
               .dh-grid > div:first-child { order: 1; }
               .dh-grid > div:last-child { order: 0; }
+            }
+          `}</style>
+        </section>
+
+        {/* ═════════════════════════════════════════════════════ */}
+        {/* INFLUENCEURS SANTÉ FORM                                 */}
+        {/* ═════════════════════════════════════════════════════ */}
+        <section id="influenceurs-sante" style={{
+          background: 'var(--ink)',
+          color: 'var(--paper)',
+          padding: 'clamp(4rem, 9vw, 7rem) 6vw',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Hidden Netlify form registration so the build picks up the schema */}
+          <InfluenceursSanteNetlifyRegistration />
+
+          {/* Subtle dotmatrix accent */}
+          <div className="cb-dotmatrix cb-dotmatrix--signal" aria-hidden style={{
+            position: 'absolute', top: 0, right: 0,
+            width: '38%', height: '60%',
+            opacity: 0.18, pointerEvents: 'none',
+          }} />
+
+          <div
+            ref={revealIs}
+            className="cb-reveal ish-grid"
+            style={{
+              maxWidth: '1180px',
+              margin: '0 auto',
+              position: 'relative',
+            }}
+          >
+            {/* Left col: title + form */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 600,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  color: 'var(--ink)', background: 'var(--signal)',
+                  padding: '0.35rem 0.75rem', borderRadius: '4px',
+                }}>
+                  📱 Ressource gratuite
+                </span>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 500,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.7)',
+                  padding: '0.35rem 0',
+                }}>
+                  France 🇫🇷 · {INFLUENCEURS_SANTE_INSTAGRAM} Instagram · {INFLUENCEURS_SANTE_TIKTOK} TikTok
+                </span>
+              </div>
+
+              <h2 style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)',
+                fontWeight: 400,
+                color: 'var(--paper)',
+                margin: '0 0 1rem',
+                lineHeight: 1.1,
+                letterSpacing: '-0.01em',
+              }}>
+                {INFLUENCEURS_SANTE_TITLE}
+              </h2>
+              <p style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '1.05rem',
+                color: 'rgba(255,255,255,0.72)',
+                lineHeight: 1.65,
+                margin: '0 0 2.25rem',
+                maxWidth: '520px',
+              }}>
+                {INFLUENCEURS_SANTE_SUB}
+              </p>
+
+              <InfluenceursSanteForm variant="modal" theme="dark" source="home" />
+
+              <p style={{
+                marginTop: '1.25rem',
+                fontSize: '0.82rem',
+                color: 'rgba(255,255,255,0.6)',
+                fontFamily: 'var(--font-sans)',
+              }}>
+                Plus de détails ?{' '}
+                <Link to="/influenceurs-sante" style={{
+                  color: 'var(--paper)',
+                  fontWeight: 600,
+                  textDecoration: 'underline',
+                  textDecorationThickness: '1px',
+                  textUnderlineOffset: '3px',
+                }}>
+                  Voir la page complète →
+                </Link>
+              </p>
+            </div>
+
+            {/* Right col: GSheet preview */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <InfluenceursSanteSheetPreview />
+            </div>
+          </div>
+
+          <style>{`
+            .ish-grid {
+              display: grid;
+              grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+              gap: clamp(2rem, 4vw, 4.5rem);
+              align-items: center;
+            }
+            @media (max-width: 880px) {
+              .ish-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+              .ish-grid > div:last-child { order: -1; }
             }
           `}</style>
         </section>
