@@ -31,6 +31,10 @@ export type OnboardingSection = {
   icon: string
   intro?: string
   fields: OnboardingField[]
+  /** Clés de UPLOAD_SLOTS proposées au bas de cette section. Les documents se
+   *  déposent au fil des questions : on demande le BP pendant qu'on parle de
+   *  l'entreprise, les créas pendant qu'on parle des campagnes. */
+  uploads?: string[]
 }
 
 /** Séparateur des valeurs d'un champ `checkboxes` dans la chaîne stockée. */
@@ -41,6 +45,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     id: 'entreprise',
     title: 'L’entreprise',
     icon: '🏢',
+    uploads: ['bp'],
     intro: 'Le contexte général. Rien de confidentiel ici, juste de quoi se situer.',
     fields: [
       {
@@ -75,6 +80,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     id: 'objectifs',
     title: 'Objectifs business',
     icon: '🎯',
+    uploads: ['strategie'],
     intro: 'C’est la section qui oriente tout le reste de la mission. Prenez-y le temps qu’il faut.',
     fields: [
       {
@@ -112,6 +118,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     id: 'produit',
     title: 'Le produit',
     icon: '🧩',
+    uploads: ['video', 'produit'],
     intro: 'Je dois pouvoir le pitcher aussi bien que vous avant de commencer à en parler à votre marché.',
     fields: [
       {
@@ -127,7 +134,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
       {
         key: 'differenciateurs', type: 'textarea', rows: 4, essential: true,
         label: 'Vos trois différenciateurs réels',
-        help: 'Ceux que vos clients citent spontanément, pas ceux qui sont écrits sur le site.',
+        help: 'Ceux que vos clients citent spontanément.',
       },
       {
         key: 'pricing', type: 'textarea', rows: 3,
@@ -151,6 +158,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     id: 'cibles',
     title: 'Cibles et marché',
     icon: '👥',
+    uploads: ['marche'],
     intro: 'En santé, celui qui décide, celui qui utilise et celui qui paie sont rarement la même personne.',
     fields: [
       {
@@ -177,6 +185,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     id: 'marketing',
     title: 'Marketing : ce qui a été fait',
     icon: '📣',
+    uploads: ['creas', 'contenus'],
     intro: 'Y compris ce qui a échoué. C’est souvent l’information la plus utile de tout ce questionnaire.',
     fields: [
       {
@@ -228,6 +237,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     id: 'acquisition',
     title: 'Acquisition et chiffres',
     icon: '📈',
+    uploads: ['data'],
     intro: 'Des ordres de grandeur suffisent. Mettez « je ne sais pas » quand c’est le cas, c’est une réponse utile.',
     fields: [
       {
@@ -252,6 +262,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     id: 'concurrence',
     title: 'Concurrence',
     icon: '⚔️',
+    uploads: ['concurrence'],
     fields: [
       {
         key: 'concurrents', type: 'textarea', rows: 4, essential: true,
@@ -272,6 +283,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     id: 'equipe',
     title: 'Équipe sales et marketing',
     icon: '🧑‍💼',
+    uploads: ['presentations'],
     intro: 'Pour savoir avec qui je travaille au quotidien, et qui je dois rencontrer en premier.',
     fields: [
       {
@@ -302,6 +314,7 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     id: 'divers',
     title: 'Pour finir',
     icon: '💬',
+    uploads: ['autres'],
     fields: [
       {
         key: 'sensibles', type: 'textarea', rows: 3,
@@ -336,19 +349,9 @@ export const UPLOAD_SLOTS: UploadSlot[] = [
     help: 'La version la plus à jour, même imparfaite.',
   },
   {
-    key: 'presentations',
-    label: 'Présentations commerciales',
-    help: 'Le deck que vos commerciaux utilisent en rendez-vous.',
-  },
-  {
-    key: 'concurrence',
-    label: 'Analyses concurrentielles',
-    help: 'Battlecards, benchmarks, comparatifs — même vieux d’un an.',
-  },
-  {
-    key: 'creas',
-    label: 'Créations de campagnes passées',
-    help: 'Visuels, bannières, landing pages, emails, plaquettes.',
+    key: 'strategie',
+    label: 'Plan stratégique, budget, présentation board',
+    help: 'Ce sur quoi vous êtes engagé auprès de vos actionnaires.',
   },
   {
     key: 'video',
@@ -356,9 +359,19 @@ export const UPLOAD_SLOTS: UploadSlot[] = [
     help: 'Jusqu’à 100 Mo. Un Loom ou un YouTube non répertorié fait aussi l’affaire.',
   },
   {
-    key: 'data',
-    label: 'Exports de données',
-    help: 'Extraction CRM, rapport analytics, chiffres de ventes, résultats de campagnes.',
+    key: 'produit',
+    label: 'Documentation produit',
+    help: 'Captures d’écran, manuel, spécifications, notice réglementaire.',
+  },
+  {
+    key: 'marche',
+    label: 'Études de marché et personas',
+    help: 'Segmentation, interviews clients, rapports sectoriels.',
+  },
+  {
+    key: 'creas',
+    label: 'Créations de campagnes passées',
+    help: 'Visuels, bannières, landing pages, emails, plaquettes.',
   },
   {
     key: 'contenus',
@@ -366,10 +379,33 @@ export const UPLOAD_SLOTS: UploadSlot[] = [
     help: 'Livres blancs, témoignages, publications, études.',
   },
   {
+    key: 'data',
+    label: 'Exports de données',
+    help: 'Extraction CRM, rapport analytics, chiffres de ventes, résultats de campagnes.',
+  },
+  {
+    key: 'concurrence',
+    label: 'Analyses concurrentielles',
+    help: 'Battlecards, benchmarks, comparatifs — même vieux d’un an.',
+  },
+  {
+    key: 'presentations',
+    label: 'Deck commercial et process de vente',
+    help: 'Ce que vos commerciaux montrent en rendez-vous, playbook, organigramme.',
+  },
+  {
     key: 'autres',
     label: 'Autres documents utiles',
+    help: 'Tout ce qui n’entrait dans aucune case précédente.',
   },
 ]
+
+/** Emplacements de dépôt d'une section, résolus depuis leurs clés. */
+export function slotsForSection(section: OnboardingSection): UploadSlot[] {
+  return (section.uploads || [])
+    .map(key => UPLOAD_SLOTS.find(s => s.key === key))
+    .filter((s): s is UploadSlot => Boolean(s))
+}
 
 /* ──────────────────────────────────────────────────────────────────────────
    Progression

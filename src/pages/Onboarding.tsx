@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
-  ONBOARDING_SECTIONS, UPLOAD_SLOTS, MULTI_SEP,
-  sectionProgress, overallProgress,
+  ONBOARDING_SECTIONS, MULTI_SEP,
+  sectionProgress, overallProgress, slotsForSection,
 } from '../lib/onboarding-schema'
-import type { OnboardingField } from '../lib/onboarding-schema'
+import type { OnboardingField, OnboardingSection, UploadSlot } from '../lib/onboarding-schema'
 import {
   chunkCount, readChunkBase64, downloadChunkedFile,
   formatBytes, fileIcon, MAX_FILE_BYTES,
@@ -39,7 +39,6 @@ const FM = "'JetBrains Mono', ui-monospace, monospace"
 const FS = "'Instrument Serif', Georgia, serif"
 
 const API = '/.netlify/functions/onboarding'
-const FILES_SECTION_ID = '__documents'
 
 type ClientFile = {
   id: string
@@ -358,23 +357,20 @@ function OnboardingForm({
   const [submitted, setSubmitted] = useState(data.status === 'submitted')
 
   const navItems = useMemo(
-    () => [
-      ...ONBOARDING_SECTIONS.map(s => ({ id: s.id, title: s.title, ...sectionProgress(answers, s) })),
-      { id: FILES_SECTION_ID, title: 'Documents', filled: files.length, total: 0, done: files.length > 0 },
-    ],
-    [answers, files.length],
+    () => ONBOARDING_SECTIONS.map(s => ({
+      id: s.id,
+      title: s.title,
+      ...sectionProgress(answers, s),
+      docs: files.filter(f => (s.uploads || []).includes(f.slot)).length,
+    })),
+    [answers, files],
   )
 
-  const index = ONBOARDING_SECTIONS.findIndex(s => s.id === activeSection)
-  const isFilesSection = activeSection === FILES_SECTION_ID
-  const section = isFilesSection ? null : ONBOARDING_SECTIONS[Math.max(0, index)]
-  const stepNumber = isFilesSection ? navItems.length : index + 1
-  const prevId = isFilesSection
-    ? ONBOARDING_SECTIONS[ONBOARDING_SECTIONS.length - 1].id
-    : index > 0 ? ONBOARDING_SECTIONS[index - 1].id : null
-  const nextId = isFilesSection
-    ? null
-    : index < ONBOARDING_SECTIONS.length - 1 ? ONBOARDING_SECTIONS[index + 1].id : FILES_SECTION_ID
+  const index = Math.max(0, ONBOARDING_SECTIONS.findIndex(s => s.id === activeSection))
+  const section = ONBOARDING_SECTIONS[index]
+  const isLast = index === ONBOARDING_SECTIONS.length - 1
+  const prevId = index > 0 ? ONBOARDING_SECTIONS[index - 1].id : null
+  const nextId = isLast ? null : ONBOARDING_SECTIONS[index + 1].id
 
   const handleSubmit = async () => {
     setSubmitting(true)
@@ -389,6 +385,8 @@ function OnboardingForm({
       setSubmitting(false)
     }
   }
+
+  const uploader = useUploads({ api, setFiles })
 
   return (
     <div style={{ background: BG, minHeight: '100vh', fontFamily: FT, color: INK }}>
@@ -496,32 +494,30 @@ function OnboardingForm({
             </div>
           )}
 
-          {isFilesSection ? (
-            <DocumentsSection files={files} setFiles={setFiles} api={api} step={stepNumber} total={navItems.length} />
-          ) : (
-            <div className="onb-card" style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
-              <p className="onb-eyebrow" style={{ color: MUTED, marginBottom: '0.9rem' }}>
-                — {String(stepNumber).padStart(2, '0')} / {String(navItems.length).padStart(2, '0')}
+          <div className="onb-card" style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
+            <p className="onb-eyebrow" style={{ color: MUTED, marginBottom: '0.9rem' }}>
+              — {String(index + 1).padStart(2, '0')} / {String(navItems.length).padStart(2, '0')}
+            </p>
+            <h2 style={{
+              fontFamily: FS, fontSize: 'clamp(1.6rem, 3.4vw, 2.1rem)', fontWeight: 400,
+              letterSpacing: '-0.02em', lineHeight: 1.15,
+              marginBottom: section.intro ? '0.75rem' : '2rem',
+            }}>
+              {section.title}
+            </h2>
+            {section.intro && (
+              <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.7, marginBottom: '2.25rem', maxWidth: 600 }}>
+                {section.intro}
               </p>
-              <h2 style={{
-                fontFamily: FS, fontSize: 'clamp(1.6rem, 3.4vw, 2.1rem)', fontWeight: 400,
-                letterSpacing: '-0.02em', lineHeight: 1.15,
-                marginBottom: section!.intro ? '0.75rem' : '2rem',
-              }}>
-                {section!.title}
-              </h2>
-              {section!.intro && (
-                <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.7, marginBottom: '2.25rem', maxWidth: 600 }}>
-                  {section!.intro}
-                </p>
-              )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.9rem' }}>
-                {section!.fields.map(field => (
-                  <Field key={field.key} field={field} value={answers[field.key] || ''} onChange={v => setAnswer(field.key, v)} />
-                ))}
-              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.9rem' }}>
+              {section.fields.map(field => (
+                <Field key={field.key} field={field} value={answers[field.key] || ''} onChange={v => setAnswer(field.key, v)} />
+              ))}
             </div>
-          )}
+
+            <SectionDocuments section={section} files={files} uploader={uploader} />
+          </div>
 
           {/* Bas de page : navigation + validation */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
@@ -559,7 +555,7 @@ function OnboardingForm({
             )}
           </div>
 
-          {isFilesSection && (
+          {isLast && (
             <div className="onb-card" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
               <p style={{ fontFamily: FM, fontSize: '0.78rem', marginBottom: '0.6rem' }}>
                 {progress.filled} / {progress.total} réponses · {files.length} document{files.length > 1 ? 's' : ''}
@@ -609,7 +605,7 @@ function SaveIndicator({ state, savedAt }: { state: SaveState; savedAt: string }
   )
 }
 
-type NavItem = { id: string; title: string; filled: number; total: number; done: boolean }
+type NavItem = { id: string; title: string; filled: number; total: number; done: boolean; docs: number }
 
 function NavButton({ item, n, active, onClick }: { item: NavItem; n: number; active: boolean; onClick: () => void }) {
   return (
@@ -630,8 +626,13 @@ function NavButton({ item, n, active, onClick }: { item: NavItem; n: number; act
       <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {item.title}
       </span>
+      {item.docs > 0 && (
+        <span title={`${item.docs} document${item.docs > 1 ? 's' : ''}`} style={{ fontSize: '0.7rem', flexShrink: 0 }}>
+          📎{item.docs}
+        </span>
+      )}
       <span style={{ fontFamily: FM, fontSize: '0.64rem', color: item.done ? SIGNAL_DEEP : MUTED, flexShrink: 0 }}>
-        {item.total ? (item.done ? '✓' : `${item.filled}/${item.total}`) : item.filled || ''}
+        {item.done ? '✓' : `${item.filled}/${item.total}`}
       </span>
     </button>
   )
@@ -729,14 +730,20 @@ function Field({ field, value, onChange }: { field: OnboardingField; value: stri
 
 type UploadState = { name: string; percent: number; error?: string }
 
-function DocumentsSection({
-  files, setFiles, api, step, total,
+type Uploader = ReturnType<typeof useUploads>
+
+/**
+ * Envois, suppressions et téléchargements de documents.
+ *
+ * Vit dans le formulaire et non dans une section : un envoi de 80 Mo doit
+ * survivre au passage à la section suivante, et sa barre de progression le
+ * retrouve intacte au retour.
+ */
+function useUploads({
+  api, setFiles,
 }: {
-  files: ClientFile[]
-  setFiles: React.Dispatch<React.SetStateAction<ClientFile[]>>
   api: ApiFn
-  step: number
-  total: number
+  setFiles: React.Dispatch<React.SetStateAction<ClientFile[]>>
 }) {
   const [uploads, setUploads] = useState<Record<string, UploadState>>({})
   const [busy, setBusy] = useState(false)
@@ -798,30 +805,38 @@ function DocumentsSection({
     })
   }, [api])
 
+  return { uploads, busy, uploadMany, removeFile, download }
+}
+
+/** Les dépôts rattachés à une section, sous ses questions. */
+function SectionDocuments({
+  section, files, uploader,
+}: {
+  section: OnboardingSection
+  files: ClientFile[]
+  uploader: Uploader
+}) {
+  const slots = slotsForSection(section)
+  if (!slots.length) return null
+
   return (
-    <div className="onb-card" style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
-      <p className="onb-eyebrow" style={{ color: MUTED, marginBottom: '0.9rem' }}>
-        — {String(step).padStart(2, '0')} / {String(total).padStart(2, '0')}
-      </p>
-      <h2 style={{ fontFamily: FS, fontSize: 'clamp(1.6rem, 3.4vw, 2.1rem)', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
-        Documents
-      </h2>
-      <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.7, marginBottom: '2.25rem', maxWidth: 600 }}>
+    <div style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: `1px solid ${BORDER}` }}>
+      <p className="onb-eyebrow" style={{ color: MUTED, marginBottom: '0.5rem' }}>Documents</p>
+      <p style={{ color: MUTED, fontSize: '0.85rem', lineHeight: 1.65, marginBottom: '1.25rem', maxWidth: 600 }}>
         Déposez ce que vous avez, même incomplet ou daté. Un document imparfait
         m’apprend souvent plus qu’une réponse écrite. Jusqu’à 100 Mo par fichier.
       </p>
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-        {UPLOAD_SLOTS.map(slot => (
+        {slots.map(slot => (
           <SlotCard
             key={slot.key}
             slot={slot}
             files={files.filter(f => f.slot === slot.key)}
-            uploads={Object.entries(uploads).filter(([id]) => id.startsWith(`${slot.key}::`))}
-            busy={busy}
-            onPick={list => uploadMany(slot.key, list)}
-            onRemove={removeFile}
-            onDownload={download}
+            uploads={Object.entries(uploader.uploads).filter(([id]) => id.startsWith(`${slot.key}::`))}
+            busy={uploader.busy}
+            onPick={list => uploader.uploadMany(slot.key, list)}
+            onRemove={uploader.removeFile}
+            onDownload={uploader.download}
           />
         ))}
       </div>
@@ -832,7 +847,7 @@ function DocumentsSection({
 function SlotCard({
   slot, files, uploads, busy, onPick, onRemove, onDownload,
 }: {
-  slot: { key: string; label: string; help?: string }
+  slot: UploadSlot
   files: ClientFile[]
   uploads: [string, UploadState][]
   busy: boolean

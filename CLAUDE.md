@@ -114,8 +114,10 @@ Sections de traduction : `nav`, `hero`, `about`, `articles_section`, `articles_p
 
 ## Onboarding client (`clempo.fr/<slug>` + onglet Admin)
 
-Portail que le client remplit après signature : questionnaire en 9 sections +
-dépôt de documents. Un espace par client, créé depuis `/admin` → **Onboarding**.
+Portail que le client remplit après signature : questionnaire en 9 sections,
+chacune terminée par ses propres emplacements de dépôt (le BP se dépose pendant
+qu'on parle de l'entreprise, les créas pendant qu'on parle des campagnes). Un
+espace par client, créé depuis `/admin` → **Onboarding**.
 
 | Fichier | Rôle |
 |---------|------|
@@ -137,7 +139,13 @@ identique des deux côtés) et les recolle au téléchargement. Plafond 100 Mo.
 **Ajouter une question** : éditer `ONBOARDING_SECTIONS` dans
 `src/lib/onboarding-schema.ts`. Ne **jamais** renommer une `key` déjà en prod —
 les réponses sont indexées dessus et deviendraient orphelines ; reformuler
-`label` à la place.
+`label` à la place. Même règle pour les `key` de `UPLOAD_SLOTS` : un fichier
+porte la clé de son emplacement, la renommer le rend invisible dans l'admin.
+Une section propose les emplacements listés dans son champ `uploads`.
+
+⚠️ `netlify dev` lit et **écrit les blobs de production**. Tester l'onboarding
+en local crée de vrais espaces client : utiliser un slug jetable et le
+supprimer, jamais toucher à un espace réel.
 
 **Routing** : `/:slug` est un attrape-tout placé en dernier dans `App.tsx`.
 Tout nouveau segment de premier niveau doit être ajouté à `SITE_SEGMENTS`
