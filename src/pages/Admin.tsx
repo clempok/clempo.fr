@@ -1,5 +1,6 @@
 import { Fragment, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useSort, sortRows, Th, FilterSearch, FilterChoices } from './adminTable'
+import OnboardingView from './adminOnboarding'
 
 const REPO = 'clempok/clempo.fr'
 const FILE_PATH = 'public/content.json'
@@ -494,7 +495,7 @@ export default function Admin() {
   const [password, setPassword] = useState(() => sessionStorage.getItem(AUTH_KEY) || '')
   const [authInput, setAuthInput] = useState('')
   const [authError, setAuthError] = useState('')
-  const [view, setView] = useState<'analytics' | 'crm' | 'content' | 'nps' | 'quotes' | 'cms' | 'seo' | 'emails'>('analytics')
+  const [view, setView] = useState<'analytics' | 'crm' | 'content' | 'nps' | 'quotes' | 'cms' | 'seo' | 'emails' | 'onboarding'>('analytics')
 
   // Mark this browser as "admin" so quote views from here are not counted
   useEffect(() => {
@@ -636,6 +637,12 @@ export default function Admin() {
             📄 Devis
           </button>
           <button
+            onClick={() => setView('onboarding')}
+            style={tabStyle(view === 'onboarding')}
+          >
+            📋 Onboarding
+          </button>
+          <button
             onClick={() => setView('emails')}
             style={tabStyle(view === 'emails')}
           >
@@ -683,6 +690,8 @@ export default function Admin() {
           <SeoView password={password} />
         ) : view === 'emails' ? (
           <EmailTemplatesView password={password} />
+        ) : view === 'onboarding' ? (
+          <OnboardingView password={password} />
         ) : (
           <CMSView />
         )}

@@ -24,6 +24,29 @@ import NpsThanks from './pages/NpsThanks'
 import Hiring from './pages/Hiring'
 import DecideursHospitaliers from './pages/DecideursHospitaliers'
 import InfluenceursSante from './pages/InfluenceursSante'
+import Onboarding from './pages/Onboarding'
+
+// Premiers segments d'URL appartenant à une vraie page du site. Tout le reste
+// tombe dans la route attrape-tout `/:slug`, qui sert les espaces d'onboarding
+// client (clempo.fr/wapdevelopment). React Router fait déjà gagner les segments
+// statiques sur le paramètre dynamique ; cette liste sert au Shell, qui doit
+// savoir AVANT le rendu s'il affiche une page marketing ou un espace client.
+//
+// À tenir à jour avec les <Route> ci-dessous ET avec RESERVED_SLUGS dans
+// netlify/functions/_onboarding.ts, qui refuse de créer un onboarding portant
+// l'un de ces noms.
+const SITE_SEGMENTS = new Set([
+  'articles', 'confirmation', 'admin', 'booking', 'devis', 'transition-cmo',
+  'consultant-marketing-sante', 'parts-de-marche-logiciels-medicaux',
+  'specialites', 'merci-nps', 'hiring', 'decideurs-hospitaliers',
+  'influenceurs-sante',
+])
+
+function isOnboardingPath(pathname: string): boolean {
+  if (pathname === '/') return false
+  const first = pathname.split('/')[1] || ''
+  return first !== '' && !SITE_SEGMENTS.has(first)
+}
 
 // Normalize a referrer hostname into a short stable label so the admin dashboard
 // can group "www.google.fr", "google.com", "www.google.co.uk" under "google".
@@ -106,6 +129,10 @@ function VisitTracker() {
     // Don't count admin visits or automated browsers (Claude debug sessions,
     // QA bots, monitoring agents) — they polluted the stats on 2026-05-10.
     if (location.pathname.startsWith('/admin')) return
+    // Nor client onboarding spaces: a client filling his questionnaire over
+    // three sessions is not audience, and each slug would create its own line
+    // in the per-path breakdown.
+    if (isOnboardingPath(location.pathname)) return
     if (isAutomatedBrowser()) return
     try {
       const today = new Date().toISOString().slice(0, 10)
@@ -158,13 +185,17 @@ function Shell() {
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
   const isQuote = location.pathname.startsWith('/devis/')
+  // Un espace d'onboarding est un portail privé : ni navigation marketing, ni
+  // popups de relance, ni curseur décoratif.
+  const isOnboarding = isOnboardingPath(location.pathname)
+  const bare = isAdmin || isQuote || isOnboarding
 
   return (
     <div style={{ backgroundColor: '#ffffff', minHeight: '100vh', position: 'relative' }}>
       <VisitTracker />
-      {!isAdmin && !isQuote && <LiquidCursor />}
-      {!isAdmin && !isQuote && <Background />}
-      {!isAdmin && !isQuote && <Navbar />}
+      {!bare && <LiquidCursor />}
+      {!bare && <Background />}
+      {!bare && <Navbar />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/articles" element={<Articles />} />
@@ -181,11 +212,13 @@ function Shell() {
         <Route path="/hiring" element={<Hiring />} />
         <Route path="/decideurs-hospitaliers" element={<DecideursHospitaliers />} />
         <Route path="/influenceurs-sante" element={<InfluenceursSante />} />
+        {/* Attrape-tout : espaces d'onboarding client. Doit rester en dernier. */}
+        <Route path="/:slug" element={<Onboarding />} />
       </Routes>
-      {!isAdmin && !isQuote && <Footer />}
-      {!isAdmin && !isQuote && <ReturnVisitorPopup />}
-      {!isAdmin && !isQuote && <JournalistesExitPopup />}
-      {!isAdmin && !isQuote && <JournalistesStickyPromo />}
+      {!bare && <Footer />}
+      {!bare && <ReturnVisitorPopup />}
+      {!bare && <JournalistesExitPopup />}
+      {!bare && <JournalistesStickyPromo />}
     </div>
   )
 }

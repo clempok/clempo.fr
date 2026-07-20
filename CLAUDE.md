@@ -101,6 +101,38 @@ Sections de traduction : `nav`, `hero`, `about`, `articles_section`, `articles_p
 - Variable d'env requise : `RESEND_API_KEY` (configurée dans Netlify)
 - Email destinataire : `clement.pougetosmont@gmail.com`
 
+## Onboarding client (`clempo.fr/<slug>` + onglet Admin)
+
+Portail que le client remplit après signature : questionnaire en 9 sections +
+dépôt de documents. Un espace par client, créé depuis `/admin` → **Onboarding**.
+
+| Fichier | Rôle |
+|---------|------|
+| `src/lib/onboarding-schema.ts` | **Source unique** des questions et des slots d'upload |
+| `src/lib/onboarding-files.ts` | Découpage / recollage des fichiers |
+| `src/pages/Onboarding.tsx` | Page client (route attrape-tout `/:slug`) |
+| `src/pages/adminOnboarding.tsx` | Onglet admin |
+| `netlify/functions/_onboarding.ts` | Types, store Blobs, code d'accès, anti brute-force |
+| `netlify/functions/onboarding.ts` | API publique (code requis à chaque appel) |
+| `netlify/functions/admin-onboarding.ts` | API admin (Bearer `ADMIN_PASSWORD`) |
+
+**Accès client** : code à 6 caractères généré à la création, mémorisé en
+localStorage côté client. 15 échecs en 15 min → 429 sur ce slug.
+
+**Fichiers** : une fonction Netlify plafonne à ~6 Mo par requête *et* par
+réponse. Le navigateur découpe donc en morceaux de 3 Mo (`CHUNK_BYTES`, à garder
+identique des deux côtés) et les recolle au téléchargement. Plafond 100 Mo.
+
+**Ajouter une question** : éditer `ONBOARDING_SECTIONS` dans
+`src/lib/onboarding-schema.ts`. Ne **jamais** renommer une `key` déjà en prod —
+les réponses sont indexées dessus et deviendraient orphelines ; reformuler
+`label` à la place.
+
+**Routing** : `/:slug` est un attrape-tout placé en dernier dans `App.tsx`.
+Tout nouveau segment de premier niveau doit être ajouté à `SITE_SEGMENTS`
+(`App.tsx`) **et** à `RESERVED_SLUGS` (`_onboarding.ts`), sinon la vraie page
+masque l'onboarding et la création de slug n'est pas refusée.
+
 ## Liens externes utilisés dans le site
 - **Calendrier RDV** : `https://app.lemcal.com/@clementpougetosmont/30minutes`
 - **LinkedIn** : `https://www.linkedin.com/in/clementpougetosmont/`
