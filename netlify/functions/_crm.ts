@@ -94,7 +94,9 @@ export type CrmContact = {
   updatedAt: string
   /** Last 50 page visits from clempo.fr when the visitor has the CID cookie. */
   visits?: CrmContactVisit[]
-  /** ISO timestamp of the last visit-alert email sent for this contact. */
+  /** LEGACY — dernière alerte de visite envoyée en temps réel. Plus écrit
+   *  depuis le passage des visites au récap quotidien (voir track-crm-visit.ts).
+   *  Conservé pour ne pas invalider les enregistrements existants. */
   lastVisitAlertAt?: string
   /** Notion page ID in the Contacts mirror DB, filled by notion-sync. */
   notionPageId?: string

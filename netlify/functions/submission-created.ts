@@ -10,13 +10,18 @@ import type { ResourceLink } from './_email-templates'
 const SITE_URL = 'https://www.clempo.fr'
 
 /**
- * Netlify Forms event handler. Dispatches by form name (brochure | journalistes).
- * Always sends a lead-notification email to Clément. The journalistes branch
- * also upserts the lead into the CRM with status "Lead".
+ * Netlify Forms event handler. Dispatches by form name (brochure | journalistes
+ * | décideurs | influenceurs | data | hiring) et upsert le lead dans le CRM
+ * avec le statut "Lead".
  *
- * Every lead-magnet branch also emails the resource to the lead itself
- * (editable "resource-delivery" template, admin Emails tab) — people kept
- * losing the file when they only had it on the success screen.
+ * Chaque branche lead magnet envoie la ressource au lead lui-même (template
+ * "resource-delivery" éditable, onglet Emails de l'admin) — les gens perdaient
+ * le fichier quand ils ne l'avaient que sur l'écran de confirmation.
+ *
+ * PAS d'alerte unitaire vers Clément : les téléchargements sont regroupés dans
+ * le récap du matin (scheduled-leads-digest.ts), pour ne pas consommer le quota
+ * Resend (100/jour) dont les crons NPS et nurture ont besoin. Seule exception
+ * ici, la candidature de stage — rare, et l'email porte le CV en pièce jointe.
  */
 const handler: Handler = async (event) => {
   try {
@@ -131,44 +136,8 @@ async function handleBrochure(d: {
     }],
   })
 
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.error('RESEND_API_KEY not set')
-    return { statusCode: 500, body: 'Missing API key' }
-  }
-
-  const html = `
-    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-      <h2 style="color: #09090b; margin-bottom: 24px;">🔔 Nouveau lead — clempo.fr</h2>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666; width: 140px;">Prénom</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.firstName}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Nom</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.lastName}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Entreprise</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.company}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Email</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;"><a href="mailto:${d.email}" style="color: #0066cc;">${d.email}</a></td></tr>
-        <tr><td style="padding: 10px 0; color: #666;">Téléphone</td><td style="padding: 10px 0; font-weight: 600;">${d.phone}</td></tr>
-      </table>
-      <div style="margin-top: 28px; padding: 16px; background: #f9f9f9; border-radius: 8px; font-size: 13px; color: #888;">
-        Soumis via le formulaire brochure de clempo.fr
-      </div>
-    </div>
-  `
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'Clempo.fr <noreply@clempo.fr>',
-      to: ['clement.pougetosmont@gmail.com'],
-      subject: 'Nouveau lead',
-      html,
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    console.error('Resend error (brochure):', err)
-    return { statusCode: 500, body: err }
-  }
+  // Pas d'alerte unitaire — remontée dans le récap du matin
+  // (scheduled-leads-digest.ts).
   return { statusCode: 200, body: 'OK' }
 }
 
@@ -210,48 +179,7 @@ async function handleJournalistes(d: {
     })
   }
 
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.error('RESEND_API_KEY not set')
-    return { statusCode: 500, body: 'Missing API key' }
-  }
-
-  const fullName = [d.firstName, d.lastName].filter(Boolean).join(' ') || d.email
-  const html = `
-    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-      <h2 style="color: #09090b; margin-bottom: 24px;">📋 Nouveau lead — Liste journalistes santé</h2>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666; width: 140px;">Prénom</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.firstName}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Nom</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.lastName}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Email</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;"><a href="mailto:${d.email}" style="color: #0066cc;">${d.email}</a></td></tr>
-        <tr><td style="padding: 10px 0; color: #666;">Source</td><td style="padding: 10px 0; font-weight: 600;">${d.source || '—'}</td></tr>
-      </table>
-      <p style="margin-top: 24px; font-size: 13px; color: #555;">
-        Ressource partagée :
-        <a href="${JOURNALISTES_SHEET_URL}" style="color: #0066cc;">${JOURNALISTES_SHEET_URL}</a>
-      </p>
-      <div style="margin-top: 24px; padding: 16px; background: #f9f9f9; border-radius: 8px; font-size: 13px; color: #888;">
-        Ajouté au CRM avec statut "Lead". La visite suivante déclenchera une alerte tracking.
-      </div>
-    </div>
-  `
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'Clempo.fr <noreply@clempo.fr>',
-      to: ['clement.pougetosmont@gmail.com'],
-      subject: `📋 Nouveau lead journalistes — ${fullName}`,
-      html,
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    console.error('Resend error (journalistes):', err)
-    return { statusCode: 500, body: err }
-  }
+  // Pas d'alerte unitaire — remontée dans le récap du matin.
   return { statusCode: 200, body: 'OK' }
 }
 
@@ -394,46 +322,7 @@ async function handleDataDownload(d: {
     })
   }
 
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.error('RESEND_API_KEY not set')
-    return { statusCode: 200, body: 'OK (no email key)' }
-  }
-
-  const fullName = [d.firstName, d.lastName].filter(Boolean).join(' ') || d.email
-  const html = `
-    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-      <h2 style="color: #09090b; margin-bottom: 24px;">📊 Nouveau lead — Data ${d.slug || ''}</h2>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666; width: 140px;">Prénom</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.firstName}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Nom</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.lastName}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Email</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;"><a href="mailto:${d.email}" style="color: #0066cc;">${d.email}</a></td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Téléphone</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.phone || '—'}</td></tr>
-        <tr><td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Entreprise</td><td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${d.company || '—'}</td></tr>
-        <tr><td style="padding: 10px 0; color: #666;">Spécialité</td><td style="padding: 10px 0; font-weight: 600;">${d.slug || '—'}</td></tr>
-      </table>
-      <div style="margin-top: 24px; padding: 16px; background: #f9f9f9; border-radius: 8px; font-size: 13px; color: #888;">
-        Ajouté au CRM avec statut "Lead". Tracking actif : la prochaine visite déclenchera une alerte.
-      </div>
-    </div>
-  `
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'Clempo.fr <noreply@clempo.fr>',
-      to: ['clement.pougetosmont@gmail.com'],
-      subject: `📊 Nouveau lead data — ${fullName}`,
-      html,
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    console.error('Resend error (data-download):', err)
-    return { statusCode: 200, body: 'OK (email failed)' }
-  }
+  // Pas d'alerte unitaire — remontée dans le récap du matin.
   return { statusCode: 200, body: 'OK' }
 }
 

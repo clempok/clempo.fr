@@ -33,10 +33,6 @@ const handler: Handler = async (event) => {
 
   try {
     const data = await readCrm()
-    let foundContact: { email: string; firstName?: string; lastName?: string } | null = null
-    let foundCompanyName = ''
-    let foundLabel = ''
-    let foundScore: number | undefined
     let changed = false
 
     outer: for (const co of data.companies) {
@@ -49,14 +45,6 @@ const handler: Handler = async (event) => {
         np.commentAt = new Date().toISOString()
         contact.updatedAt = np.commentAt
         co.updatedAt = np.commentAt
-        foundContact = {
-          email: contact.email,
-          firstName: contact.firstName,
-          lastName: contact.lastName,
-        }
-        foundCompanyName = co.name
-        foundLabel = np.resourceLabel
-        foundScore = np.score
         changed = true
         break outer
       }
@@ -67,51 +55,14 @@ const handler: Handler = async (event) => {
     }
     await writeCrm(data)
 
-    const apiKey = process.env.RESEND_API_KEY
-    if (apiKey && foundContact) {
-      const fullName = [foundContact.firstName, foundContact.lastName].filter(Boolean).join(' ') || foundContact.email
-      const scoreLine = typeof foundScore === 'number' ? `${foundScore}/10` : '—'
-      const html = `
-        <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-          <h2 style="color: #09090b; margin-bottom: 16px;">💬 Commentaire NPS</h2>
-          <p style="margin: 0 0 16px; color: #555;">${fullName} (${foundContact.email}) — ${foundCompanyName}</p>
-          <p style="margin: 0 0 16px; color: #555;">Note ${scoreLine} sur <strong>${foundLabel}</strong></p>
-          <blockquote style="margin: 0; padding: 16px; background: #f9f9f9; border-left: 4px solid #1A1A6B; border-radius: 4px; white-space: pre-wrap; font-size: 15px; line-height: 1.55;">${escapeHtml(comment)}</blockquote>
-          <p style="margin-top: 24px; font-size: 13px; color: #888;">
-            Vue admin : <a href="https://www.clempo.fr/admin" style="color: #0066cc;">clempo.fr/admin</a>.
-          </p>
-        </div>
-      `
-      try {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: 'Clempo.fr <noreply@clempo.fr>',
-            to: ['clement.pougetosmont@gmail.com'],
-            subject: `💬 Commentaire NPS ${scoreLine} — ${foundLabel}`,
-            html,
-          }),
-        })
-      } catch (err) {
-        console.error('nps-comment owner-notify error:', err)
-      }
-    }
+    // Pas de notification instantanée : les commentaires NPS sont regroupés
+    // dans le récap du matin (scheduled-leads-digest.ts).
 
     return { statusCode: 200, body: JSON.stringify({ ok: true }) }
   } catch (err) {
     console.error('nps-comment error:', err)
     return { statusCode: 500, body: JSON.stringify({ ok: false, error: 'server' }) }
   }
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
 }
 
 export { handler }

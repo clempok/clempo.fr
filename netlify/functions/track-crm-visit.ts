@@ -1,7 +1,16 @@
 import type { Handler } from '@netlify/functions'
 import { readCrm, writeCrm } from './_crm'
 
-const ALERT_COOLDOWN_MS = 60 * 60 * 1000 // 1h entre deux alertes pour le même contact
+/**
+ * Enregistre la visite d'un contact connu (cookie CID). N'ENVOIE PLUS D'EMAIL :
+ * les visites sont remontées une fois par jour par scheduled-leads-digest.ts.
+ *
+ * Pourquoi : le quota Resend (100 emails/jour, tous usages confondus) était
+ * absorbé par les alertes unitaires — 34 le 16/07 au lancement de la base
+ * influenceurs — au détriment des séquences NPS et nurture, qui restaient
+ * bloquées « en attente » jusqu'à expirer. Seule la prise de RDV reste
+ * notifiée en temps réel (book-meeting.ts).
+ */
 const MAX_VISITS = 50
 
 const handler: Handler = async (event) => {
@@ -62,82 +71,13 @@ const handler: Handler = async (event) => {
     }
     foundContact.updatedAt = now
 
-    // Decide whether to send an alert
-    const shouldAlert =
-      !foundContact.lastVisitAlertAt ||
-      Date.now() - new Date(foundContact.lastVisitAlertAt).getTime() > ALERT_COOLDOWN_MS
+    await writeCrm(data)
 
-    if (shouldAlert) {
-      foundContact.lastVisitAlertAt = now
-      await writeCrm(data)
-      await sendAlertEmail({ contact: foundContact, company: foundCompany.name, path, now })
-    } else {
-      await writeCrm(data)
-    }
-
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, known: true, alerted: shouldAlert }) }
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, known: true }) }
   } catch (err) {
     console.error('track-crm-visit error:', err)
     return { statusCode: 500, headers, body: JSON.stringify({ error: String(err) }) }
   }
-}
-
-async function sendAlertEmail(opts: {
-  contact: { firstName: string; lastName: string; email: string }
-  company: string
-  path: string
-  now: string
-}) {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) return
-
-  const { contact, company, path, now } = opts
-  const name = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.email
-  const pageLabel = path === '/' ? 'Accueil' : path
-  const time = new Date(now).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
-
-  const html = `
-    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-      <h2 style="color: #09090b; margin-bottom: 8px;">👀 Visite CRM — clempo.fr</h2>
-      <p style="color: #555; margin-bottom: 24px; font-size: 14px;">${time}</p>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666; width: 120px;">Contact</td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${name}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Email</td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-            <a href="mailto:${contact.email}" style="color: #0066cc;">${contact.email}</a>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Entreprise</td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">${company}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; color: #666;">Page visitée</td>
-          <td style="padding: 10px 0; font-weight: 600;">
-            <a href="https://www.clempo.fr${path}" style="color: #0066cc;">${pageLabel}</a>
-          </td>
-        </tr>
-      </table>
-      <div style="margin-top: 24px;">
-        <a href="https://www.clempo.fr/admin" style="display: inline-block; background: #0A0A0B; color: #fff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px;">Ouvrir le CRM →</a>
-      </div>
-    </div>
-  `
-
-  await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'Clempo.fr <noreply@clempo.fr>',
-      to: ['clement.pougetosmont@gmail.com'],
-      subject: `👀 ${name} (${company}) visite clempo.fr`,
-      html,
-    }),
-  }).catch(err => console.error('Resend alert error:', err))
 }
 
 export { handler }

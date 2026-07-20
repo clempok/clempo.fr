@@ -1,5 +1,6 @@
 import type { Config } from '@netlify/functions'
 import { readCrm, writeCrm } from './_crm'
+import type { CrmContact, CrmNpsResponse } from './_crm'
 import { sendNpsEmailFor } from './_nps'
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
@@ -44,7 +45,6 @@ export default async () => {
   let errors = 0
   let pendingByCap = 0
   let dirty = false
-  let capReached = false
 
   try {
     const data = await readCrm()
@@ -64,13 +64,15 @@ export default async () => {
       }
     }
 
-    outer: for (const co of data.companies) {
+    // ── Pass 1 : collecter tous les envois éligibles ──
+    type Candidate = { co: typeof data.companies[number]; contact: CrmContact; np: CrmNpsResponse; downloadedAt: number }
+    const candidates: Candidate[] = []
+
+    for (const co of data.companies) {
       for (const contact of co.contacts) {
         if (!contact.npsResponses || contact.npsResponses.length === 0) continue
-        const emailKey = contact.email?.toLowerCase() || ''
         for (const np of contact.npsResponses) {
           if (np.askedAt) continue
-          if (emailKey && askedByEmailResource.has(`${emailKey}|${np.resource}`)) { skipped += 1; continue }
           // Defensive dedup: if a sibling entry for the same resource has
           // already been asked or scored (e.g. legacy duplicates from before
           // addPendingNps dedup was added), do not email again. The backlog
@@ -86,27 +88,38 @@ export default async () => {
           if (ageMs < ONE_DAY_MS) { skipped += 1; continue }
           if (ageMs > TTL_DAYS * ONE_DAY_MS) { skipped += 1; continue }
           if (!contact.email) { skipped += 1; continue }
-
-          if (sent >= MAX_SENDS_PER_RUN) {
-            pendingByCap += 1
-            capReached = true
-            continue
-          }
-
-          const result = await sendNpsEmailFor(contact, np, { apiKey, isDryRun })
-          if (!result.ok) {
-            console.error('[scheduled-nps-ask] send error:', result.error)
-            errors += 1
-            continue
-          }
-          contact.updatedAt = np.askedAt!
-          co.updatedAt = np.askedAt!
-          dirty = true
-          sent += 1
-          if (emailKey && !isDryRun) askedByEmailResource.add(`${emailKey}|${np.resource}`)
+          candidates.push({ co, contact, np, downloadedAt })
         }
       }
-      if (capReached && pendingByCap > 200) break outer
+    }
+
+    // ── Pass 2 : les plus anciens d'abord, puis envoi jusqu'au plafond ──
+    // Sans ce tri, l'ordre d'envoi suivait l'ordre du blob : sur un pic de
+    // téléchargements, le plafond quotidien pouvait servir des entrées récentes
+    // pendant que les plus vieilles atteignaient le TTL de 7 jours sans jamais
+    // être envoyées.
+    candidates.sort((a, b) => a.downloadedAt - b.downloadedAt)
+
+    for (const { co, contact, np } of candidates) {
+      const emailKey = contact.email.toLowerCase()
+      if (askedByEmailResource.has(`${emailKey}|${np.resource}`)) { skipped += 1; continue }
+
+      if (sent >= MAX_SENDS_PER_RUN) {
+        pendingByCap += 1
+        continue
+      }
+
+      const result = await sendNpsEmailFor(contact, np, { apiKey, isDryRun })
+      if (!result.ok) {
+        console.error('[scheduled-nps-ask] send error:', result.error)
+        errors += 1
+        continue
+      }
+      contact.updatedAt = np.askedAt!
+      co.updatedAt = np.askedAt!
+      dirty = true
+      sent += 1
+      if (!isDryRun) askedByEmailResource.add(`${emailKey}|${np.resource}`)
     }
 
     if (dirty) await writeCrm(data)

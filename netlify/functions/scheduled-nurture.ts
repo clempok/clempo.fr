@@ -91,7 +91,20 @@ export default async () => {
       }
     }
 
-    outer: for (const co of data.companies) {
+    // ── Pass 1 : au plus UN email par contact, le premier palier dû ──
+    type StepKey = 'nurture-j3' | 'nurture-j7'
+    type Candidate = {
+      co: typeof data.companies[number]
+      contact: typeof data.companies[number]['contacts'][number]
+      stepKey: StepKey
+      state: 'step3' | 'step7'
+      language: ContactLanguage
+      vars: Record<string, string>
+      firstDownload: number
+    }
+    const candidates: Candidate[] = []
+
+    for (const co of data.companies) {
       if (SKIPPED_STATUSES.includes(co.status)) continue
 
       for (const contact of co.contacts) {
@@ -111,22 +124,13 @@ export default async () => {
         const resourceLabel = firstEntry?.resourceLabel || firstEntry?.resource || ''
         const downloadedSlugs = downloads.map(r => r.resource)
 
-        type Step = {
-          key: 'nurture-j3' | 'nurture-j7'
-          state: 'step3' | 'step7'
-          inWindow: boolean
-        }
-        const steps: Step[] = [
+        const steps: { key: StepKey; state: 'step3' | 'step7'; inWindow: boolean }[] = [
           { key: 'nurture-j3', state: 'step3', inWindow: ageDays >= STEP3_MIN_DAYS && ageDays <= STEP3_MAX_DAYS },
           { key: 'nurture-j7', state: 'step7', inWindow: ageDays >= STEP7_MIN_DAYS && ageDays <= STEP7_MAX_DAYS },
         ]
 
-        let sentThisRunForContact = false
         for (const step of steps) {
           if (!step.inWindow) continue
-          // Max one nurture email per contact per day — if J+3 and J+7 are
-          // both due (late entry into the window), space them out.
-          if (sentThisRunForContact) continue
 
           const nurture = contact.nurture || {}
           const sentAt = step.state === 'step3' ? nurture.step3SentAt : nurture.step7SentAt
@@ -136,10 +140,7 @@ export default async () => {
           if (sentAt && !(wasDryRun && !isDryRun)) continue
 
           // A duplicate of this contact (same email) already got this step.
-          const emailKey = contact.email.toLowerCase()
-          if (sentByEmail[step.state].has(emailKey)) { skipped += 1; continue }
-
-          if (sent >= MAX_SENDS_PER_RUN) break outer
+          if (sentByEmail[step.state].has(contact.email.toLowerCase())) { skipped += 1; continue }
 
           const vars: Record<string, string> = {
             firstName: contact.firstName || '',
@@ -162,52 +163,69 @@ export default async () => {
             vars.resourcesHtml = resourcesHtml
           }
 
-          const tpl = templates[step.key][language]
-          const subject = renderTemplate(tpl.subject, vars)
-          const unsubUrl = unsubscribeUrl(contact.email)
-          const html = buildEmailHtml({
-            bodyHtml: renderTemplate(tpl.body, vars),
-            subject,
-            language,
-            unsubUrl,
-            isDryRun,
-            realRecipient: contact.email,
-          })
-
-          const result = await sendNurtureEmail({
-            apiKey,
-            to: contact.email,
-            subject,
-            html,
-            unsubUrl,
-            isDryRun,
-            tracking: {
-              templateKey: step.key,
-              language,
-              recipientName: [contact.firstName, contact.lastName].filter(Boolean).join(' ') || undefined,
-              company: co.name,
-            },
-          })
-          if (!result.ok) {
-            console.error(`[scheduled-nurture] send error (${contact.email}, ${step.key}):`, result.error)
-            errors += 1
-            continue
-          }
-
-          contact.nurture = {
-            ...nurture,
-            ...(step.state === 'step3'
-              ? { step3SentAt: nowIso, step3DryRun: isDryRun }
-              : { step7SentAt: nowIso, step7DryRun: isDryRun }),
-          }
-          contact.updatedAt = nowIso
-          co.updatedAt = nowIso
-          dirty = true
-          sent += 1
-          sentThisRunForContact = true
-          sentByEmail[step.state].add(emailKey)
+          candidates.push({ co, contact, stepKey: step.key, state: step.state, language, vars, firstDownload })
+          // Max one nurture email per contact per day — if J+3 and J+7 are
+          // both due (late entry into the window), space them out.
+          break
         }
       }
+    }
+
+    // ── Pass 2 : les plus anciens téléchargements d'abord ──
+    // Le plafond quotidien doit servir en priorité les contacts proches de la
+    // fin de fenêtre (10 j pour J+3, 14 j pour J+7), sinon un pic de
+    // téléchargements laisse expirer les plus vieux sans jamais les envoyer.
+    candidates.sort((a, b) => a.firstDownload - b.firstDownload)
+
+    for (const { co, contact, stepKey, state, language, vars } of candidates) {
+      if (sent >= MAX_SENDS_PER_RUN) break
+
+      const emailKey = contact.email.toLowerCase()
+      if (sentByEmail[state].has(emailKey)) { skipped += 1; continue }
+
+      const tpl = templates[stepKey][language]
+      const subject = renderTemplate(tpl.subject, vars)
+      const unsubUrl = unsubscribeUrl(contact.email)
+      const html = buildEmailHtml({
+        bodyHtml: renderTemplate(tpl.body, vars),
+        subject,
+        language,
+        unsubUrl,
+        isDryRun,
+        realRecipient: contact.email,
+      })
+
+      const result = await sendNurtureEmail({
+        apiKey,
+        to: contact.email,
+        subject,
+        html,
+        unsubUrl,
+        isDryRun,
+        tracking: {
+          templateKey: stepKey,
+          language,
+          recipientName: [contact.firstName, contact.lastName].filter(Boolean).join(' ') || undefined,
+          company: co.name,
+        },
+      })
+      if (!result.ok) {
+        console.error(`[scheduled-nurture] send error (${contact.email}, ${stepKey}):`, result.error)
+        errors += 1
+        continue
+      }
+
+      contact.nurture = {
+        ...(contact.nurture || {}),
+        ...(state === 'step3'
+          ? { step3SentAt: nowIso, step3DryRun: isDryRun }
+          : { step7SentAt: nowIso, step7DryRun: isDryRun }),
+      }
+      contact.updatedAt = nowIso
+      co.updatedAt = nowIso
+      dirty = true
+      sent += 1
+      sentByEmail[state].add(emailKey)
     }
 
     if (dirty) await writeCrm(data)
