@@ -355,6 +355,7 @@ function OnboardingForm({
   const progress = useMemo(() => overallProgress(answers), [answers])
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(data.status === 'submitted')
+  const [submittedAt, setSubmittedAt] = useState(data.submittedAt || '')
 
   const navItems = useMemo(
     () => ONBOARDING_SECTIONS.map(s => ({
@@ -376,8 +377,9 @@ function OnboardingForm({
     setSubmitting(true)
     try {
       await flush()
-      await api('submit')
+      const res = await api('submit')
       setSubmitted(true)
+      setSubmittedAt((res.submittedAt as string) || new Date().toISOString())
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch {
       /* l'indicateur d'enregistrement signale déjà l'échec */
@@ -387,6 +389,9 @@ function OnboardingForm({
   }
 
   const uploader = useUploads({ api, setFiles })
+
+  const remainingEssential = progress.essentialTotal - progress.essentialFilled
+  const plural = remainingEssential > 1 ? 's' : ''
 
   return (
     <div style={{ background: BG, minHeight: '100vh', fontFamily: FT, color: INK }}>
@@ -486,10 +491,11 @@ function OnboardingForm({
               background: 'rgba(0,214,143,0.08)', border: `1px solid rgba(0,214,143,0.35)`,
               borderRadius: R, padding: '1rem 1.25rem', marginBottom: '1.5rem',
             }}>
-              <p style={{ fontWeight: 600, fontSize: '0.88rem', color: SIGNAL_DEEP }}>Questionnaire transmis</p>
+              <p style={{ fontWeight: 600, fontSize: '0.88rem', color: SIGNAL_DEEP }}>Questionnaire finalisé</p>
               <p style={{ fontSize: '0.83rem', color: MUTED, lineHeight: 1.65, marginTop: 3 }}>
-                Clément a été prévenu. Vous pouvez continuer à compléter ou déposer
-                des documents : vos modifications lui parviennent automatiquement.
+                Clément a été prévenu. Rien n’est figé pour autant : vous pouvez
+                continuer à compléter et à déposer des documents, tout lui parvient
+                automatiquement.
               </p>
             </div>
           )}
@@ -540,18 +546,32 @@ function OnboardingForm({
               >
                 Suivant →
               </button>
+            ) : submitted ? (
+              // Une fois finalisé, plus de bouton : le questionnaire reste
+              // modifiable et tout continue de remonter automatiquement.
+              // Reproposer « Finaliser » laisserait croire le contraire.
+              <p style={{ fontSize: '0.82rem', color: SIGNAL_DEEP, textAlign: 'right', lineHeight: 1.6 }}>
+                ✓ Finalisé{submittedAt ? ` le ${new Date(submittedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}` : ''}
+                <br />
+                <span style={{ color: MUTED }}>Vos modifications restent enregistrées automatiquement.</span>
+              </p>
             ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="onb-btn"
-                style={{
-                  padding: '0.8rem 1.5rem', border: 'none',
-                  background: submitting ? BORDER_STRONG : SIGNAL, color: INK, fontWeight: 600,
-                }}
-              >
-                {submitting ? 'Envoi…' : submitted ? 'Prévenir Clément à nouveau' : 'J’ai terminé'}
-              </button>
+              <div style={{ textAlign: 'right' }}>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="onb-btn"
+                  style={{
+                    padding: '0.8rem 1.5rem', border: 'none',
+                    background: submitting ? BORDER_STRONG : SIGNAL, color: INK, fontWeight: 600,
+                  }}
+                >
+                  {submitting ? 'Envoi…' : 'Finaliser'}
+                </button>
+                <p style={{ fontSize: '0.75rem', color: MUTED, marginTop: '0.6rem', lineHeight: 1.6 }}>
+                  Vous pourrez revenir compléter ou déposer des documents à tout moment.
+                </p>
+              </div>
             )}
           </div>
 
@@ -561,9 +581,13 @@ function OnboardingForm({
                 {progress.filled} / {progress.total} réponses · {files.length} document{files.length > 1 ? 's' : ''}
               </p>
               <p style={{ fontSize: '0.83rem', color: MUTED, lineHeight: 1.7 }}>
-                {progress.essentialFilled === progress.essentialTotal
-                  ? 'Toutes les questions essentielles ont une réponse. Vous pouvez transmettre le questionnaire, et le compléter ensuite si besoin.'
-                  : `Il reste ${progress.essentialTotal - progress.essentialFilled} question${progress.essentialTotal - progress.essentialFilled > 1 ? 's' : ''} essentielle${progress.essentialTotal - progress.essentialFilled > 1 ? 's' : ''} sans réponse, repérable${progress.essentialTotal - progress.essentialFilled > 1 ? 's' : ''} à leur pastille verte. Vous pouvez transmettre malgré tout : Clément verra ce qui manque.`}
+                {remainingEssential === 0
+                  ? submitted
+                    ? 'Toutes les questions essentielles ont une réponse. Rien ne vous empêche d’enrichir vos réponses plus tard.'
+                    : 'Toutes les questions essentielles ont une réponse. Vous pouvez finaliser, et compléter ensuite si besoin.'
+                  : submitted
+                    ? `Il reste ${remainingEssential} question${plural} essentielle${plural} sans réponse, repérable${plural} à leur pastille verte. Complétez-les quand vous voulez : Clément verra les ajouts.`
+                    : `Il reste ${remainingEssential} question${plural} essentielle${plural} sans réponse, repérable${plural} à leur pastille verte. Vous pouvez finaliser malgré tout : Clément verra ce qui manque, et vous pourrez compléter plus tard.`}
               </p>
             </div>
           )}
