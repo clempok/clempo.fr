@@ -71,15 +71,26 @@ src/
   - **"Analyses des systèmes de santé"** — articles dont le slug commence par `systeme-sante`
   - **"Conseils marketing appliqués à la santé"** — tous les autres articles
 
-## Design system
-- **Couleur principale** : `#1A1A6B` (bleu foncé, variable `ACCENT`)
-- **Background** : `#FFFFFF` (blanc)
-- **Background off** : `#F8F8F6` (gris clair pour les blocs)
-- **Texte** : `#0A0A0A`
-- **Texte muted** : `#71717A`
-- **Border** : `rgba(0,0,0,0.06)`
-- **Fonts** : Inter (body), Space Grotesk (titres)
-- **Radius** : 16px (standard), 24px (grands blocs)
+## Design system — Brand Book 2026 « ClearSharpHealthcare »
+
+⚠️ Space Grotesk et le bleu `#1A1A6B` appartiennent à l'ancienne charte. Ils ne
+sont plus chargés dans `index.html` : ne pas les réintroduire. Les tokens vivent
+dans `:root` de `src/index.css`, les pages récentes (`InfluenceursSante`,
+`DecideursHospitaliers`, `QuotePage`, `Onboarding`) sont la référence.
+
+- **Ink** `#0A0A0B` (couleur principale, souvent nommée `ACCENT` en local)
+- **Paper** `#EDEBE4` (fond de page) · **Paper soft** `#F4F4F2` (blocs, champs)
+- **Signal** `#00D68F` (accent vert) · **Signal deep** `#009E68` (sur fond clair)
+- **Steel** `#6B6F7A` (texte secondaire) · **Border** `rgba(10,10,11,0.08)`
+- **Fonts** : Inter (`--font-sans`, corps), Instrument Serif (`--font-serif`,
+  titres en graisse 400), JetBrains Mono (`--font-mono`, eyebrows et chiffres)
+- **Radius** : 4px (`--cb-radius`), 8px (`--cb-radius-md`). Charte anguleuse,
+  pas de pilules ni de coins à 16/24px.
+- Classes utilitaires prêtes : `.cb-btn--primary/signal/ghost`, `.cb-card`,
+  `.cb-eyebrow`, `.cb-reveal`, `.cb-wordmark`
+
+Les variables « legacy » (`--accent`, `--bg-off`, `--radius`) subsistent pour
+`/articles` et `/booking`, pas encore migrés.
 
 ## 15 articles
 8 analyses systèmes de santé (États-Unis, Canada/Mexique, Europe, Asie, Moyen-Orient, Afrique, Amérique du Sud, Australie/NZ) + 7 articles marketing santé.
