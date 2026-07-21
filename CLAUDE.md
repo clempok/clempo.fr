@@ -128,7 +128,7 @@ espace par client, créé depuis `/admin` → **Onboarding**.
 | `netlify/functions/_onboarding.ts` | Types, store Blobs, code d'accès, anti brute-force |
 | `netlify/functions/onboarding.ts` | API publique (code requis à chaque appel) |
 | `netlify/functions/admin-onboarding.ts` | API admin (Bearer `ADMIN_PASSWORD`) — dont `set-schema` / `reset-schema` |
-| `netlify/functions/admin-onboarding-generate.ts` | Génère un questionnaire sur mesure via Claude (`ANTHROPIC_API_KEY`) |
+| `netlify/functions/admin-onboarding-generate-background.ts` | Génère un questionnaire sur mesure via Claude (`ANTHROPIC_API_KEY`). **Fonction background** : Claude > 10 s = 504 en synchrone. Écrit le résultat sous `gen/<clientId>` ; l'admin poste puis poll `generation-status`. |
 
 **Questionnaire sur mesure** : un client peut porter son propre `schema`
 (`OnboardingClient.schema`) au lieu du standard. Généré depuis son contexte
@@ -140,6 +140,16 @@ tous deux par là. Le front (source unique du standard) envoie `ONBOARDING_SECTI
 par `sanitizeSchema` (dans `_onboarding.ts`) avant stockage, pour qu'un schéma
 malformé ne casse jamais la page client. Modèle Claude : `claude-sonnet-4-6`
 (mêmes en-têtes que `admin-classify-company.ts`).
+
+La génération produit aussi `contextSummary` (« Ce que j'ai compris de votre
+projet », affiché en tête de la page client) et `prefill` (brouillons de réponses
+seedés dans `client.answers`, uniquement pour les champs **texte** — jamais les
+listes — via `prefillableKeys`). `set-schema` ne seed que les réponses vides et
+mémorise `client.prefilledKeys` (pastille « à vérifier » côté client). Dès que le
+client édite un champ pré-rempli, le save public retire sa clé de `prefilledKeys`.
+`ensureContextField` garantit le champ d'ajustement du contexte en tête de la 1re
+section. Voir [[reference_netlify_function_timeout_llm]] (mémoire) pour le pattern
+background + poll.
 
 **Accès client** : code à 6 caractères généré à la création, mémorisé en
 localStorage côté client. 15 échecs en 15 min → 429 sur ce slug.
