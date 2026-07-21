@@ -129,6 +129,21 @@ espace par client, créé depuis `/admin` → **Onboarding**.
 | `netlify/functions/onboarding.ts` | API publique (code requis à chaque appel) |
 | `netlify/functions/admin-onboarding.ts` | API admin (Bearer `ADMIN_PASSWORD`) — dont `set-schema` / `reset-schema` |
 | `netlify/functions/admin-onboarding-generate-background.ts` | Génère un questionnaire sur mesure via Claude (`ANTHROPIC_API_KEY`). **Fonction background** : Claude > 10 s = 504 en synchrone. Écrit le résultat sous `gen/<clientId>` ; l'admin poste puis poll `generation-status`. |
+| `netlify/functions/onboarding-logo.ts` | Sert le logo client (URL publique, pour l'`og:image`) |
+| `netlify/edge-functions/onboarding-og.ts` | Réécrit `og:image/title` par slug pour l'aperçu de lien (les robots n'exécutent pas le JS) |
+
+**Logo client (aperçu de lien)** : repris du devis signé (`prospectLogo`, un
+data-URI) à la création — matching par nom — et surchargeable dans l'admin
+(fiche → `LogoRow` : depuis le devis / téléverser / retirer). Actions
+`set-logo` / `pull-quote-logo`. Les octets vivent dans le blob `logo/<id>`
+(hors `data`) ; `client.logoMime` porte le type. Un data-URI n'étant pas
+utilisable en `og:image` (les robots veulent une URL), `onboarding-logo` sert
+l'image, et l'edge function `onboarding-og` (portée `/:slug`) réécrit les
+balises `og:`/`twitter:` du HTML servi avec le logo + le nom. Le GET public
+`?slug=` expose `found`/`companyName`/`hasLogo` (non confidentiels). ⚠️ Aperçus
+LinkedIn/WhatsApp **mis en cache** : un lien déjà envoyé garde l'ancienne image ;
+seuls les nouveaux partages (ou un refresh via le LinkedIn Post Inspector) la
+montrent.
 
 **Questionnaire sur mesure** : un client peut porter son propre `schema`
 (`OnboardingClient.schema`) au lieu du standard. Généré depuis son contexte
