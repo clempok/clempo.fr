@@ -187,6 +187,15 @@ a, button { cursor: none; }
   text-underline-offset: 3px;
 }
 .article-body a:hover { text-decoration-color: var(--ink); }
+/* Liens dans le contenu HTML des pages spécialités (rendu via dangerouslySetInnerHTML) */
+.specialite-prose a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--signal);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.specialite-prose a:hover { text-decoration-color: var(--ink); }
 .article-body ul {
   list-style: none; padding-left: 0;
   color: var(--graphite); margin: 1rem 0;

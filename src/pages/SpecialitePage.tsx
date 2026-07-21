@@ -392,6 +392,7 @@ export default function SpecialitePage() {
               Les acteurs du marché du logiciel {specialite.shortName}
             </h2>
             <div
+              className="specialite-prose"
               style={{
                 fontSize: '1rem',
                 lineHeight: 1.7,
@@ -417,6 +418,7 @@ export default function SpecialitePage() {
               Évolutions et tendances du marché
             </h2>
             <div
+              className="specialite-prose"
               style={{
                 fontSize: '1rem',
                 lineHeight: 1.7,
