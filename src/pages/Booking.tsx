@@ -161,7 +161,8 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
   const functionBadges = ['Product Marketing', 'Growth', 'Direction Marketing']
 
   const socialProofClients = [
-    'Doctolib', 'Kiro', 'Cherry Biotech', 'Corilus France', 'Andrew', 'Semble',
+    'Doctolib', 'Kiro', 'Recept AI', 'Vera Health', 'Axomove', 'Lucidia', 'Patrimovie',
+    'Cherry Biotech', 'Corilus France', 'Andrew', 'Semble',
     'MonBilanDeSanté', 'HeyTeam', 'Sorcova Health', 'Neok', 'Doqboard', 'DocCity',
   ]
 

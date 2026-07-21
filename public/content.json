@@ -146,6 +146,11 @@
   "clients": [
     "Doctolib",
     "Kiro",
+    "Recept AI",
+    "Vera Health",
+    "Axomove",
+    "Lucidia",
+    "Patrimovie",
     "Santé Académie",
     "Cherry Biotech",
     "Neok",
@@ -219,7 +224,7 @@
         "title": "Healthtech",
         "text": "Vente de logiciels à des professionnels de santé et des établissements hospitaliers.",
         "role": "",
-        "clients": "Doctolib, Kiro, Corilus France, Andrew, Semble, MonBilanDeSanté"
+        "clients": "Doctolib, Kiro, Corilus France, Andrew, Semble, MonBilanDeSanté, Recept AI, Vera Health, Axomove, Lucidia"
       },
       {
         "icon": "🏢",

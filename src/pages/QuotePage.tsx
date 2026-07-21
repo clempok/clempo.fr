@@ -19,7 +19,8 @@ const FM = "'JetBrains Mono', ui-monospace, monospace"
 const FS = "'Instrument Serif', Georgia, serif"
 
 const CLIENTS = [
-  'Doctolib', 'Kiro', 'Santé Académie', 'Cherry Biotech', 'Neok',
+  'Doctolib', 'Kiro', 'Recept AI', 'Vera Health', 'Axomove', 'Lucidia', 'Patrimovie',
+  'Santé Académie', 'Cherry Biotech', 'Neok',
   'Médéré', 'Sorcova', 'DocCity', 'Semble', 'Andrew',
 ]
 const EXPERTISES = [

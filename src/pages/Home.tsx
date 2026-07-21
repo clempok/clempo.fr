@@ -34,7 +34,8 @@ import YouTubeFacade from '../components/YouTubeFacade'
 const PORTRAIT_URL = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6913248fb7d48a3e5503c26d/48d8d0835_nano-banana-2025-11-11T10-55-151.png'
 
 const defaultClients = [
-  'Doctolib','Kiro','Santé Académie','Cherry Biotech','Neok',
+  'Doctolib','Kiro','Recept AI','Vera Health','Axomove','Lucidia','Patrimovie',
+  'Santé Académie','Cherry Biotech','Neok',
   'Médéré','Sorcova','DocCity','Semble','Andrew','Sofia Développement',
 ]
 
@@ -721,7 +722,7 @@ export default function Home() {
               {(() => {
                 const secteursDefaults = [
                   { icon: '🧬', title: 'Pharma & Biotech', text: "Vente de produits hautement techniques à des décideurs Pharma, Biotech et académiques.", clients: 'Cherry Biotech, Doqboard, MSD', role: '' },
-                  { icon: '💻', title: 'Healthtech', text: "Vente de logiciels à des professionnels de santé et des établissements hospitaliers.", clients: 'Doctolib, Kiro, Corilus France, Andrew, Semble, MonBilanDeSanté', role: '' },
+                  { icon: '💻', title: 'Healthtech', text: "Vente de logiciels à des professionnels de santé et des établissements hospitaliers.", clients: 'Doctolib, Kiro, Corilus France, Andrew, Semble, MonBilanDeSanté, Recept AI, Vera Health, Axomove, Lucidia', role: '' },
                   { icon: '🏢', title: 'B2B', text: "Vente de solutions santé et RH à de grandes entreprises.", clients: 'HeyTeam, Sorcova Health, Neok', role: '' },
                   { icon: '🏥', title: 'Établissements de soins', text: "Marketing pour des centres de santé afin d'attirer patients et médecins.", clients: 'DocCity, Clinique stomatologie Dr Solène Vo Quang', role: '' },
                 ]

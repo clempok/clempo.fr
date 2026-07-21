@@ -4,7 +4,8 @@ import Eyebrow from '../components/Eyebrow'
 import Wordmark from '../components/Wordmark'
 
 const defaultClients = [
-  'Doctolib','Kiro','Santé Académie','Cherry Biotech','Neok',
+  'Doctolib','Kiro','Recept AI','Vera Health','Axomove','Lucidia','Patrimovie',
+  'Santé Académie','Cherry Biotech','Neok',
   'Médéré','Sorcova','DocCity','Semble','Andrew','Sofia Développement',
 ]
 
@@ -403,7 +404,7 @@ export default function Hiring() {
               color: 'var(--graphite)',
             }}>
               <p>
-                Depuis 3 ans, j'ai accompagné <strong style={{ color: 'var(--ink)' }}>plus de 20 clients</strong> du secteur santé — startups, scaleups, ETI — sur leur stratégie et leurs opérations marketing. Parmi eux : <strong style={{ color: 'var(--ink)' }}>Doctolib, Kiro, Santé Académie, Cherry Biotech, Neok, Médéré, Sorcova, DocCity, Semble, Andrew, Sofia Développement</strong>.
+                Depuis 3 ans, j'ai accompagné <strong style={{ color: 'var(--ink)' }}>plus de 20 clients</strong> du secteur santé — startups, scaleups, ETI — sur leur stratégie et leurs opérations marketing. Parmi eux : <strong style={{ color: 'var(--ink)' }}>Doctolib, Kiro, Recept AI, Vera Health, Axomove, Lucidia, Santé Académie, Cherry Biotech, Neok, Médéré, Sorcova, DocCity, Semble, Andrew, Sofia Développement</strong>.
               </p>
               <p>
                 Les métiers exercés au quotidien : <strong style={{ color: 'var(--ink)' }}>Product Marketing, Growth Marketing, Création de contenu, Management d'équipe</strong>. Ce stage, c'est l'occasion de toucher à toutes les dimensions du marketing en accompagnant des entreprises de tailles très variées.
