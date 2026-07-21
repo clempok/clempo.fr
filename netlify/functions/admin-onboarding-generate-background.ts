@@ -1,6 +1,9 @@
 import type { Handler } from '@netlify/functions'
 import { isAdminToken } from './_analytics'
-import { getOnboardingStore, sanitizeSchema, UPLOAD_SLOT_KEYS } from './_onboarding'
+import {
+  getOnboardingStore, sanitizeSchema, ensureContextField, sanitizePrefill, schemaKeys,
+  CONTEXT_SUMMARY_MAX, UPLOAD_SLOT_KEYS,
+} from './_onboarding'
 import type { OnbSection } from './_onboarding'
 
 /**
@@ -95,9 +98,15 @@ Dépôts de documents : chaque section peut proposer des emplacements via "uploa
 
 Ton : expert, accessible, direct, jamais corporate. Vouvoiement. Style insider santé. Les intros de section sont courtes et parlent au client.
 
+En plus du questionnaire, produis deux choses pour faire gagner du temps au client :
+
+1. "contextSummary" : un court résumé (3 à 5 phrases, vouvoiement) de ce que Clément a compris du client et de la mission, ADRESSÉ AU CLIENT ("Voici ce que j'ai compris de votre activité et de nos objectifs : …"). Il sera affiché en tête de son espace, pour qu'il valide ou corrige. Reste factuel, tiré du contexte, sans flatterie.
+
+2. "prefill" : pour CHAQUE question dont le contexte donne déjà la réponse (même partielle), rédige un BROUILLON de réponse à la PREMIÈRE personne, au nom du client ("Nous…", "Notre…"), que le client n'aura qu'à valider ou corriger. Objet {clé_de_la_question: "brouillon"}. NE PRÉ-REMPLIS QUE ce qui découle vraiment du contexte — laisse tout le reste absent, n'invente jamais un chiffre ou un fait non fourni. Ne pré-remplis jamais une question à choix (select/checkboxes).
+
 Réponds UNIQUEMENT par un objet JSON strict, sans texte ni balise Markdown autour :
-{"sections":[{"id","title","icon","intro","uploads":["..."],"fields":[{"key","label","help","type","options":["..."],"essential":true,"rows":4}]}]}
-"icon" est un emoji. "help", "options", "essential", "rows", "intro", "uploads" sont facultatifs.`
+{"contextSummary":"…","prefill":{"cle":"brouillon"},"sections":[{"id","title","icon","intro","uploads":["..."],"fields":[{"key","label","help","type","options":["..."],"essential":true,"rows":4}]}]}
+"icon" est un emoji. "help", "options", "essential", "rows", "intro", "uploads", "contextSummary", "prefill" sont facultatifs.`
 
   const userPrompt = `CONTEXTE DU CLIENT${body.companyName ? ` (${body.companyName})` : ''} :
 ${context}
@@ -143,11 +152,17 @@ ${compactBase(base)}`
     return fail('JSON invalide dans la réponse du modèle.')
   }
 
-  const rawSections = Array.isArray(parsed) ? parsed : (parsed as { sections?: unknown }).sections
-  const sections = sanitizeSchema(rawSections)
+  const obj = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed as Record<string, unknown> : {}
+  const rawSections = Array.isArray(parsed) ? parsed : obj.sections
+  let sections = sanitizeSchema(rawSections)
   if (!sections) return fail('Le questionnaire généré était vide ou invalide. Réessayez.')
 
-  await writeResult(clientId, { jobId, status: 'done', sections })
+  const contextSummary = typeof obj.contextSummary === 'string' ? obj.contextSummary.trim().slice(0, CONTEXT_SUMMARY_MAX) : ''
+  // Le champ « corrigez mon résumé » n'a de sens que si un résumé est affiché.
+  if (contextSummary) sections = ensureContextField(sections)
+  const prefill = sanitizePrefill(obj.prefill, schemaKeys(sections))
+
+  await writeResult(clientId, { jobId, status: 'done', sections, contextSummary, prefill })
   return { statusCode: 200, body: 'ok' }
 }
 

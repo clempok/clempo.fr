@@ -41,6 +41,8 @@ type AdminClient = {
   accessCode: string
   answers: Record<string, string>
   schema?: OnboardingSection[] | null
+  contextSummary?: string
+  prefilledKeys?: string[]
   files: AdminFile[]
   createdAt: string
   updatedAt?: string
@@ -561,12 +563,16 @@ function ClientDetail({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
               {visible.map(f => {
                 const filled = isFilled(answers, f.key)
+                const isPrefilled = (client.prefilledKeys || []).includes(f.key)
                 return (
                   <div key={f.key}>
                     <p style={{ fontSize: '0.78rem', fontWeight: 600, color: MUTED, marginBottom: '0.3rem' }}>
                       {f.label}
                       {f.essential && !filled && (
                         <span style={{ color: '#dc2626', marginLeft: 6, fontWeight: 500 }}>· essentiel, sans réponse</span>
+                      )}
+                      {isPrefilled && (
+                        <span style={{ color: SIGNAL, marginLeft: 6, fontWeight: 600 }}>· pré-rempli (non validé)</span>
                       )}
                     </p>
                     <p style={{
@@ -674,13 +680,18 @@ function SchemaStudio({
   onClose: () => void
   onSaved: () => void | Promise<void>
 }) {
-  const hasAnswers = Object.keys(client.answers || {}).length > 0
+  // Réponses réellement saisies par le client (hors pré-remplissages IA), pour
+  // ne l'avertir « il a déjà répondu » que si c'est vraiment le cas.
+  const prefilledSet = new Set(client.prefilledKeys || [])
+  const hasAnswers = Object.entries(client.answers || {}).some(([k, v]) => v && v.trim() && !prefilledSet.has(k))
   const [mode, setMode] = useState<StudioMode>(client.schema && client.schema.length ? 'editing' : 'context')
   const [draft, setDraft] = useState<OnboardingSection[]>(
     client.schema && client.schema.length ? cloneSections(client.schema) : [],
   )
   const [context, setContext] = useState('')
   const [instructions, setInstructions] = useState('')
+  const [contextSummary, setContextSummary] = useState(client.contextSummary || '')
+  const [prefill, setPrefill] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
 
@@ -721,6 +732,10 @@ function SchemaStudio({
   // La génération dépasse le timeout d'une fonction synchrone : on lance une
   // fonction background (202 immédiat) qui écrit le résultat dans le store, puis
   // on interroge jusqu'à retrouver notre jobId.
+  type GenRecord = {
+    jobId: string; status: string
+    sections?: OnboardingSection[]; contextSummary?: string; prefill?: Record<string, string>; error?: string
+  }
   const generate = async () => {
     setErr('')
     setBusy('generate')
@@ -734,20 +749,30 @@ function SchemaStudio({
           companyName: client.companyName, baseSchema: ONBOARDING_SECTIONS,
         }),
       })
-      const deadline = Date.now() + 120000
+      const deadline = Date.now() + 180000
       while (Date.now() < deadline) {
         await new Promise(r => setTimeout(r, 2500))
-        const json = await authFetch('/.netlify/functions/admin-onboarding', { action: 'generation-status', id: client.id })
-        const g = json.generation as { jobId: string; status: string; sections?: OnboardingSection[]; error?: string } | null
+        // Un poll qui échoue (cold start, hoquet réseau) ne doit pas tout
+        // arrêter : on réessaie jusqu'à la deadline, la génération continue côté
+        // serveur. On ne sort que sur un statut terminal ou l'expiration.
+        let g: GenRecord | null = null
+        try {
+          const json = await authFetch('/.netlify/functions/admin-onboarding', { action: 'generation-status', id: client.id })
+          g = json.generation as GenRecord | null
+        } catch {
+          continue
+        }
         if (g && g.jobId === jobId) {
           if (g.status === 'error') throw new Error(g.error || 'Génération échouée')
           setDraft(g.sections || [])
+          setContextSummary(g.contextSummary || '')
+          setPrefill(g.prefill && typeof g.prefill === 'object' ? g.prefill : {})
           setMode('editing')
           setBusy('')
           return
         }
       }
-      throw new Error('La génération a expiré (2 min). Réessayez.')
+      throw new Error('La génération a pris trop de temps (3 min). Réessayez, ou éditez à la main.')
     } catch (e) {
       setErr((e as Error).message)
       setBusy('')
@@ -758,13 +783,19 @@ function SchemaStudio({
     setErr('')
     setBusy('save')
     try {
-      await authFetch('/.netlify/functions/admin-onboarding', { action: 'set-schema', id: client.id, schema: draft })
+      await authFetch('/.netlify/functions/admin-onboarding', {
+        action: 'set-schema', id: client.id, schema: draft, contextSummary, prefill,
+      })
       await onSaved()
     } catch (e) {
       setErr((e as Error).message)
       setBusy('')
     }
   }
+
+  // Intitulé d'une question, pour afficher les réponses pré-remplies lisiblement.
+  const labelForKey = (key: string) =>
+    draft.flatMap(s => s.fields).find(f => f.key === key)?.label || key
 
   /* Mutations du brouillon ─────────────────────────────────────────────── */
   const patchSection = (i: number, patch: Partial<OnboardingSection>) =>
@@ -895,6 +926,58 @@ function SchemaStudio({
                   déjà remplies : leurs réponses resteraient stockées mais ne s’afficheraient plus.
                 </div>
               )}
+
+              {/* Contexte affiché au client */}
+              <div style={{ border: `1px solid ${BORDER}`, borderRadius: 12, padding: '1rem', background: '#fafafa', marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#333', marginBottom: '0.2rem' }}>
+                  Contexte affiché en tête de l’espace client
+                </label>
+                <p style={{ fontSize: '0.72rem', color: MUTED, marginBottom: '0.5rem', lineHeight: 1.5 }}>
+                  Ce que le client lira comme « Ce que j’ai compris de votre projet ». Vide = rien d’affiché.
+                </p>
+                <textarea
+                  value={contextSummary}
+                  onChange={e => setContextSummary(e.target.value)}
+                  rows={4}
+                  style={studioTextarea}
+                />
+              </div>
+
+              {/* Revue des réponses pré-remplies */}
+              {Object.keys(prefill).length > 0 && (
+                <div style={{ border: `1px solid rgba(0,214,143,0.4)`, borderRadius: 12, padding: '1rem', background: 'rgba(0,214,143,0.05)', marginBottom: '1rem' }}>
+                  <p style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.2rem' }}>
+                    ✨ {Object.keys(prefill).length} réponse{Object.keys(prefill).length > 1 ? 's' : ''} pré-remplie{Object.keys(prefill).length > 1 ? 's' : ''}
+                  </p>
+                  <p style={{ fontSize: '0.72rem', color: MUTED, marginBottom: '0.75rem', lineHeight: 1.5 }}>
+                    Brouillons rédigés depuis le contexte. Le client les verra pré-remplis, marqués « à vérifier ».
+                    Corrigez ici ce qui est faux, ou retirez ce dont vous n’êtes pas sûr.
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                    {Object.entries(prefill).map(([key, val]) => (
+                      <div key={key}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#333' }}>{labelForKey(key)}</span>
+                          <button
+                            onClick={() => setPrefill(p => { const n = { ...p }; delete n[key]; return n })}
+                            title="Retirer ce pré-remplissage"
+                            style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.72rem', flexShrink: 0 }}
+                          >
+                            retirer
+                          </button>
+                        </div>
+                        <textarea
+                          value={val}
+                          onChange={e => setPrefill(p => ({ ...p, [key]: e.target.value }))}
+                          rows={2}
+                          style={{ ...studioTextarea, fontSize: '0.8rem' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {draft.map((section, si) => (
                   <SectionEditor

@@ -56,6 +56,10 @@ type ClientData = {
   answers: Record<string, string>
   /** Questionnaire personnalisé ; null → le client voit le standard. */
   schema?: OnboardingSection[] | null
+  /** Résumé du contexte, affiché en tête de la 1re section. */
+  contextSummary?: string
+  /** Clés pré-remplies par l'IA, à faire valider au client. */
+  prefilledKeys?: string[]
   files: ClientFile[]
   status: 'draft' | 'in_progress' | 'submitted'
   updatedAt?: string
@@ -358,6 +362,7 @@ function OnboardingForm({
 }) {
   // Questionnaire personnalisé du client, ou standard à défaut.
   const sections = useMemo(() => resolveSections(data.schema), [data.schema])
+  const prefilledSet = useMemo(() => new Set(data.prefilledKeys || []), [data.prefilledKeys])
   const progress = useMemo(() => overallProgress(answers, sections), [answers, sections])
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(data.status === 'submitted')
@@ -506,6 +511,21 @@ function OnboardingForm({
             </div>
           )}
 
+          {/* Réponses pré-remplies : prévenir une seule fois, en tête. */}
+          {index === 0 && prefilledSet.size > 0 && !submitted && (
+            <div style={{
+              background: 'rgba(0,214,143,0.07)', border: `1px solid rgba(0,214,143,0.3)`,
+              borderRadius: R, padding: '0.9rem 1.15rem', marginBottom: '1.5rem',
+            }}>
+              <p style={{ fontSize: '0.83rem', color: INK, lineHeight: 1.6 }}>
+                <strong>J’ai pré-rempli certaines réponses</strong> à partir de nos
+                échanges et de votre devis. Elles sont signalées par une pastille{' '}
+                <span style={{ color: SIGNAL_DEEP, fontWeight: 600 }}>« à vérifier »</span> :
+                relisez-les, corrigez ou complétez. Le reste est à vous.
+              </p>
+            </div>
+          )}
+
           <div className="onb-card" style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
             <p className="onb-eyebrow" style={{ color: MUTED, marginBottom: '0.9rem' }}>
               — {String(index + 1).padStart(2, '0')} / {String(navItems.length).padStart(2, '0')}
@@ -518,13 +538,35 @@ function OnboardingForm({
               {section.title}
             </h2>
             {section.intro && (
-              <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.7, marginBottom: '2.25rem', maxWidth: 600 }}>
+              <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.7, marginBottom: section === sections[0] && data.contextSummary ? '1.5rem' : '2.25rem', maxWidth: 600 }}>
                 {section.intro}
               </p>
             )}
+
+            {/* Contexte : ce que Clément a compris, affiché en tête de la 1re section. */}
+            {index === 0 && data.contextSummary && (
+              <div style={{
+                background: BG, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${SIGNAL}`,
+                borderRadius: R, padding: '1.1rem 1.25rem', marginBottom: '2rem',
+              }}>
+                <p className="onb-eyebrow" style={{ color: SIGNAL_DEEP, marginBottom: '0.5rem' }}>
+                  Ce que j’ai compris de votre projet
+                </p>
+                <p style={{ fontSize: '0.9rem', lineHeight: 1.7, color: INK, whiteSpace: 'pre-wrap' }}>
+                  {data.contextSummary}
+                </p>
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.9rem' }}>
               {section.fields.map(field => (
-                <Field key={field.key} field={field} value={answers[field.key] || ''} onChange={v => setAnswer(field.key, v)} />
+                <Field
+                  key={field.key}
+                  field={field}
+                  value={answers[field.key] || ''}
+                  onChange={v => setAnswer(field.key, v)}
+                  prefilled={prefilledSet.has(field.key)}
+                />
               ))}
             </div>
 
@@ -668,7 +710,7 @@ function NavButton({ item, n, active, onClick }: { item: NavItem; n: number; act
   )
 }
 
-function Field({ field, value, onChange }: { field: OnboardingField; value: string; onChange: (v: string) => void }) {
+function Field({ field, value, onChange, prefilled }: { field: OnboardingField; value: string; onChange: (v: string) => void; prefilled?: boolean }) {
   const empty = !value.trim()
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '0.75rem 0.9rem', fontSize: '0.9rem', lineHeight: 1.65,
@@ -694,6 +736,15 @@ function Field({ field, value, onChange }: { field: OnboardingField; value: stri
               verticalAlign: 'middle', background: empty ? SIGNAL : 'rgba(10,10,11,0.15)',
             }}
           />
+        )}
+        {prefilled && (
+          <span style={{
+            marginLeft: 8, verticalAlign: 'middle', display: 'inline-block',
+            fontFamily: FM, fontSize: '0.6rem', letterSpacing: '0.04em', textTransform: 'uppercase',
+            color: SIGNAL_DEEP, background: 'rgba(0,214,143,0.12)', borderRadius: 99, padding: '0.1rem 0.45rem',
+          }}>
+            à vérifier
+          </span>
         )}
       </label>
       {field.help && (

@@ -29,6 +29,12 @@ export const MAX_FILES = 60
 /** Longueur max d'une réponse texte (garde-fou anti-payload). */
 export const MAX_ANSWER_CHARS = 20000
 
+/** Longueur max du résumé de contexte affiché au client. */
+export const CONTEXT_SUMMARY_MAX = 2000
+
+/** Clé réservée du champ « corrigez mon résumé du contexte » (1re section). */
+export const CONTEXT_FIELD_KEY = 'contexte_ajustements'
+
 export type OnboardingStatus = 'draft' | 'in_progress' | 'submitted'
 
 export type OnboardingFile = {
@@ -151,6 +157,46 @@ export function sanitizeSchema(raw: unknown): OnbSection[] | null {
   return sections.length ? sections : null
 }
 
+/**
+ * Garantit un champ d'ajustement du contexte en tête de la 1re section, quand
+ * un résumé est affiché au client — pour qu'il puisse corriger ce que Clément a
+ * compris. Idempotent : ne double pas le champ s'il existe déjà.
+ */
+export function ensureContextField(sections: OnbSection[]): OnbSection[] {
+  if (!sections.length) return sections
+  const [first, ...rest] = sections
+  if (first.fields.some(f => f.key === CONTEXT_FIELD_KEY)) return sections
+  const field: OnbField = {
+    key: CONTEXT_FIELD_KEY,
+    label: 'Ce résumé est-il juste ? Complétez ou corrigez ce qui manque.',
+    help: 'Il vient de nos échanges et de votre devis — précisez ce qui mérite de l’être.',
+    type: 'textarea',
+    rows: 3,
+  }
+  return [{ ...first, fields: [field, ...first.fields] }, ...rest]
+}
+
+/**
+ * Assainit un jeu de réponses pré-remplies (proposé par l'IA) : ne garde que
+ * les clés réellement présentes dans le schéma, jamais le champ d'ajustement
+ * du contexte (réservé au client), valeurs bornées.
+ */
+export function sanitizePrefill(raw: unknown, validKeys: Set<string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (!validKeys.has(k) || k === CONTEXT_FIELD_KEY) continue
+    const val = (typeof v === 'string' ? v : String(v ?? '')).trim()
+    if (val) out[k] = val.slice(0, MAX_ANSWER_CHARS)
+  }
+  return out
+}
+
+/** Toutes les clés de champ d'un schéma. */
+export function schemaKeys(sections: OnbSection[]): Set<string> {
+  return new Set(sections.flatMap(s => s.fields.map(f => f.key)))
+}
+
 export type OnboardingClient = {
   id: string
   /** Segment d'URL : clempo.fr/<slug> */
@@ -166,6 +212,10 @@ export type OnboardingClient = {
   answers: Record<string, string>
   /** Questionnaire personnalisé. Absent → le client voit le standard. */
   schema?: OnbSection[]
+  /** Résumé du contexte affiché en tête de la page client (questionnaire sur mesure). */
+  contextSummary?: string
+  /** Clés dont la réponse a été pré-remplie par l'IA (à valider par le client). */
+  prefilledKeys?: string[]
   files: OnboardingFile[]
   createdAt: string
   /** Dernière modification par le client. */

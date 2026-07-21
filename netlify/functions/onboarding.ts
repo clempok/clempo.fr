@@ -35,6 +35,8 @@ function publicView(c: OnboardingClient) {
     contactName: c.contactName || '',
     answers: c.answers || {},
     schema: c.schema || null,
+    contextSummary: c.contextSummary || '',
+    prefilledKeys: c.prefilledKeys || [],
     files: (c.files || []).map(f => ({
       id: f.id, slot: f.slot, name: f.name, size: f.size,
       mimeType: f.mimeType, chunks: f.chunks, uploadedAt: f.uploadedAt,
@@ -128,6 +130,10 @@ const handler: Handler = async (event) => {
       // Une valeur vide efface la réponse plutôt que de stocker "" partout.
       if (value === '') delete client.answers[k]
       else client.answers[k] = value
+      // Le client a touché ce champ : ce n'est plus un brouillon IA « à valider ».
+      if (client.prefilledKeys?.includes(k)) {
+        client.prefilledKeys = client.prefilledKeys.filter(x => x !== k)
+      }
     }
     client.updatedAt = now
     if (client.status === 'draft') client.status = 'in_progress'

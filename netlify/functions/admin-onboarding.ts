@@ -8,7 +8,10 @@ import {
   loadOnboarding,
   saveOnboarding,
   sanitizeSchema,
+  sanitizePrefill,
+  schemaKeys,
   slugifyOnboarding,
+  CONTEXT_SUMMARY_MAX,
   RESERVED_SLUGS,
 } from './_onboarding'
 import type { OnboardingClient } from './_onboarding'
@@ -128,13 +131,43 @@ const handler: Handler = async (event) => {
       return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Schéma vide ou invalide' }) }
     }
     client.schema = clean
+
+    // Résumé de contexte affiché au client (vide → on l'enlève).
+    if (typeof body.contextSummary === 'string') {
+      const summary = body.contextSummary.trim().slice(0, CONTEXT_SUMMARY_MAX)
+      if (summary) client.contextSummary = summary
+      else delete client.contextSummary
+    }
+
+    // Réponses pré-remplies : on ne seed QUE les questions encore vides, pour ne
+    // jamais écraser ce que le client a déjà saisi. On mémorise les clés seedées
+    // pour l'affichage « à valider » côté client. On ne touche à tout ça que si
+    // un prefill est fourni — une simple ré-édition du schéma ne doit pas effacer
+    // les marqueurs d'une génération précédente.
+    const prefill = sanitizePrefill(body.prefill, schemaKeys(clean))
+    if (Object.keys(prefill).length) {
+      client.answers = client.answers || {}
+      const seeded: string[] = []
+      for (const [k, v] of Object.entries(prefill)) {
+        const existing = client.answers[k]
+        if (!existing || !existing.trim()) {
+          client.answers[k] = v
+          seeded.push(k)
+        }
+      }
+      client.prefilledKeys = seeded
+    }
+
     await saveOnboarding(data)
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ ok: true, schema: clean }) }
   }
 
-  // Retour au questionnaire standard (les réponses déjà données restent en base).
+  // Retour au questionnaire standard. Les réponses déjà données restent en base ;
+  // on retire seulement les artefacts de personnalisation (résumé, marqueurs).
   if (action === 'reset-schema') {
     delete client.schema
+    delete client.contextSummary
+    delete client.prefilledKeys
     await saveOnboarding(data)
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ ok: true }) }
   }
