@@ -718,18 +718,38 @@ function SchemaStudio({
     }
   }
 
+  // La génération dépasse le timeout d'une fonction synchrone : on lance une
+  // fonction background (202 immédiat) qui écrit le résultat dans le store, puis
+  // on interroge jusqu'à retrouver notre jobId.
   const generate = async () => {
     setErr('')
     setBusy('generate')
+    const jobId = crypto.randomUUID()
     try {
-      const json = await authFetch('/.netlify/functions/admin-onboarding-generate', {
-        context, instructions, companyName: client.companyName, baseSchema: ONBOARDING_SECTIONS,
+      await fetch('/.netlify/functions/admin-onboarding-generate-background', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
+        body: JSON.stringify({
+          clientId: client.id, jobId, context, instructions,
+          companyName: client.companyName, baseSchema: ONBOARDING_SECTIONS,
+        }),
       })
-      setDraft(json.sections as OnboardingSection[])
-      setMode('editing')
+      const deadline = Date.now() + 120000
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 2500))
+        const json = await authFetch('/.netlify/functions/admin-onboarding', { action: 'generation-status', id: client.id })
+        const g = json.generation as { jobId: string; status: string; sections?: OnboardingSection[]; error?: string } | null
+        if (g && g.jobId === jobId) {
+          if (g.status === 'error') throw new Error(g.error || 'Génération échouée')
+          setDraft(g.sections || [])
+          setMode('editing')
+          setBusy('')
+          return
+        }
+      }
+      throw new Error('La génération a expiré (2 min). Réessayez.')
     } catch (e) {
       setErr((e as Error).message)
-    } finally {
       setBusy('')
     }
   }
@@ -857,7 +877,7 @@ function SchemaStudio({
                   disabled={busy === 'generate' || context.trim().length < 20}
                   style={{ ...primaryBtn, padding: '0.7rem 1.3rem', opacity: busy === 'generate' || context.trim().length < 20 ? 0.6 : 1 }}
                 >
-                  {busy === 'generate' ? 'Génération… (~15 s)' : '✨ Générer le questionnaire'}
+                  {busy === 'generate' ? 'Génération en cours… (~30 s)' : '✨ Générer le questionnaire'}
                 </button>
                 <button
                   onClick={() => { setDraft(cloneSections(ONBOARDING_SECTIONS)); setMode('editing') }}

@@ -1,6 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { isAdminToken } from './_analytics'
-import { sanitizeSchema, UPLOAD_SLOT_KEYS } from './_onboarding'
+import { getOnboardingStore, sanitizeSchema, UPLOAD_SLOT_KEYS } from './_onboarding'
 import type { OnbSection } from './_onboarding'
 
 /**
@@ -10,15 +10,27 @@ import type { OnbSection } from './_onboarding'
  * — et le retaille : retire les questions hors-sujet, reformule avec le
  * vocabulaire du client, ajoute les questions propres à sa mission.
  *
- * Ne stocke rien : l'admin prévisualise, édite, puis enregistre via
- * admin-onboarding (action set-schema). La sortie de l'IA est assainie ici pour
- * qu'un JSON malformé ne puisse jamais casser la page client.
+ * FONCTION BACKGROUND : Claude met plus de 10 s à écrire un questionnaire
+ * complet, ce qui dépasse le timeout d'une fonction synchrone (504). On répond
+ * donc en 202 immédiat, on travaille en arrière-plan (jusqu'à 15 min), et on
+ * écrit le résultat sous `gen/<clientId>` dans le store. L'admin poste ici puis
+ * interroge admin-onboarding (action generation-status) jusqu'à ce que son
+ * `jobId` revienne. La sortie de l'IA est assainie pour qu'un JSON malformé ne
+ * puisse jamais casser la page client.
  */
 
 const MODEL = 'claude-sonnet-4-6'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 
-const HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
+/** Clé de stockage d'un résultat de génération. */
+function genKey(clientId: string): string {
+  return `gen/${clientId}`
+}
+
+async function writeResult(clientId: string, record: Record<string, unknown>): Promise<void> {
+  const store = getOnboardingStore()
+  await store.setJSON(genKey(clientId), { ...record, at: new Date().toISOString() }).catch(() => { /* non bloquant */ })
+}
 
 /** Représentation compacte du schéma de référence, pour économiser des tokens. */
 function compactBase(sections: OnbSection[]): string {
@@ -34,30 +46,36 @@ function compactBase(sections: OnbSection[]): string {
 }
 
 const handler: Handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: HEADERS, body: '' }
+  // Fonction background : la plateforme a déjà renvoyé 202 au client. Ce qu'on
+  // retourne ici est ignoré ; le résultat passe par le store (`gen/<clientId>`),
+  // que l'admin va interroger. On garde donc les erreurs DANS le store.
   if (!isAdminToken(event.headers.authorization || '')) {
-    return { statusCode: 401, headers: HEADERS, body: JSON.stringify({ error: 'Unauthorized' }) }
-  }
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: HEADERS, body: JSON.stringify({ error: 'Method not allowed' }) }
+    return { statusCode: 401, body: 'Unauthorized' }
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: 'ANTHROPIC_API_KEY absente des variables Netlify.' }) }
-  }
-
-  let body: { context?: string; baseSchema?: OnbSection[]; companyName?: string; instructions?: string }
+  let body: { clientId?: string; jobId?: string; context?: string; baseSchema?: OnbSection[]; companyName?: string; instructions?: string }
   try {
     body = JSON.parse(event.body || '{}')
   } catch {
-    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Bad JSON' }) }
+    return { statusCode: 400, body: 'Bad JSON' }
   }
+
+  const clientId = String(body.clientId || '')
+  const jobId = String(body.jobId || '')
+  if (!clientId || !jobId) return { statusCode: 400, body: 'clientId & jobId requis' }
+
+  const fail = async (error: string) => {
+    await writeResult(clientId, { jobId, status: 'error', error })
+    return { statusCode: 200, body: 'ok' }
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return fail('ANTHROPIC_API_KEY absente des variables Netlify.')
 
   const context = (body.context || '').trim()
   const base = Array.isArray(body.baseSchema) ? body.baseSchema : []
-  if (!context) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Contexte requis' }) }
-  if (!base.length) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Schéma de référence manquant' }) }
+  if (!context) return fail('Contexte requis')
+  if (!base.length) return fail('Schéma de référence manquant')
 
   const knownKeys = base.flatMap(s => s.fields.map(f => f.key))
 
@@ -103,12 +121,12 @@ ${compactBase(base)}`
       }),
     })
   } catch (err) {
-    return { statusCode: 502, headers: HEADERS, body: JSON.stringify({ error: 'Appel Anthropic échoué', details: String(err) }) }
+    return fail('Appel Anthropic échoué : ' + String(err))
   }
 
   if (!response.ok) {
     const details = await response.text()
-    return { statusCode: 502, headers: HEADERS, body: JSON.stringify({ error: 'Erreur API Anthropic', details }) }
+    return fail('Erreur API Anthropic : ' + details.slice(0, 300))
   }
 
   const payload = await response.json() as { content?: { type: string; text: string }[] }
@@ -116,24 +134,21 @@ ${compactBase(base)}`
 
   // Le modèle renvoie {"sections":[...]} ; on tolère un tableau nu ou des fences.
   const match = text.match(/\{[\s\S]*\}/) || text.match(/\[[\s\S]*\]/)
-  if (!match) {
-    return { statusCode: 502, headers: HEADERS, body: JSON.stringify({ error: 'Pas de JSON dans la réponse', raw: text.slice(0, 500) }) }
-  }
+  if (!match) return fail('Pas de JSON dans la réponse du modèle.')
 
   let parsed: unknown
   try {
     parsed = JSON.parse(match[0])
   } catch {
-    return { statusCode: 502, headers: HEADERS, body: JSON.stringify({ error: 'JSON invalide', raw: text.slice(0, 500) }) }
+    return fail('JSON invalide dans la réponse du modèle.')
   }
 
   const rawSections = Array.isArray(parsed) ? parsed : (parsed as { sections?: unknown }).sections
   const sections = sanitizeSchema(rawSections)
-  if (!sections) {
-    return { statusCode: 502, headers: HEADERS, body: JSON.stringify({ error: 'Le questionnaire généré était vide ou invalide. Réessayez.' }) }
-  }
+  if (!sections) return fail('Le questionnaire généré était vide ou invalide. Réessayez.')
 
-  return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ sections }) }
+  await writeResult(clientId, { jobId, status: 'done', sections })
+  return { statusCode: 200, body: 'ok' }
 }
 
 export { handler }

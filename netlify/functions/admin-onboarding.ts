@@ -108,6 +108,19 @@ const handler: Handler = async (event) => {
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ client }) }
   }
 
+  /* ── Suivi d'une génération en background ──────────────────────────────── */
+  if (action === 'generation-status') {
+    const store = getOnboardingStore()
+    const rec = await store.get(`gen/${client.id}`, { type: 'json' }).catch(() => null) as
+      | { jobId: string; status: 'done' | 'error'; sections?: unknown; error?: string }
+      | null
+    // Terminal → consommé une fois, on nettoie le store.
+    if (rec && (rec.status === 'done' || rec.status === 'error')) {
+      await store.delete(`gen/${client.id}`).catch(() => { /* non bloquant */ })
+    }
+    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ generation: rec }) }
+  }
+
   /* ── Questionnaire personnalisé ────────────────────────────────────────── */
   if (action === 'set-schema') {
     const clean = sanitizeSchema(body.schema)
