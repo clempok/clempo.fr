@@ -327,7 +327,7 @@ function buildArticleJsonLd(article: Article): object {
       description: article.metaDescription,
       image: article.heroImage,
       datePublished: article.date,
-      dateModified: article.date,
+      dateModified: article.updated || article.date,
       author: {
         '@type': 'Person',
         '@id': 'https://www.clempo.fr/#person',
@@ -388,6 +388,7 @@ export default function ArticlePage() {
         ogImage={article.heroImage}
         ogType="article"
         articlePublishedTime={article.date}
+        articleModifiedTime={article.updated || article.date}
         jsonLd={buildArticleJsonLd(article)}
       />
       <div style={{
@@ -446,6 +447,12 @@ export default function ArticlePage() {
               <span>{t('article_page', 'by')} <strong style={{ color: 'var(--ink)', fontWeight: 600 }}>Clément Pouget-Osmont</strong></span>
               <span style={{ color: 'var(--signal)' }}>·</span>
               <span>{formatDate(article.date)}</span>
+              {article.updated && article.updated !== article.date && (
+                <>
+                  <span style={{ color: 'var(--signal)' }}>·</span>
+                  <span>Mis à jour le {formatDate(article.updated)}</span>
+                </>
+              )}
               <span style={{ color: 'var(--signal)' }}>·</span>
               <span>{article.readingTime} {t('articles_page', 'reading_time')}</span>
             </div>

@@ -8,9 +8,13 @@ publiées sur clempo.fr :
   - public/data/specialites/<slug>.xlsx  (classeur téléchargeable, régénéré)
   - Extract GIE/<name>_bar_chart_race.html (blob DATA remplacé)
 
-Usage :
-  python3 scripts/update_gie_teletransmission.py            # télécharge l'API
-  python3 scripts/update_gie_teletransmission.py dump.json  # dump déjà téléchargé
+Puis bumpe les signaux de fraîcheur SEO (une fois la donnée à jour) :
+  - src/data/specialites.ts   → DATA_LAST_UPDATED (dateModified / « Mis à jour le »)
+  - public/sitemap.xml        → <lastmod> des pages parts de marché
+
+Usage (la date de mise à jour ISO est obligatoire) :
+  python3 scripts/update_gie_teletransmission.py 2026-07-21             # télécharge l'API
+  python3 scripts/update_gie_teletransmission.py dump.json 2026-07-21   # dump local
 
 Le splice est strictement additif : les mois déjà publiés sont vérifiés
 inchangés (le script s'arrête si le GIE a révisé l'historique).
@@ -295,11 +299,44 @@ def build_xlsx(path, all_rows, cat_name, extraction_date):
     wb.save(path)
 
 
+def fr_date(iso):
+    """'2026-07-21' -> '21 juillet 2026'."""
+    y, m, d = iso.split('-')
+    return f"{int(d)} {MONTH_NAMES[int(m) - 1].lower()} {int(y)}"
+
+
+def bump_freshness(iso):
+    """Aligne les signaux de fraîcheur SEO sur la date de mise à jour."""
+    sp = ROOT / 'src' / 'data' / 'specialites.ts'
+    txt = sp.read_text(encoding='utf-8')
+    new = re.sub(r"export const DATA_LAST_UPDATED = '[^']*'",
+                 f"export const DATA_LAST_UPDATED = '{iso}'", txt, count=1)
+    if new != txt:
+        sp.write_text(new, encoding='utf-8')
+        print(f"  specialites.ts DATA_LAST_UPDATED → {iso}")
+
+    sm = ROOT / 'public' / 'sitemap.xml'
+    s = sm.read_text(encoding='utf-8')
+
+    def repl(block):
+        b = block.group(0)
+        if '/specialites/' in b or 'parts-de-marche-logiciels-medicaux' in b:
+            b = re.sub(r'<lastmod>[^<]*</lastmod>', f'<lastmod>{iso}</lastmod>', b)
+        return b
+
+    new_sm = re.sub(r'<url>.*?</url>', repl, s, flags=re.S)
+    if new_sm != s:
+        sm.write_text(new_sm, encoding='utf-8')
+        print("  sitemap.xml <lastmod> pages parts de marché bumpé")
+
+
 def main():
-    dump_path = sys.argv[1] if len(sys.argv) > 1 else None
-    extraction_date = sys.argv[2] if len(sys.argv) > 2 else None
-    if not extraction_date:
-        raise SystemExit("Usage: update_gie_teletransmission.py [dump.json] '21 juillet 2026'")
+    args = sys.argv[1:]
+    iso = next((a for a in args if re.match(r'^\d{4}-\d{2}-\d{2}$', a)), None)
+    if not iso:
+        raise SystemExit("Usage: update_gie_teletransmission.py [dump.json] <AAAA-MM-JJ>")
+    dump_path = next((a for a in args if a != iso), None)
+    extraction_date = fr_date(iso)
     rows = load_dump(dump_path)
     for r in rows:
         r['dateData'] = str(r['dateData'])
@@ -322,6 +359,7 @@ def main():
         J = update_json(DATA_DIR / f'{slug}.json', all_rows, new_months)
         update_html(EXTRACT_DIR / f'{prefix}_bar_chart_race.html', J)
         build_xlsx(DATA_DIR / f'{slug}.xlsx', all_rows, cat_name, extraction_date)
+    bump_freshness(iso)
     print('OK')
 
 

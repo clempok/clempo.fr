@@ -4,7 +4,7 @@ import SEO from '../components/SEO'
 import Eyebrow from '../components/Eyebrow'
 import BarChartRace, { type BarChartRaceData } from '../components/BarChartRace'
 import DataDownloadGate, { DataDownloadNetlifyRegistration } from '../components/DataDownloadGate'
-import { specialites, getSpecialite } from '../data/specialites'
+import { specialites, getSpecialite, DATA_LAST_UPDATED, formatFrDate } from '../data/specialites'
 
 export default function SpecialitePage() {
   const { slug } = useParams<{ slug: string }>()
@@ -72,6 +72,7 @@ export default function SpecialitePage() {
         creator: { '@type': 'Organization', name: 'GIE SESAM-Vitale' },
         publisher: { '@type': 'Person', name: 'Clément Pouget-Osmont', url: 'https://www.clempo.fr' },
         license: 'https://www.gie-sesam-vitale.fr/',
+        dateModified: DATA_LAST_UPDATED,
         temporalCoverage: '2019-01/2026-06',
         spatialCoverage: { '@type': 'Place', name: 'France' },
         distribution: [
@@ -161,6 +162,15 @@ export default function SpecialitePage() {
                 <strong>{p.name}</strong> ({p.share}){i < arr.length - 1 ? ', ' : '.'}
               </span>
             ))} {specialite.hero}
+          </p>
+          <p style={{
+            marginTop: '1rem',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.72rem',
+            letterSpacing: '0.04em',
+            color: 'var(--steel)',
+          }}>
+            Mis à jour le {formatFrDate(DATA_LAST_UPDATED)} · Source&nbsp;: {specialite.source}
           </p>
         </header>
 
@@ -267,6 +277,8 @@ export default function SpecialitePage() {
               <dd style={{ margin: 0 }}>{totalEditeurs}</dd>
               <dt style={{ color: 'var(--steel)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.04em', textTransform: 'uppercase', alignSelf: 'center' }}>Métrique</dt>
               <dd style={{ margin: 0 }}>Part de télétransmission (%)</dd>
+              <dt style={{ color: 'var(--steel)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.04em', textTransform: 'uppercase', alignSelf: 'center' }}>Mise à jour</dt>
+              <dd style={{ margin: 0 }}>{formatFrDate(DATA_LAST_UPDATED)}</dd>
             </dl>
             <p style={{
               marginTop: '1.25rem',

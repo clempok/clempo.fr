@@ -26,6 +26,23 @@ export interface Specialite {
   faq: { q: string; a: string }[]  // FAQ pour le SERP
 }
 
+// Date (ISO) de dernière mise à jour de la donnée GIE. Bumpée automatiquement
+// par scripts/update_gie_teletransmission.py à chaque refresh trimestriel.
+// Alimente dateModified (Schema.org) + la mention « Mis à jour le » visible :
+// c'est le signal de fraîcheur SEO qui dit à Google que ces pages ont changé.
+export const DATA_LAST_UPDATED = '2026-07-21'
+
+const FR_MONTHS = [
+  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+]
+
+// Formate une date ISO (AAAA-MM-JJ) en français sans dépendre du fuseau horaire.
+export function formatFrDate(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  return `${d} ${FR_MONTHS[m - 1]} ${y}`
+}
+
 export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {

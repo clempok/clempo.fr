@@ -7,6 +7,7 @@ interface SEOProps {
   ogImage?: string
   ogType?: 'website' | 'article'
   articlePublishedTime?: string
+  articleModifiedTime?: string
   noindex?: boolean
   jsonLd?: object
 }
@@ -21,6 +22,7 @@ export default function SEO({
   ogImage = DEFAULT_IMAGE,
   ogType = 'website',
   articlePublishedTime,
+  articleModifiedTime,
   noindex = false,
   jsonLd,
 }: SEOProps) {
@@ -43,6 +45,9 @@ export default function SEO({
       <meta property="og:site_name" content="Clempo.fr" />
       {articlePublishedTime && (
         <meta property="article:published_time" content={articlePublishedTime} />
+      )}
+      {articleModifiedTime && (
+        <meta property="article:modified_time" content={articleModifiedTime} />
       )}
 
       {/* Twitter Card */}

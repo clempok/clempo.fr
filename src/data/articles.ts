@@ -3,7 +3,8 @@ export interface Article {
   title: string
   excerpt: string
   category: string
-  date: string
+  date: string          // date de publication (ISO AAAA-MM-JJ) — ne jamais réécrire
+  updated?: string      // date de dernière mise à jour de fond (ISO) → dateModified/freshness SEO
   readingTime: string
   metaDescription: string
   heroImage: string
