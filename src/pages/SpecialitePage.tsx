@@ -72,7 +72,7 @@ export default function SpecialitePage() {
         creator: { '@type': 'Organization', name: 'GIE SESAM-Vitale' },
         publisher: { '@type': 'Person', name: 'Clément Pouget-Osmont', url: 'https://www.clempo.fr' },
         license: 'https://www.gie-sesam-vitale.fr/',
-        temporalCoverage: '2019-01/2026-03',
+        temporalCoverage: '2019-01/2026-06',
         spatialCoverage: { '@type': 'Place', name: 'France' },
         distribution: [
           {

@@ -12,7 +12,7 @@ const PAGE_URL = `https://www.clempo.fr${PAGE_PATH}`
 const FAQ: { q: string; a: string }[] = [
   {
     q: 'Quels sont les logiciels médicaux les plus utilisés en France ?',
-    a: "En 2026, les logiciels médicaux les plus utilisés en France varient selon la spécialité : Doctolib (23 % des médecins généralistes), Logos_w (45 % des dentistes), Agathe YOU (33 % des infirmiers libéraux), Vega (42 % des kinés), LGPI / ID. (40 % des pharmacies), Cosium Center (30 % des opticiens), Soins 2000 (32 % des orthophonistes) et Hexalis (32 % des laboratoires d'analyses). Source : GIE SESAM-Vitale, mars 2026.",
+    a: "En 2026, les logiciels médicaux les plus utilisés en France varient selon la spécialité : Doctolib (26 % des médecins généralistes), Logos_w (46 % des dentistes), Agathe YOU (33 % des infirmiers libéraux), Vega (41 % des kinés), LGPI / ID. (40 % des pharmacies), Cosium Center (30 % des opticiens), Soins 2000 (32 % des orthophonistes) et Hexalis (31 % des laboratoires d'analyses). Source : GIE SESAM-Vitale, juin 2026.",
   },
   {
     q: 'Quelles sont les parts de marché des éditeurs de logiciels médicaux en France ?',
@@ -32,19 +32,19 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Quel est le logiciel médecin généraliste n°1 en France ?',
-    a: "Doctolib est le logiciel le plus utilisé par les médecins généralistes français en 2026, avec 23,2 % des FSE télétransmises. Il est suivi par Weda (14,0 %, Vidal France), Medistory (10,1 %), HelloDoc (8,1 %) et Stellair Integral (7,3 %).",
+    a: "Doctolib est le logiciel le plus utilisé par les médecins généralistes français en 2026, avec 26,2 % des FSE télétransmises en juin (+3 points sur le 2e trimestre). Il est suivi par Weda (13,4 %, Vidal France), Medistory (10,1 %), HelloDoc (7,6 %) et Stellair Integral (7,2 %).",
   },
   {
     q: 'Quel est le logiciel pharmacie n°1 en France ?',
-    a: "ID. (LGPI), édité par Equasens (anciennement Pharmagest), est le logiciel pharmacie le plus utilisé en France en 2026, avec 40 % de parts de marché. Il est suivi de très près par Winpharma (Everys, 36 %), qui a gagné 15 points en 7 ans.",
+    a: "ID. (LGPI), édité par Equasens (anciennement Pharmagest), est le logiciel pharmacie le plus utilisé en France en 2026, avec 40 % de parts de marché. Il est suivi de très près par Winpharma (Everys, 37 %), qui a gagné 16 points en 7 ans — l'écart n'est plus que de 3 points.",
   },
   {
     q: 'Quel est le logiciel dentaire n°1 en France ?',
-    a: "Logos_w (Imagex) est le logiciel dentaire le plus utilisé en France en 2026, avec 45,3 % de parts de marché — il a doublé Julie (Henry Schein One, 20,2 %) en 2023.",
+    a: "Logos_w (Imagex) est le logiciel dentaire le plus utilisé en France en 2026, avec 45,9 % de parts de marché — il a doublé Julie (20,2 % en 2023, désormais 19,7 %, racheté par Imagex) en 2023.",
   },
   {
     q: 'Quel est le logiciel infirmier libéral le plus utilisé ?',
-    a: "Agathe YOU (gamme E.Motion) édité par CBA Informatique Libérale équipe 33,2 % des infirmiers libéraux français en 2026, devant Albus AIR (Sofia, 17,1 %) et Simply-Vitale (Cegedim, 12,3 %).",
+    a: "Agathe YOU (gamme E.Motion) édité par CBA Informatique Libérale équipe 33,4 % des infirmiers libéraux français en 2026, devant Albus AIR (Sofia, 17,4 %) et Simply-Vitale (Cegedim, 12,2 %).",
   },
   {
     q: 'Comment ces données sont-elles utiles pour un éditeur ou un investisseur ?',
@@ -62,7 +62,7 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
   },
   {
     name: 'Doctolib',
-    footprint: "Leader des médecins généralistes (23 %) et spécialistes (15 %), 3ᵉ chez les kinés (15 %). Croissance la plus rapide du marché.",
+    footprint: "Leader des médecins généralistes (26 %) et spécialistes (17 %), 3ᵉ chez les kinés (16 %). Croissance la plus rapide du marché, encore +3 pts chez les généralistes au 2e trimestre 2026.",
     products: 'Doctolib Logiciel (gestion de cabinet intégrée à la prise de RDV)',
   },
   {
@@ -77,7 +77,7 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
   },
   {
     name: 'Imagex',
-    footprint: "Leader incontesté du marché dentaire avec Logos_w (45 %) — a doublé Julie en 2023.",
+    footprint: "Leader incontesté du marché dentaire avec Logos_w (46 %) — a doublé Julie en 2023, puis racheté Julie Solutions en 2026.",
     products: 'Logos_w',
   },
   {
@@ -87,12 +87,12 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
   },
   {
     name: 'Epsilog',
-    footprint: "Leader des kinés (42 %), 2ᵉ des orthophonistes (21 %), 2ᵉ des orthoptistes (15 %). Position dominante sur la rééducation.",
+    footprint: "Leader des kinés (41 %), 2ᵉ des orthophonistes (20 %), 2ᵉ des orthoptistes (15 %). Position dominante sur la rééducation.",
     products: 'Vega',
   },
   {
     name: 'Cosium',
-    footprint: "Double leader sur l'optique (30 %) et l'audioprothèse (45 %) — éditeur spécialisé sur le commerce de détail santé.",
+    footprint: "Double leader sur l'optique (30 %) et l'audioprothèse (44 %) — éditeur spécialisé sur le commerce de détail santé.",
     products: 'Cosium Center',
   },
   {
@@ -112,7 +112,7 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
   },
   {
     name: 'Dedalus Healthcare',
-    footprint: "Leader du marché logiciel laboratoire d'analyses médicales (Hexalis 32 %).",
+    footprint: "Leader du marché logiciel laboratoire d'analyses médicales (Hexalis 31 %).",
     products: 'Hexalis',
   },
   {
@@ -122,7 +122,7 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
   },
   {
     name: 'Olaqin',
-    footprint: "Acteur transverse chez les médecins (généralistes 7 %, spécialistes 5 %) — a su capter une partie des bascules dans le segment médecins.",
+    footprint: "Acteur transverse chez les médecins (généralistes 7 %, spécialistes 6 %) — a su capter une partie des bascules dans le segment médecins.",
     products: 'Stellair Integral',
   },
 ]
@@ -290,7 +290,7 @@ export default function Specialites() {
           padding: '0 6vw',
         }}>
           <div style={{ marginBottom: '1.25rem' }}>
-            <Eyebrow>// classement — mars 2026</Eyebrow>
+            <Eyebrow>// classement — juin 2026</Eyebrow>
           </div>
           <h2 style={{
             fontFamily: 'var(--font-sans)',
@@ -310,7 +310,7 @@ export default function Specialites() {
             maxWidth: '68ch',
             marginBottom: '2rem',
           }}>
-            Voici le logiciel n°1 par spécialité en mars 2026, mesuré en part de feuilles de soins électroniques télétransmises. Cliquez sur une ligne pour ouvrir le classement complet (top 5, évolution mensuelle, données téléchargeables).
+            Voici le logiciel n°1 par spécialité en juin 2026, mesuré en part de feuilles de soins électroniques télétransmises. Cliquez sur une ligne pour ouvrir le classement complet (top 5, évolution mensuelle, données téléchargeables).
           </p>
 
           <div style={{
@@ -375,7 +375,7 @@ export default function Specialites() {
             maxWidth: '68ch',
             marginTop: '1rem',
           }}>
-            Données mars 2026 — Source : GIE SESAM-Vitale. Part = % des feuilles de soins électroniques télétransmises par cette spécialité utilisant ce progiciel sur le mois de référence.
+            Données juin 2026 — Source : GIE SESAM-Vitale. Part = % des feuilles de soins électroniques télétransmises par cette spécialité utilisant ce progiciel sur le mois de référence.
           </p>
         </section>
 
@@ -788,7 +788,7 @@ export default function Specialites() {
                 <dt style={{ color: 'var(--steel)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Métrique</dt>
                 <dd style={{ margin: 0 }}>% FSE télétransmises</dd>
                 <dt style={{ color: 'var(--steel)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Période</dt>
-                <dd style={{ margin: 0 }}>Janvier 2019 → Mars 2026</dd>
+                <dd style={{ margin: 0 }}>Janvier 2019 → Juin 2026</dd>
                 <dt style={{ color: 'var(--steel)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Granularité</dt>
                 <dd style={{ margin: 0 }}>Mensuelle</dd>
                 <dt style={{ color: 'var(--steel)', fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Spécialités</dt>
