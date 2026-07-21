@@ -197,6 +197,19 @@ export function schemaKeys(sections: OnbSection[]): Set<string> {
   return new Set(sections.flatMap(s => s.fields.map(f => f.key)))
 }
 
+/**
+ * Clés pré-remplissables : uniquement les champs libres (text/textarea). Une
+ * liste (select/checkboxes) pré-remplie avec une valeur hors options afficherait
+ * un champ vide côté client — on ne la seed donc jamais.
+ */
+export function prefillableKeys(sections: OnbSection[]): Set<string> {
+  return new Set(
+    sections.flatMap(s => s.fields)
+      .filter(f => f.type === 'text' || f.type === 'textarea')
+      .map(f => f.key),
+  )
+}
+
 export type OnboardingClient = {
   id: string
   /** Segment d'URL : clempo.fr/<slug> */

@@ -9,7 +9,7 @@ import {
   saveOnboarding,
   sanitizeSchema,
   sanitizePrefill,
-  schemaKeys,
+  prefillableKeys,
   slugifyOnboarding,
   CONTEXT_SUMMARY_MAX,
   RESERVED_SLUGS,
@@ -144,7 +144,7 @@ const handler: Handler = async (event) => {
     // pour l'affichage « à valider » côté client. On ne touche à tout ça que si
     // un prefill est fourni — une simple ré-édition du schéma ne doit pas effacer
     // les marqueurs d'une génération précédente.
-    const prefill = sanitizePrefill(body.prefill, schemaKeys(clean))
+    const prefill = sanitizePrefill(body.prefill, prefillableKeys(clean))
     if (Object.keys(prefill).length) {
       client.answers = client.answers || {}
       const seeded: string[] = []

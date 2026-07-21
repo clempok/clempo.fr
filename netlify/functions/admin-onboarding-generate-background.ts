@@ -1,7 +1,7 @@
 import type { Handler } from '@netlify/functions'
 import { isAdminToken } from './_analytics'
 import {
-  getOnboardingStore, sanitizeSchema, ensureContextField, sanitizePrefill, schemaKeys,
+  getOnboardingStore, sanitizeSchema, ensureContextField, sanitizePrefill, prefillableKeys,
   CONTEXT_SUMMARY_MAX, UPLOAD_SLOT_KEYS,
 } from './_onboarding'
 import type { OnbSection } from './_onboarding'
@@ -160,7 +160,7 @@ ${compactBase(base)}`
   const contextSummary = typeof obj.contextSummary === 'string' ? obj.contextSummary.trim().slice(0, CONTEXT_SUMMARY_MAX) : ''
   // Le champ « corrigez mon résumé » n'a de sens que si un résumé est affiché.
   if (contextSummary) sections = ensureContextField(sections)
-  const prefill = sanitizePrefill(obj.prefill, schemaKeys(sections))
+  const prefill = sanitizePrefill(obj.prefill, prefillableKeys(sections))
 
   await writeResult(clientId, { jobId, status: 'done', sections, contextSummary, prefill })
   return { statusCode: 200, body: 'ok' }
