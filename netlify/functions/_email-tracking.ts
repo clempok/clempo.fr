@@ -127,19 +127,23 @@ export async function listEmailTracking(): Promise<{ sends: EmailSendRecord[]; e
     }
   }
 
-  // Fetch send records in small parallel batches; volume is low (nurture cron
-  // is capped at 30/day) but avoid hammering the Blobs API in one burst.
+  // Fetch send records with a bounded-concurrency worker pool. One blob get per
+  // send, and the count grows ~linearly with volume: at ~1.5k sends the old
+  // sequential batches of 25 (62 round-trip waves) blew past the 10s function
+  // budget and the endpoint started returning 502. Keeping many gets
+  // continuously in flight brings the full fetch back to a few seconds.
   const sends: EmailSendRecord[] = []
   const keys = sendList.blobs.map(b => b.key)
-  const BATCH = 25
-  for (let i = 0; i < keys.length; i += BATCH) {
-    const batch = await Promise.all(
-      keys.slice(i, i + BATCH).map(async key => (await store.get(key, { type: 'json' })) as EmailSendRecord | null)
-    )
-    for (const record of batch) {
+  const CONCURRENCY = 250
+  let next = 0
+  async function drainSendKeys() {
+    while (next < keys.length) {
+      const key = keys[next++]
+      const record = (await store.get(key, { type: 'json' })) as EmailSendRecord | null
       if (record && record.id) sends.push(record)
     }
   }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, keys.length) }, drainSendKeys))
   sends.sort((a, b) => (a.sentAt < b.sentAt ? 1 : -1))
 
   return { sends, events }
