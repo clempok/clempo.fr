@@ -11,10 +11,43 @@ import {
   sanitizePrefill,
   prefillableKeys,
   slugifyOnboarding,
+  logoKey,
+  parseImageDataUri,
   CONTEXT_SUMMARY_MAX,
   RESERVED_SLUGS,
 } from './_onboarding'
 import type { OnboardingClient } from './_onboarding'
+import { loadQuotes } from './_quotes'
+
+/** Normalise un nom d'entreprise pour rapprocher onboarding et devis. */
+function normName(s: string): string {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+}
+
+/** Cherche le logo (data-URI) dans un devis de la même entreprise. */
+async function quoteLogoFor(companyName: string): Promise<string | null> {
+  const target = normName(companyName)
+  if (!target) return null
+  try {
+    const { quotes } = await loadQuotes()
+    const match = quotes.find(q => {
+      if (!q.prospectLogo) return false
+      const n = normName(q.companyName || '')
+      return !!n && (n === target || n.includes(target) || target.includes(n))
+    })
+    return match?.prospectLogo || null
+  } catch {
+    return null
+  }
+}
+
+/** Range le logo (data-URI) dans le blob `logo/<id>`. Renvoie le MIME, ou null. */
+async function storeLogo(clientId: string, dataUri: string): Promise<string | null> {
+  const parsed = parseImageDataUri(dataUri)
+  if (!parsed) return null
+  await getOnboardingStore().set(logoKey(clientId), parsed.base64)
+  return parsed.mime
+}
 
 /** Côté admin : création des espaces client, relecture des réponses,
  *  téléchargement des documents (morceau par morceau, recollés par le
@@ -78,6 +111,13 @@ const handler: Handler = async (event) => {
       createdAt: now,
       status: 'draft',
     }
+    // Logo : celui fourni, sinon on tente le devis signé de la même entreprise.
+    const logoSource = typeof body.logo === 'string' && body.logo ? body.logo : await quoteLogoFor(companyName)
+    if (logoSource) {
+      const mime = await storeLogo(client.id, logoSource)
+      if (mime) client.logoMime = mime
+    }
+
     data.clients.push(client)
     await saveOnboarding(data)
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ client }) }
@@ -162,6 +202,33 @@ const handler: Handler = async (event) => {
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ ok: true, schema: clean }) }
   }
 
+  /* ── Logo client (aperçu de lien + en-tête de la page client) ──────────── */
+  if (action === 'set-logo') {
+    const dataUri = String(body.dataUri || '')
+    if (!dataUri) {
+      await getOnboardingStore().delete(logoKey(client.id)).catch(() => { /* déjà absent */ })
+      delete client.logoMime
+      await saveOnboarding(data)
+      return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ ok: true, hasLogo: false }) }
+    }
+    const mime = await storeLogo(client.id, dataUri)
+    if (!mime) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Image invalide (PNG/JPG, max 2 Mo)' }) }
+    client.logoMime = mime
+    await saveOnboarding(data)
+    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ ok: true, hasLogo: true }) }
+  }
+
+  // Récupère le logo depuis le devis signé de la même entreprise.
+  if (action === 'pull-quote-logo') {
+    const logo = await quoteLogoFor(client.companyName)
+    if (!logo) return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ error: 'Aucun logo trouvé dans les devis de cette entreprise' }) }
+    const mime = await storeLogo(client.id, logo)
+    if (!mime) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Logo du devis illisible' }) }
+    client.logoMime = mime
+    await saveOnboarding(data)
+    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ ok: true, hasLogo: true }) }
+  }
+
   // Retour au questionnaire standard. Les réponses déjà données restent en base ;
   // on retire seulement les artefacts de personnalisation (résumé, marqueurs).
   if (action === 'reset-schema') {
@@ -179,11 +246,12 @@ const handler: Handler = async (event) => {
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ accessCode: client.accessCode }) }
   }
 
-  /* ── Suppression complète (métadonnées + tous les morceaux de fichiers) ── */
+  /* ── Suppression complète (métadonnées + morceaux de fichiers + logo) ──── */
   if (action === 'delete') {
     for (const f of client.files || []) {
       await deleteFileChunks(client.id, f)
     }
+    await getOnboardingStore().delete(logoKey(client.id)).catch(() => { /* déjà absent */ })
     data.clients = data.clients.filter(c => c.id !== client.id)
     await saveOnboarding(data)
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ ok: true }) }

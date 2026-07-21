@@ -60,6 +60,8 @@ type ClientData = {
   contextSummary?: string
   /** Clés pré-remplies par l'IA, à faire valider au client. */
   prefilledKeys?: string[]
+  /** URL du logo du client, s'il a été renseigné (en-tête de la page). */
+  logoUrl?: string
   files: ClientFile[]
   status: 'draft' | 'in_progress' | 'submitted'
   updatedAt?: string
@@ -441,14 +443,24 @@ function OnboardingForm({
           maxWidth: 1140, margin: '0 auto', padding: '0.9rem 1.5rem',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
         }}>
-          <div style={{ minWidth: 0 }}>
-            <p className="onb-eyebrow" style={{ color: SIGNAL_DEEP }}>Onboarding</p>
-            <p style={{
-              fontFamily: FS, fontSize: '1.15rem', fontWeight: 400, letterSpacing: '-0.015em',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1,
-            }}>
-              {data.companyName}
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0 }}>
+            {data.logoUrl && (
+              <img
+                src={data.logoUrl}
+                alt={data.companyName}
+                style={{ height: 40, width: 'auto', maxWidth: 120, objectFit: 'contain', flexShrink: 0 }}
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+              />
+            )}
+            <div style={{ minWidth: 0 }}>
+              <p className="onb-eyebrow" style={{ color: SIGNAL_DEEP }}>Onboarding</p>
+              <p style={{
+                fontFamily: FS, fontSize: '1.15rem', fontWeight: 400, letterSpacing: '-0.015em',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1,
+              }}>
+                {data.companyName}
+              </p>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
             <SaveIndicator state={saveState} savedAt={savedAt} />

@@ -37,6 +37,7 @@ function publicView(c: OnboardingClient) {
     schema: c.schema || null,
     contextSummary: c.contextSummary || '',
     prefilledKeys: c.prefilledKeys || [],
+    logoUrl: c.logoMime ? `/.netlify/functions/onboarding-logo?slug=${encodeURIComponent(c.slug)}` : '',
     files: (c.files || []).map(f => ({
       id: f.id, slot: f.slot, name: f.name, size: f.size,
       mimeType: f.mimeType, chunks: f.chunks, uploadedAt: f.uploadedAt,
@@ -64,8 +65,19 @@ const handler: Handler = async (event) => {
     const slug = slugifyOnboarding(event.queryStringParameters?.slug || '')
     if (!slug) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Missing slug' }) }
     const data = await loadOnboarding()
-    const found = data.clients.some(c => c.slug === slug)
-    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ found }) }
+    const client = data.clients.find(c => c.slug === slug)
+    // Nom + présence de logo sont volontairement publics : ils alimentent
+    // l'aperçu de lien (og:image) de l'invitation envoyée au client. Le contenu
+    // du questionnaire, lui, reste derrière le code.
+    return {
+      statusCode: 200,
+      headers: HEADERS,
+      body: JSON.stringify({
+        found: !!client,
+        companyName: client?.companyName || '',
+        hasLogo: !!client?.logoMime,
+      }),
+    }
   }
 
   if (event.httpMethod !== 'POST') {

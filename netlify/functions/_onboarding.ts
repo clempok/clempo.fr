@@ -227,6 +227,9 @@ export type OnboardingClient = {
   schema?: OnbSection[]
   /** Résumé du contexte affiché en tête de la page client (questionnaire sur mesure). */
   contextSummary?: string
+  /** Type MIME du logo client. Les octets vivent dans le blob `logo/<id>`
+   *  (hors du blob `data`, pour ne pas l'alourdir à chaque save). */
+  logoMime?: string
   /** Clés dont la réponse a été pré-remplie par l'IA (à valider par le client). */
   prefilledKeys?: string[]
   files: OnboardingFile[]
@@ -315,6 +318,28 @@ export const RESERVED_SLUGS = new Set([
 /** Clé de stockage d'un morceau de fichier. */
 export function chunkKey(clientId: string, fileId: string, index: number): string {
   return `f/${clientId}/${fileId}/${index}`
+}
+
+/** Clé de stockage du logo client (base64 brut, sans préfixe data:). */
+export function logoKey(clientId: string): string {
+  return `logo/${clientId}`
+}
+
+/** Taille max d'un logo (data-URI décodé). */
+export const MAX_LOGO_BYTES = 2 * 1024 * 1024
+
+/**
+ * Décompose un data-URI image en { mime, base64 }. Renvoie null si ce n'est pas
+ * une image ou si le base64 dépasse la limite.
+ */
+export function parseImageDataUri(dataUri: string): { mime: string; base64: string } | null {
+  const m = /^data:(image\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=]+)$/i.exec((dataUri || '').trim())
+  if (!m) return null
+  const mime = m[1].toLowerCase()
+  const base64 = m[2]
+  // 4 chars base64 ≈ 3 octets.
+  if (base64.length * 0.75 > MAX_LOGO_BYTES) return null
+  return { mime, base64 }
 }
 
 /** Supprime tous les morceaux d'un fichier. Best-effort : un morceau déjà

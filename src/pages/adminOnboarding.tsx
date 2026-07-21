@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ONBOARDING_SECTIONS, UPLOAD_SLOTS, FIELD_TYPES,
   answersToMarkdown, isFilled, overallProgress, sectionProgress, resolveSections,
@@ -43,6 +43,7 @@ type AdminClient = {
   schema?: OnboardingSection[] | null
   contextSummary?: string
   prefilledKeys?: string[]
+  logoMime?: string
   files: AdminFile[]
   createdAt: string
   updatedAt?: string
@@ -441,6 +442,9 @@ function ClientDetail({
         </div>
       </div>
 
+      {/* Logo (aperçu de lien + en-tête de la page client) */}
+      <LogoRow client={client} reload={reload} api={api} />
+
       {/* Questionnaire */}
       <div style={{
         border: `1px solid ${personalized ? 'rgba(0,214,143,0.4)' : BORDER}`, borderRadius: 14,
@@ -637,6 +641,92 @@ function ClientDetail({
         >
           Supprimer
         </DangerButton>
+      </div>
+    </div>
+  )
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Logo du client
+   ────────────────────────────────────────────────────────────────────────── */
+
+function LogoRow({
+  client, reload, api,
+}: {
+  client: AdminClient
+  reload: () => Promise<void>
+  api: (p: Record<string, unknown>) => Promise<Record<string, unknown>>
+}) {
+  const [busy, setBusy] = useState('')
+  const [err, setErr] = useState('')
+  const [bust, setBust] = useState(0)
+  const fileRef = useRef<HTMLInputElement>(null)
+  // Cache-buster pour rafraîchir la vignette après un changement.
+  const logoSrc = client.logoMime ? `${API.replace('admin-onboarding', 'onboarding-logo')}?slug=${client.slug}&v=${bust}` : ''
+
+  const run = async (label: string, payload: Record<string, unknown>) => {
+    setBusy(label); setErr('')
+    try {
+      await api(payload)
+      await reload()
+      setBust(b => b + 1)
+    } catch (e) {
+      setErr((e as Error).message)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const onUpload = (file: File) => {
+    if (file.size > 2 * 1024 * 1024) { setErr('Image trop lourde (max 2 Mo)'); return }
+    const reader = new FileReader()
+    reader.onload = () => void run('upload', { action: 'set-logo', id: client.id, dataUri: String(reader.result || '') })
+    reader.readAsDataURL(file)
+  }
+
+  return (
+    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 14, padding: '1.1rem 1.25rem', marginBottom: '0.9rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: 10, border: `1px solid ${BORDER}`, background: '#fafafa',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden',
+      }}>
+        {logoSrc
+          ? <img src={logoSrc} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+          : <span style={{ fontSize: '1.3rem' }}>🖼️</span>}
+      </div>
+      <div style={{ flex: 1, minWidth: 160 }}>
+        <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>Logo du client</p>
+        <p style={{ fontSize: '0.76rem', color: MUTED, lineHeight: 1.5, marginTop: 2 }}>
+          {client.logoMime
+            ? 'S’affiche dans l’aperçu du lien partagé et en tête de son espace.'
+            : 'Aucun logo. Sans lui, l’aperçu du lien montre la photo de Clément.'}
+        </p>
+        {err && <p style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: 4 }}>{err}</p>}
+      </div>
+      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => void run('quote', { action: 'pull-quote-logo', id: client.id })}
+          disabled={!!busy}
+          style={ghostBtnSm}
+        >
+          {busy === 'quote' ? '…' : '↧ Depuis le devis'}
+        </button>
+        <button onClick={() => fileRef.current?.click()} disabled={!!busy} style={ghostBtnSm}>
+          {busy === 'upload' ? '…' : 'Téléverser'}
+        </button>
+        {client.logoMime && (
+          <button
+            onClick={() => void run('remove', { action: 'set-logo', id: client.id, dataUri: '' })}
+            disabled={!!busy}
+            style={{ ...ghostBtnSm, color: '#dc2626' }}
+          >
+            Retirer
+          </button>
+        )}
+        <input
+          ref={fileRef} type="file" accept="image/*" hidden
+          onChange={e => { if (e.target.files?.[0]) onUpload(e.target.files[0]); e.target.value = '' }}
+        />
       </div>
     </div>
   )
