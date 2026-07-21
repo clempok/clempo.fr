@@ -13,6 +13,8 @@
 
 export type OnboardingFieldType = 'text' | 'textarea' | 'select' | 'checkboxes'
 
+export const FIELD_TYPES: OnboardingFieldType[] = ['text', 'textarea', 'select', 'checkboxes']
+
 export type OnboardingField = {
   key: string
   label: string
@@ -408,6 +410,22 @@ export function slotsForSection(section: OnboardingSection): UploadSlot[] {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+   Schéma par client
+   ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Le questionnaire d'un client peut être personnalisé (généré depuis le
+ * contexte de son devis, puis retouché à la main dans l'admin). On stocke alors
+ * `schema` sur le client ; sinon, on retombe sur le questionnaire standard.
+ *
+ * Les `key` d'un schéma personnalisé restent l'index des réponses : même règle
+ * que pour le standard, on ne les renomme pas une fois que le client répond.
+ */
+export function resolveSections(schema?: OnboardingSection[] | null): OnboardingSection[] {
+  return schema && schema.length ? schema : ONBOARDING_SECTIONS
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
    Progression
    ────────────────────────────────────────────────────────────────────────── */
 
@@ -429,15 +447,20 @@ export function sectionProgress(answers: Record<string, string>, section: Onboar
  *  - `percent` (tous les champs) sert la barre de progression du client
  *  - `essential` dit à Clément si le dossier est exploitable, même incomplet
  */
-export function overallProgress(answers: Record<string, string>) {
-  const filled = ALL_FIELDS.filter(f => isFilled(answers, f.key)).length
-  const essentialFilled = ESSENTIAL_FIELDS.filter(f => isFilled(answers, f.key)).length
+export function overallProgress(
+  answers: Record<string, string>,
+  sections: OnboardingSection[] = ONBOARDING_SECTIONS,
+) {
+  const fields = sections.flatMap(s => s.fields)
+  const essential = fields.filter(f => f.essential)
+  const filled = fields.filter(f => isFilled(answers, f.key)).length
+  const essentialFilled = essential.filter(f => isFilled(answers, f.key)).length
   return {
     filled,
-    total: ALL_FIELDS.length,
-    percent: ALL_FIELDS.length ? Math.round((filled / ALL_FIELDS.length) * 100) : 0,
+    total: fields.length,
+    percent: fields.length ? Math.round((filled / fields.length) * 100) : 0,
     essentialFilled,
-    essentialTotal: ESSENTIAL_FIELDS.length,
+    essentialTotal: essential.length,
   }
 }
 
@@ -446,9 +469,10 @@ export function answersToMarkdown(
   companyName: string,
   answers: Record<string, string>,
   files: { slot: string; name: string; size: number }[] = [],
+  sections: OnboardingSection[] = ONBOARDING_SECTIONS,
 ): string {
   const out: string[] = [`# Onboarding — ${companyName}`, '']
-  for (const section of ONBOARDING_SECTIONS) {
+  for (const section of sections) {
     const answered = section.fields.filter(f => isFilled(answers, f.key))
     if (!answered.length) continue
     out.push(`## ${section.title}`, '')

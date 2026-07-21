@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  ONBOARDING_SECTIONS, UPLOAD_SLOTS,
-  answersToMarkdown, isFilled, overallProgress, sectionProgress,
+  ONBOARDING_SECTIONS, UPLOAD_SLOTS, FIELD_TYPES,
+  answersToMarkdown, isFilled, overallProgress, sectionProgress, resolveSections,
 } from '../lib/onboarding-schema'
+import type { OnboardingField, OnboardingFieldType, OnboardingSection } from '../lib/onboarding-schema'
 import { downloadChunkedFile, fileIcon, formatBytes } from '../lib/onboarding-files'
 
 /**
@@ -39,6 +40,7 @@ type AdminClient = {
   internalNote?: string
   accessCode: string
   answers: Record<string, string>
+  schema?: OnboardingSection[] | null
   files: AdminFile[]
   createdAt: string
   updatedAt?: string
@@ -194,7 +196,7 @@ export default function OnboardingView({ password }: { password: string }) {
                 </thead>
                 <tbody>
                   {clients.map(c => {
-                    const p = overallProgress(c.answers || {})
+                    const p = overallProgress(c.answers || {}, resolveSections(c.schema))
                     const st = STATUS_STYLE[c.status]
                     return (
                       <tr
@@ -203,7 +205,12 @@ export default function OnboardingView({ password }: { password: string }) {
                         style={{ borderTop: `1px solid ${BORDER}`, cursor: 'pointer' }}
                       >
                         <Td>
-                          <div style={{ fontWeight: 600 }}>{c.companyName}</div>
+                          <div style={{ fontWeight: 600 }}>
+                            {c.companyName}
+                            {c.schema && c.schema.length > 0 && (
+                              <span title="Questionnaire sur mesure" style={{ marginLeft: 6, fontSize: '0.7rem', color: SIGNAL }}>✨</span>
+                            )}
+                          </div>
                           <div style={{ color: MUTED, fontSize: '0.72rem' }}>/{c.slug}</div>
                         </Td>
                         <Td>
@@ -332,9 +339,12 @@ function ClientDetail({
   const [showEmpty, setShowEmpty] = useState(false)
   const [note, setNote] = useState(client.internalNote || '')
   const [downloading, setDownloading] = useState<Record<string, string>>({})
+  const [studioOpen, setStudioOpen] = useState(false)
   const answers = client.answers || {}
   const files = client.files || []
-  const progress = useMemo(() => overallProgress(answers), [answers])
+  const sections = useMemo(() => resolveSections(client.schema), [client.schema])
+  const personalized = !!(client.schema && client.schema.length)
+  const progress = useMemo(() => overallProgress(answers, sections), [answers, sections])
   const url = `${SITE}/${client.slug}`
 
   const emailBody = useMemo(() => (
@@ -410,7 +420,7 @@ function ClientDetail({
           <Pill onClick={() => copy(url, 'Lien')}>🔗 {url.replace('https://www.', '')}</Pill>
           <Pill onClick={() => copy(client.accessCode, 'Code')}>🔑 {client.accessCode}</Pill>
           <Pill onClick={() => copy(emailBody, 'Email')}>✉️ Copier l’email d’invitation</Pill>
-          <Pill onClick={() => copy(answersToMarkdown(client.companyName, answers, files), 'Dossier')}>
+          <Pill onClick={() => copy(answersToMarkdown(client.companyName, answers, files, sections), 'Dossier')}>
             📄 Copier tout le dossier
           </Pill>
         </div>
@@ -428,6 +438,61 @@ function ClientDetail({
           {client.submittedAt && <Stat label="Transmis le" value={fmtDateTime(client.submittedAt)} highlight />}
         </div>
       </div>
+
+      {/* Questionnaire */}
+      <div style={{
+        border: `1px solid ${personalized ? 'rgba(0,214,143,0.4)' : BORDER}`, borderRadius: 14,
+        padding: '1.25rem', marginBottom: '0.9rem',
+        background: personalized ? 'rgba(0,214,143,0.05)' : '#fff',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <h3 style={{ fontSize: '0.92rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+              {personalized ? '✨ Questionnaire sur mesure' : 'Questionnaire standard'}
+            </h3>
+            <p style={{ fontSize: '0.8rem', color: MUTED, marginTop: 3, lineHeight: 1.55, maxWidth: 560 }}>
+              {personalized
+                ? `${sections.length} sections, ${sections.reduce((n, s) => n + s.fields.length, 0)} questions adaptées au contexte de ce client.`
+                : 'Les 9 sections par défaut. Personnalisez-les à partir du contexte du client (son devis, ses enjeux) pour des questions vraiment pertinentes.'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }}>
+            {personalized && (
+              <button
+                onClick={async () => {
+                  if (!confirm('Revenir au questionnaire standard ? Les réponses déjà données sont conservées.')) return
+                  await api({ action: 'reset-schema', id: client.id })
+                  await reload()
+                }}
+                style={{
+                  padding: '0.5rem 0.9rem', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600,
+                  border: `1px solid ${BORDER}`, background: '#fff', color: '#111', cursor: 'pointer',
+                }}
+              >
+                Revenir au standard
+              </button>
+            )}
+            <button
+              onClick={() => setStudioOpen(true)}
+              style={{
+                padding: '0.5rem 0.95rem', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600,
+                border: 'none', background: ACCENT, color: '#fff', cursor: 'pointer',
+              }}
+            >
+              {personalized ? 'Modifier le questionnaire' : '✨ Personnaliser avec l’IA'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {studioOpen && (
+        <SchemaStudio
+          client={client}
+          password={password}
+          onClose={() => setStudioOpen(false)}
+          onSaved={async () => { setStudioOpen(false); await reload() }}
+        />
+      )}
 
       {/* Documents */}
       <Panel title={`Documents (${files.length})`}>
@@ -483,7 +548,7 @@ function ClientDetail({
         </label>
       </div>
 
-      {ONBOARDING_SECTIONS.map(section => {
+      {sections.map(section => {
         const sp = sectionProgress(answers, section)
         const visible = section.fields.filter(f => showEmpty || isFilled(answers, f.key))
         if (!visible.length) return null
@@ -568,6 +633,502 @@ function ClientDetail({
         </DangerButton>
       </div>
     </div>
+  )
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Studio de personnalisation du questionnaire
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Clé unique pour une nouvelle question, dérivée de son intitulé. */
+function freshKey(label: string, taken: Set<string>): string {
+  const base = (label || 'question')
+    .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'question'
+  let key = base
+  let n = 2
+  while (taken.has(key)) key = `${base}_${n++}`
+  return key
+}
+
+function allKeys(sections: OnboardingSection[]): Set<string> {
+  return new Set(sections.flatMap(s => s.fields.map(f => f.key)))
+}
+
+/** Copie profonde d'un schéma, pour éditer sans muter la source. */
+function cloneSections(sections: OnboardingSection[]): OnboardingSection[] {
+  return sections.map(s => ({
+    ...s,
+    uploads: s.uploads ? [...s.uploads] : undefined,
+    fields: s.fields.map(f => ({ ...f, options: f.options ? [...f.options] : undefined })),
+  }))
+}
+
+type StudioMode = 'context' | 'editing'
+
+function SchemaStudio({
+  client, password, onClose, onSaved,
+}: {
+  client: AdminClient
+  password: string
+  onClose: () => void
+  onSaved: () => void | Promise<void>
+}) {
+  const hasAnswers = Object.keys(client.answers || {}).length > 0
+  const [mode, setMode] = useState<StudioMode>(client.schema && client.schema.length ? 'editing' : 'context')
+  const [draft, setDraft] = useState<OnboardingSection[]>(
+    client.schema && client.schema.length ? cloneSections(client.schema) : [],
+  )
+  const [context, setContext] = useState('')
+  const [instructions, setInstructions] = useState('')
+  const [busy, setBusy] = useState('')
+  const [err, setErr] = useState('')
+
+  const authFetch = useCallback(async (url: string, payload: Record<string, unknown>) => {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
+      body: JSON.stringify(payload),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(json.error || 'Erreur serveur')
+    return json
+  }, [password])
+
+  // Importe le contexte d'un devis signé de la même entreprise, s'il existe.
+  const importQuote = async () => {
+    setErr('')
+    setBusy('quote')
+    try {
+      const res = await fetch('/.netlify/functions/admin-quotes', { headers: { Authorization: `Bearer ${password}` } })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Erreur devis')
+      const norm = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '')
+      const target = norm(client.companyName)
+      const quotes = (json.quotes || []) as QuoteLike[]
+      const match = quotes
+        .filter(q => { const n = norm(q.companyName || ''); return n && (n === target || n.includes(target) || target.includes(n)) })
+        .sort((a, b) => (a.status === 'accepted' ? -1 : 1) - (b.status === 'accepted' ? -1 : 1))[0]
+      if (!match) { setErr(`Aucun devis trouvé pour « ${client.companyName} ». Collez le contexte à la main.`); return }
+      setContext(c => (c ? c + '\n\n' : '') + quoteToText(match))
+    } catch (e) {
+      setErr((e as Error).message)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const generate = async () => {
+    setErr('')
+    setBusy('generate')
+    try {
+      const json = await authFetch('/.netlify/functions/admin-onboarding-generate', {
+        context, instructions, companyName: client.companyName, baseSchema: ONBOARDING_SECTIONS,
+      })
+      setDraft(json.sections as OnboardingSection[])
+      setMode('editing')
+    } catch (e) {
+      setErr((e as Error).message)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const save = async () => {
+    setErr('')
+    setBusy('save')
+    try {
+      await authFetch('/.netlify/functions/admin-onboarding', { action: 'set-schema', id: client.id, schema: draft })
+      await onSaved()
+    } catch (e) {
+      setErr((e as Error).message)
+      setBusy('')
+    }
+  }
+
+  /* Mutations du brouillon ─────────────────────────────────────────────── */
+  const patchSection = (i: number, patch: Partial<OnboardingSection>) =>
+    setDraft(d => d.map((s, idx) => (idx === i ? { ...s, ...patch } : s)))
+  const patchField = (si: number, fi: number, patch: Partial<OnboardingField>) =>
+    setDraft(d => d.map((s, idx) => idx !== si ? s : { ...s, fields: s.fields.map((f, j) => (j === fi ? { ...f, ...patch } : f)) }))
+  const moveSection = (i: number, dir: -1 | 1) =>
+    setDraft(d => { const j = i + dir; if (j < 0 || j >= d.length) return d; const n = [...d]; [n[i], n[j]] = [n[j], n[i]]; return n })
+  const moveField = (si: number, fi: number, dir: -1 | 1) =>
+    setDraft(d => d.map((s, idx) => { if (idx !== si) return s; const j = fi + dir; if (j < 0 || j >= s.fields.length) return s; const f = [...s.fields]; [f[fi], f[j]] = [f[j], f[fi]]; return { ...s, fields: f } }))
+  const deleteSection = (i: number) =>
+    setDraft(d => d.filter((_, idx) => idx !== i))
+  const deleteField = (si: number, fi: number) =>
+    setDraft(d => d.map((s, idx) => (idx === si ? { ...s, fields: s.fields.filter((_, j) => j !== fi) } : s)))
+  const addField = (si: number) =>
+    setDraft(d => d.map((s, idx) => idx !== si ? s : { ...s, fields: [...s.fields, { key: freshKey('nouvelle question', allKeys(d)), label: 'Nouvelle question', type: 'textarea' as OnboardingFieldType, rows: 3 }] }))
+  const addSection = () =>
+    setDraft(d => [...d, { id: `section_${d.length + 1}_${Math.round(performance.now())}`, title: 'Nouvelle section', icon: '📋', fields: [] }])
+  const toggleUpload = (si: number, key: string) =>
+    setDraft(d => d.map((s, idx) => { if (idx !== si) return s; const up = new Set(s.uploads || []); up.has(key) ? up.delete(key) : up.add(key); return { ...s, uploads: [...up] } }))
+
+  const totalFields = draft.reduce((n, s) => n + s.fields.length, 0)
+  const totalEssential = draft.reduce((n, s) => n + s.fields.filter(f => f.essential).length, 0)
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(10,10,11,0.4)',
+      display: 'flex', justifyContent: 'center', alignItems: 'flex-start', overflowY: 'auto', padding: '2.5rem 1rem',
+    }} onClick={onClose}>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 820, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+      >
+        {/* En-tête sticky */}
+        <div style={{
+          position: 'sticky', top: 0, background: '#fff', borderBottom: `1px solid ${BORDER}`,
+          borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: '1.1rem 1.5rem', zIndex: 2,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
+        }}>
+          <div>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: ACCENT }}>
+              Questionnaire — {client.companyName}
+            </h2>
+            {mode === 'editing' && (
+              <p style={{ fontSize: '0.75rem', color: MUTED, marginTop: 2 }}>
+                {draft.length} sections · {totalFields} questions · {totalEssential} essentielles
+              </p>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {mode === 'editing' && (
+              <button onClick={() => setMode('context')} style={ghostBtn}>↻ Regénérer</button>
+            )}
+            <button onClick={onClose} style={ghostBtn}>Fermer</button>
+            {mode === 'editing' && (
+              <button
+                onClick={() => void save()}
+                disabled={busy === 'save' || !draft.length}
+                style={{ ...primaryBtn, opacity: busy === 'save' || !draft.length ? 0.6 : 1 }}
+              >
+                {busy === 'save' ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div style={{ padding: '1.5rem' }}>
+          {err && (
+            <div style={{ background: '#fee2e2', color: '#991b1b', padding: '0.7rem 0.9rem', borderRadius: 9, fontSize: '0.8rem', marginBottom: '1rem' }}>
+              {err}
+            </div>
+          )}
+
+          {mode === 'context' ? (
+            <div>
+              <p style={{ fontSize: '0.85rem', color: '#333', lineHeight: 1.6, marginBottom: '1rem' }}>
+                Donnez à l’IA le contexte de ce client. Elle part des 9 sections standard,
+                retire les questions hors-sujet, reformule avec son vocabulaire et ajoute
+                les questions propres à sa mission. Vous pourrez tout retoucher ensuite.
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: MUTED }}>Contexte du client</label>
+                <button onClick={() => void importQuote()} disabled={busy === 'quote'} style={ghostBtnSm}>
+                  {busy === 'quote' ? 'Import…' : '↧ Importer le devis signé'}
+                </button>
+              </div>
+              <textarea
+                value={context}
+                onChange={e => setContext(e.target.value)}
+                rows={9}
+                placeholder="Collez le devis, un compte-rendu d'appel, ou décrivez : ce que fait le client, sa cible, où il en est, la mission signée, ses enjeux…"
+                style={studioTextarea}
+              />
+
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: MUTED, margin: '1rem 0 0.4rem' }}>
+                Consignes particulières <span style={{ fontWeight: 400 }}>(facultatif)</span>
+              </label>
+              <textarea
+                value={instructions}
+                onChange={e => setInstructions(e.target.value)}
+                rows={2}
+                placeholder="Ex. insister sur le réglementaire, zapper la partie levée de fonds…"
+                style={studioTextarea}
+              />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => void generate()}
+                  disabled={busy === 'generate' || context.trim().length < 20}
+                  style={{ ...primaryBtn, padding: '0.7rem 1.3rem', opacity: busy === 'generate' || context.trim().length < 20 ? 0.6 : 1 }}
+                >
+                  {busy === 'generate' ? 'Génération… (~15 s)' : '✨ Générer le questionnaire'}
+                </button>
+                <button
+                  onClick={() => { setDraft(cloneSections(ONBOARDING_SECTIONS)); setMode('editing') }}
+                  style={ghostBtn}
+                >
+                  Partir du standard et éditer à la main
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {hasAnswers && (
+                <div style={{ background: '#fef3c7', color: '#92400e', padding: '0.6rem 0.85rem', borderRadius: 9, fontSize: '0.78rem', marginBottom: '1rem', lineHeight: 1.5 }}>
+                  Ce client a déjà commencé à répondre. Évitez de supprimer les questions
+                  déjà remplies : leurs réponses resteraient stockées mais ne s’afficheraient plus.
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {draft.map((section, si) => (
+                  <SectionEditor
+                    key={section.id}
+                    section={section}
+                    index={si}
+                    total={draft.length}
+                    onPatch={patch => patchSection(si, patch)}
+                    onPatchField={(fi, patch) => patchField(si, fi, patch)}
+                    onMove={dir => moveSection(si, dir)}
+                    onMoveField={(fi, dir) => moveField(si, fi, dir)}
+                    onDelete={() => deleteSection(si)}
+                    onDeleteField={fi => deleteField(si, fi)}
+                    onAddField={() => addField(si)}
+                    onToggleUpload={key => toggleUpload(si, key)}
+                  />
+                ))}
+              </div>
+              <button onClick={addSection} style={{ ...ghostBtn, marginTop: '1rem', width: '100%', padding: '0.7rem' }}>
+                + Ajouter une section
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SectionEditor({
+  section, index, total, onPatch, onPatchField, onMove, onMoveField, onDelete, onDeleteField, onAddField, onToggleUpload,
+}: {
+  section: OnboardingSection
+  index: number
+  total: number
+  onPatch: (patch: Partial<OnboardingSection>) => void
+  onPatchField: (fi: number, patch: Partial<OnboardingField>) => void
+  onMove: (dir: -1 | 1) => void
+  onMoveField: (fi: number, dir: -1 | 1) => void
+  onDelete: () => void
+  onDeleteField: (fi: number) => void
+  onAddField: () => void
+  onToggleUpload: (key: string) => void
+}) {
+  return (
+    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 12, padding: '1rem', background: '#fafafa' }}>
+      {/* Ligne titre de section */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+        <input
+          value={section.icon}
+          onChange={e => onPatch({ icon: e.target.value })}
+          style={{ ...miniInput, width: 44, textAlign: 'center', fontSize: '1rem' }}
+          aria-label="Emoji de section"
+        />
+        <input
+          value={section.title}
+          onChange={e => onPatch({ title: e.target.value })}
+          style={{ ...miniInput, flex: 1, fontWeight: 600 }}
+          placeholder="Titre de la section"
+        />
+        <IconBtn title="Monter" disabled={index === 0} onClick={() => onMove(-1)}>↑</IconBtn>
+        <IconBtn title="Descendre" disabled={index === total - 1} onClick={() => onMove(1)}>↓</IconBtn>
+        <IconBtn title="Supprimer la section" danger onClick={() => { if (confirm(`Supprimer la section « ${section.title} » et ses questions ?`)) onDelete() }}>✕</IconBtn>
+      </div>
+      <input
+        value={section.intro || ''}
+        onChange={e => onPatch({ intro: e.target.value })}
+        style={{ ...miniInput, width: '100%', fontSize: '0.78rem', color: MUTED, marginBottom: '0.75rem', boxSizing: 'border-box' }}
+        placeholder="Intro de section (facultatif)"
+      />
+
+      {/* Questions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        {section.fields.map((f, fi) => (
+          <FieldEditor
+            key={f.key}
+            field={f}
+            first={fi === 0}
+            last={fi === section.fields.length - 1}
+            onPatch={patch => onPatchField(fi, patch)}
+            onMove={dir => onMoveField(fi, dir)}
+            onDelete={() => onDeleteField(fi)}
+          />
+        ))}
+      </div>
+      <button onClick={onAddField} style={{ ...ghostBtnSm, marginTop: '0.6rem' }}>+ question</button>
+
+      {/* Dépôts de documents */}
+      <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: `1px dashed ${BORDER}` }}>
+        <p style={{ fontSize: '0.68rem', fontWeight: 600, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.4rem' }}>
+          Documents à déposer ici
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+          {UPLOAD_SLOTS.map(slot => {
+            const on = (section.uploads || []).includes(slot.key)
+            return (
+              <button
+                key={slot.key}
+                onClick={() => onToggleUpload(slot.key)}
+                title={slot.help}
+                style={{
+                  padding: '0.3rem 0.6rem', borderRadius: 99, fontSize: '0.72rem', cursor: 'pointer',
+                  border: `1px solid ${on ? ACCENT : BORDER}`, background: on ? ACCENT : '#fff', color: on ? '#fff' : '#555',
+                }}
+              >
+                {on ? '✓ ' : ''}{slot.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FieldEditor({
+  field, first, last, onPatch, onMove, onDelete,
+}: {
+  field: OnboardingField
+  first: boolean
+  last: boolean
+  onPatch: (patch: Partial<OnboardingField>) => void
+  onMove: (dir: -1 | 1) => void
+  onDelete: () => void
+}) {
+  const needsOptions = field.type === 'select' || field.type === 'checkboxes'
+  return (
+    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 9, padding: '0.6rem', background: '#fff' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <input
+          value={field.label}
+          onChange={e => onPatch({ label: e.target.value })}
+          style={{ ...miniInput, flex: 1, fontWeight: 500 }}
+          placeholder="Intitulé de la question"
+        />
+        <IconBtn title="Monter" disabled={first} onClick={() => onMove(-1)}>↑</IconBtn>
+        <IconBtn title="Descendre" disabled={last} onClick={() => onMove(1)}>↓</IconBtn>
+        <IconBtn title="Supprimer" danger onClick={onDelete}>✕</IconBtn>
+      </div>
+      <input
+        value={field.help || ''}
+        onChange={e => onPatch({ help: e.target.value })}
+        style={{ ...miniInput, width: '100%', fontSize: '0.76rem', color: MUTED, marginTop: '0.4rem', boxSizing: 'border-box' }}
+        placeholder="Aide sous la question (facultatif)"
+      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.45rem', flexWrap: 'wrap' }}>
+        <select
+          value={field.type}
+          onChange={e => onPatch({ type: e.target.value as OnboardingFieldType })}
+          style={{ ...miniInput, width: 'auto', fontSize: '0.76rem', cursor: 'pointer' }}
+        >
+          {FIELD_TYPES.map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
+        </select>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', color: '#333', cursor: 'pointer' }}>
+          <input type="checkbox" checked={!!field.essential} onChange={e => onPatch({ essential: e.target.checked })} />
+          Essentielle
+        </label>
+      </div>
+      {needsOptions && (
+        <input
+          value={(field.options || []).join(', ')}
+          onChange={e => onPatch({ options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+          style={{ ...miniInput, width: '100%', fontSize: '0.76rem', marginTop: '0.45rem', boxSizing: 'border-box' }}
+          placeholder="Options séparées par des virgules"
+        />
+      )}
+    </div>
+  )
+}
+
+/* Devis → texte de contexte ─────────────────────────────────────────────── */
+
+type QuoteLike = {
+  companyName?: string
+  status?: string
+  offerTitle?: string
+  context?: { title?: string; description?: string }
+  arguments?: { title?: string; description?: string }[]
+  lines?: { description?: string; detail?: string }[]
+  notes?: string
+}
+
+function stripHtml(s?: string): string {
+  return (s || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function quoteToText(q: QuoteLike): string {
+  const out: string[] = []
+  if (q.offerTitle) out.push(`Offre : ${stripHtml(q.offerTitle)}`)
+  if (q.context?.title || q.context?.description) {
+    out.push(`${stripHtml(q.context.title) || 'Contexte'} : ${stripHtml(q.context.description)}`)
+  }
+  for (const a of q.arguments || []) {
+    if (a.title || a.description) out.push(`• ${stripHtml(a.title)} : ${stripHtml(a.description)}`)
+  }
+  for (const l of q.lines || []) {
+    const d = [stripHtml(l.description), stripHtml(l.detail)].filter(Boolean).join(' — ')
+    if (d) out.push(`Prestation : ${d}`)
+  }
+  if (q.notes) out.push(`Notes : ${stripHtml(q.notes)}`)
+  return out.join('\n')
+}
+
+const TYPE_LABELS: Record<OnboardingFieldType, string> = {
+  text: 'Texte court',
+  textarea: 'Texte long',
+  select: 'Liste déroulante',
+  checkboxes: 'Cases à cocher',
+}
+
+const miniInput: React.CSSProperties = {
+  padding: '0.4rem 0.55rem', fontSize: '0.82rem', border: `1px solid ${BORDER}`,
+  borderRadius: 7, outline: 'none', background: '#fff', fontFamily: "'Inter', sans-serif",
+}
+const ghostBtn: React.CSSProperties = {
+  padding: '0.5rem 0.9rem', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600,
+  border: `1px solid ${BORDER}`, background: '#fff', color: '#111', cursor: 'pointer',
+}
+const ghostBtnSm: React.CSSProperties = {
+  padding: '0.35rem 0.7rem', borderRadius: 8, fontSize: '0.74rem', fontWeight: 600,
+  border: `1px solid ${BORDER}`, background: '#fff', color: ACCENT, cursor: 'pointer',
+}
+const primaryBtn: React.CSSProperties = {
+  padding: '0.5rem 1.1rem', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
+  border: 'none', background: ACCENT, color: '#fff', cursor: 'pointer',
+}
+const studioTextarea: React.CSSProperties = {
+  width: '100%', padding: '0.7rem 0.85rem', fontSize: '0.85rem', border: `1px solid ${BORDER}`,
+  borderRadius: 10, outline: 'none', boxSizing: 'border-box', resize: 'vertical',
+  fontFamily: "'Inter', sans-serif", lineHeight: 1.55,
+}
+
+function IconBtn({
+  children, onClick, title, disabled, danger,
+}: {
+  children: React.ReactNode
+  onClick: () => void
+  title: string
+  disabled?: boolean
+  danger?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        width: 26, height: 26, flexShrink: 0, borderRadius: 6, border: `1px solid ${BORDER}`,
+        background: '#fff', cursor: disabled ? 'default' : 'pointer', fontSize: '0.72rem',
+        color: disabled ? '#ccc' : danger ? '#dc2626' : '#555', lineHeight: 1,
+      }}
+    >
+      {children}
+    </button>
   )
 }
 

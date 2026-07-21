@@ -34,6 +34,7 @@ function publicView(c: OnboardingClient) {
     companyName: c.companyName,
     contactName: c.contactName || '',
     answers: c.answers || {},
+    schema: c.schema || null,
     files: (c.files || []).map(f => ({
       id: f.id, slot: f.slot, name: f.name, size: f.size,
       mimeType: f.mimeType, chunks: f.chunks, uploadedAt: f.uploadedAt,

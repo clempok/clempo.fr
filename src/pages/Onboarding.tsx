@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
-  ONBOARDING_SECTIONS, MULTI_SEP,
-  sectionProgress, overallProgress, slotsForSection,
+  MULTI_SEP,
+  sectionProgress, overallProgress, slotsForSection, resolveSections,
 } from '../lib/onboarding-schema'
 import type { OnboardingField, OnboardingSection, UploadSlot } from '../lib/onboarding-schema'
 import {
@@ -54,6 +54,8 @@ type ClientData = {
   companyName: string
   contactName: string
   answers: Record<string, string>
+  /** Questionnaire personnalisé ; null → le client voit le standard. */
+  schema?: OnboardingSection[] | null
   files: ClientFile[]
   status: 'draft' | 'in_progress' | 'submitted'
   updatedAt?: string
@@ -77,7 +79,9 @@ export default function Onboarding() {
   const [data, setData] = useState<ClientData | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [files, setFiles] = useState<ClientFile[]>([])
-  const [activeSection, setActiveSection] = useState<string>(ONBOARDING_SECTIONS[0].id)
+  // Vide au départ : l'index se rabat sur la 1re section tant qu'aucune n'est
+  // choisie, ce qui marche quel que soit le schéma (standard ou personnalisé).
+  const [activeSection, setActiveSection] = useState<string>('')
 
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [savedAt, setSavedAt] = useState('')
@@ -352,26 +356,28 @@ function OnboardingForm({
   api: ApiFn
   flush: () => Promise<void>
 }) {
-  const progress = useMemo(() => overallProgress(answers), [answers])
+  // Questionnaire personnalisé du client, ou standard à défaut.
+  const sections = useMemo(() => resolveSections(data.schema), [data.schema])
+  const progress = useMemo(() => overallProgress(answers, sections), [answers, sections])
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(data.status === 'submitted')
   const [submittedAt, setSubmittedAt] = useState(data.submittedAt || '')
 
   const navItems = useMemo(
-    () => ONBOARDING_SECTIONS.map(s => ({
+    () => sections.map(s => ({
       id: s.id,
       title: s.title,
       ...sectionProgress(answers, s),
       docs: files.filter(f => (s.uploads || []).includes(f.slot)).length,
     })),
-    [answers, files],
+    [answers, files, sections],
   )
 
-  const index = Math.max(0, ONBOARDING_SECTIONS.findIndex(s => s.id === activeSection))
-  const section = ONBOARDING_SECTIONS[index]
-  const isLast = index === ONBOARDING_SECTIONS.length - 1
-  const prevId = index > 0 ? ONBOARDING_SECTIONS[index - 1].id : null
-  const nextId = isLast ? null : ONBOARDING_SECTIONS[index + 1].id
+  const index = Math.max(0, sections.findIndex(s => s.id === activeSection))
+  const section = sections[index]
+  const isLast = index === sections.length - 1
+  const prevId = index > 0 ? sections[index - 1].id : null
+  const nextId = isLast ? null : sections[index + 1].id
 
   const handleSubmit = async () => {
     setSubmitting(true)

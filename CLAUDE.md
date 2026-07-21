@@ -127,7 +127,19 @@ espace par client, créé depuis `/admin` → **Onboarding**.
 | `src/pages/adminOnboarding.tsx` | Onglet admin |
 | `netlify/functions/_onboarding.ts` | Types, store Blobs, code d'accès, anti brute-force |
 | `netlify/functions/onboarding.ts` | API publique (code requis à chaque appel) |
-| `netlify/functions/admin-onboarding.ts` | API admin (Bearer `ADMIN_PASSWORD`) |
+| `netlify/functions/admin-onboarding.ts` | API admin (Bearer `ADMIN_PASSWORD`) — dont `set-schema` / `reset-schema` |
+| `netlify/functions/admin-onboarding-generate.ts` | Génère un questionnaire sur mesure via Claude (`ANTHROPIC_API_KEY`) |
+
+**Questionnaire sur mesure** : un client peut porter son propre `schema`
+(`OnboardingClient.schema`) au lieu du standard. Généré depuis son contexte
+(devis signé, enjeux) puis retouché dans l'admin → onglet Onboarding → fiche
+client → **Personnaliser**. `resolveSections(schema)` renvoie le schéma du
+client ou `ONBOARDING_SECTIONS` à défaut ; la page client et l'admin passent
+tous deux par là. Le front (source unique du standard) envoie `ONBOARDING_SECTIONS`
+à la fonction de génération ; la sortie de l'IA **et** l'éditeur admin passent
+par `sanitizeSchema` (dans `_onboarding.ts`) avant stockage, pour qu'un schéma
+malformé ne casse jamais la page client. Modèle Claude : `claude-sonnet-4-6`
+(mêmes en-têtes que `admin-classify-company.ts`).
 
 **Accès client** : code à 6 caractères généré à la création, mémorisé en
 localStorage côté client. 15 échecs en 15 min → 429 sur ce slug.

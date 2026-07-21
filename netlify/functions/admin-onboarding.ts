@@ -7,6 +7,7 @@ import {
   getOnboardingStore,
   loadOnboarding,
   saveOnboarding,
+  sanitizeSchema,
   slugifyOnboarding,
   RESERVED_SLUGS,
 } from './_onboarding'
@@ -105,6 +106,24 @@ const handler: Handler = async (event) => {
     }
     await saveOnboarding(data)
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ client }) }
+  }
+
+  /* ── Questionnaire personnalisé ────────────────────────────────────────── */
+  if (action === 'set-schema') {
+    const clean = sanitizeSchema(body.schema)
+    if (!clean) {
+      return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Schéma vide ou invalide' }) }
+    }
+    client.schema = clean
+    await saveOnboarding(data)
+    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ ok: true, schema: clean }) }
+  }
+
+  // Retour au questionnaire standard (les réponses déjà données restent en base).
+  if (action === 'reset-schema') {
+    delete client.schema
+    await saveOnboarding(data)
+    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ ok: true }) }
   }
 
   /* ── Nouveau code d'accès (l'ancien cesse immédiatement de fonctionner) ── */

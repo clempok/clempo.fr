@@ -43,6 +43,114 @@ export type OnboardingFile = {
   uploadedAt: string
 }
 
+/**
+ * Copie serveur des types de schéma (src/lib/onboarding-schema.ts en est le
+ * miroir côté front — une fonction Netlify ne peut pas importer depuis src/).
+ * Sert au questionnaire personnalisé : généré depuis le contexte du client,
+ * retouché dans l'admin, puis stocké sur le client.
+ */
+export type OnbFieldType = 'text' | 'textarea' | 'select' | 'checkboxes'
+
+export type OnbField = {
+  key: string
+  label: string
+  help?: string
+  type: OnbFieldType
+  placeholder?: string
+  options?: string[]
+  essential?: boolean
+  rows?: number
+}
+
+export type OnbSection = {
+  id: string
+  title: string
+  icon: string
+  intro?: string
+  uploads?: string[]
+  fields: OnbField[]
+}
+
+/** Clés d'emplacements de dépôt connues (miroir de UPLOAD_SLOTS côté front). */
+export const UPLOAD_SLOT_KEYS = [
+  'bp', 'strategie', 'video', 'produit', 'marche',
+  'creas', 'contenus', 'data', 'concurrence', 'presentations', 'autres',
+]
+
+const FIELD_TYPES: OnbFieldType[] = ['text', 'textarea', 'select', 'checkboxes']
+const KEY_RE = /^[a-z0-9_]{1,64}$/i
+
+/**
+ * Assainit un schéma reçu (de l'IA ou de l'éditeur admin) pour qu'il soit
+ * toujours affichable : types valides, clés uniques et bien formées, options
+ * présentes sur select/checkboxes, longueurs bornées. Renvoie null si rien
+ * d'exploitable, pour retomber sur le questionnaire standard.
+ */
+export function sanitizeSchema(raw: unknown): OnbSection[] | null {
+  if (!Array.isArray(raw)) return null
+  const seenKeys = new Set<string>()
+  const seenSectionIds = new Set<string>()
+  const clip = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : '')
+
+  const sections: OnbSection[] = []
+  for (const s of raw.slice(0, 15)) {
+    if (!s || typeof s !== 'object') continue
+    const sec = s as Record<string, unknown>
+    const title = clip(sec.title, 120).trim()
+    if (!title) continue
+
+    let id = clip(sec.id, 40).toLowerCase().replace(/[^a-z0-9_-]/g, '') || `s${sections.length + 1}`
+    while (seenSectionIds.has(id)) id += '_'
+    seenSectionIds.add(id)
+
+    const fields: OnbField[] = []
+    for (const f of Array.isArray(sec.fields) ? sec.fields.slice(0, 25) : []) {
+      if (!f || typeof f !== 'object') continue
+      const fld = f as Record<string, unknown>
+      const label = clip(fld.label, 300).trim()
+      if (!label) continue
+
+      let key = clip(fld.key, 64).replace(/[^a-z0-9_]/gi, '_').replace(/^_+|_+$/g, '')
+      if (!KEY_RE.test(key)) key = `f_${sections.length}_${fields.length}`
+      while (seenKeys.has(key)) key = `${key}_`
+      seenKeys.add(key)
+
+      const type: OnbFieldType = FIELD_TYPES.includes(fld.type as OnbFieldType) ? (fld.type as OnbFieldType) : 'textarea'
+      const options = Array.isArray(fld.options)
+        ? fld.options.map(o => clip(o, 80).trim()).filter(Boolean).slice(0, 30)
+        : []
+      // Un select/checkboxes sans options ne rendrait rien : on le ramène à un
+      // champ texte plutôt que d'afficher une liste vide.
+      const finalType: OnbFieldType = (type === 'select' || type === 'checkboxes') && options.length < 2 ? 'textarea' : type
+
+      const field: OnbField = { key, label, type: finalType }
+      const help = clip(fld.help, 400).trim()
+      if (help) field.help = help
+      const ph = clip(fld.placeholder, 120).trim()
+      if (ph) field.placeholder = ph
+      if (finalType === 'select' || finalType === 'checkboxes') field.options = options
+      if (fld.essential === true) field.essential = true
+      if (typeof fld.rows === 'number' && fld.rows >= 2 && fld.rows <= 12) field.rows = Math.round(fld.rows)
+      fields.push(field)
+    }
+
+    const uploads = Array.isArray(sec.uploads)
+      ? [...new Set(sec.uploads.map(u => clip(u, 40)).filter(u => UPLOAD_SLOT_KEYS.includes(u)))]
+      : []
+
+    // Une section vide (ni question ni dépôt) n'a pas lieu d'être.
+    if (!fields.length && !uploads.length) continue
+
+    const section: OnbSection = { id, title, icon: clip(sec.icon, 8) || '📋', fields }
+    const intro = clip(sec.intro, 400).trim()
+    if (intro) section.intro = intro
+    if (uploads.length) section.uploads = uploads
+    sections.push(section)
+  }
+
+  return sections.length ? sections : null
+}
+
 export type OnboardingClient = {
   id: string
   /** Segment d'URL : clempo.fr/<slug> */
@@ -56,6 +164,8 @@ export type OnboardingClient = {
   internalNote?: string
   /** Réponses, indexées par clé de champ (voir src/lib/onboarding-schema.ts). */
   answers: Record<string, string>
+  /** Questionnaire personnalisé. Absent → le client voit le standard. */
+  schema?: OnbSection[]
   files: OnboardingFile[]
   createdAt: string
   /** Dernière modification par le client. */
