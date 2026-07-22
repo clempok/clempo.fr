@@ -4,7 +4,7 @@ import SEO from '../components/SEO'
 import Eyebrow from '../components/Eyebrow'
 import BarChartRace, { type BarChartRaceData } from '../components/BarChartRace'
 import DataDownloadGate, { DataDownloadNetlifyRegistration } from '../components/DataDownloadGate'
-import { specialites, getSpecialite, DATA_LAST_UPDATED, formatFrDate } from '../data/specialites'
+import { specialites, getSpecialite, DATA_LAST_UPDATED, LATEST_PERIOD, formatFrDate } from '../data/specialites'
 
 export default function SpecialitePage() {
   const { slug } = useParams<{ slug: string }>()
@@ -213,6 +213,39 @@ export default function SpecialitePage() {
             {data && <BarChartRace data={data} />}
           </div>
         </section>
+
+        {/* CE QUI A CHANGÉ CE TRIMESTRE — information gain SEO */}
+        {specialite.latestUpdate && (
+          <section style={{
+            maxWidth: '1320px',
+            margin: '0 auto 4rem',
+            padding: '0 6vw',
+          }}>
+            <div style={{
+              background: 'var(--paper-soft)',
+              border: '1px solid rgba(10,10,11,0.08)',
+              borderLeft: '3px solid var(--signal)',
+              borderRadius: 'var(--cb-radius)',
+              padding: '1.75rem 2rem',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.62rem',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: 'var(--signal-deep)',
+                marginBottom: '0.85rem',
+              }}>
+                // évolution {LATEST_PERIOD}
+              </div>
+              <div
+                className="specialite-prose"
+                style={{ fontSize: '1rem', lineHeight: 1.65, color: 'var(--graphite)' }}
+                dangerouslySetInnerHTML={{ __html: specialite.latestUpdate }}
+              />
+            </div>
+          </section>
+        )}
 
         {/* DOWNLOADS + STATS */}
         <section style={{

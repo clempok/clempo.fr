@@ -24,6 +24,7 @@ export interface Specialite {
   marketAnalysis: string        // Analyse du marché (HTML)
   trends: string                // Grandes tendances 2019-2026 (HTML)
   faq: { q: string; a: string }[]  // FAQ pour le SERP
+  latestUpdate?: string         // « Ce qui a changé ce trimestre » (HTML) — information gain SEO
 }
 
 // Date (ISO) de dernière mise à jour de la donnée GIE. Bumpée automatiquement
@@ -31,6 +32,9 @@ export interface Specialite {
 // Alimente dateModified (Schema.org) + la mention « Mis à jour le » visible :
 // c'est le signal de fraîcheur SEO qui dit à Google que ces pages ont changé.
 export const DATA_LAST_UPDATED = '2026-07-21'
+
+// Libellé du dernier trimestre couvert par les notes `latestUpdate`.
+export const LATEST_PERIOD = 'T2 2026 · avril → juin'
 
 const FR_MONTHS = [
   'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
@@ -47,6 +51,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'medecins-generalistes',
+    latestUpdate: `Trimestre le plus dynamique du panel&nbsp;: <strong>Doctolib gagne 3 points en trois mois</strong> (23,2&nbsp;% → 26,2&nbsp;%) et creuse l'écart avec Weda (13,4&nbsp;%). Aucun autre éditeur ne progresse&nbsp;; HelloDoc (-0,6&nbsp;pt) et Weda (-0,5&nbsp;pt) refluent au profit du leader.`,
     name: 'Médecins Généralistes',
     shortName: 'médecin généraliste',
     hero: 'Évolution des parts de marché des logiciels de gestion de cabinet utilisés par les médecins généralistes français.',
@@ -86,6 +91,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'dentistes',
+    latestUpdate: `<strong>Logos_w continue de creuser l'écart</strong> (+0,7&nbsp;pt, à 45,9&nbsp;%) tandis que <strong>Julie repasse sous la barre des 20&nbsp;%</strong> (19,7&nbsp;%). Le reste du classement est stable, WeClever Dental grappillant 0,2&nbsp;point.`,
     name: 'Dentistes',
     shortName: 'dentiste',
     hero: 'Évolution des parts de marché des logiciels de gestion de cabinet utilisés par les chirurgiens-dentistes français.',
@@ -135,6 +141,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'infirmiers',
+    latestUpdate: `Statu quo en tête&nbsp;: Agathe YOU (33,4&nbsp;%) et Albus AIR (17,4&nbsp;%) conservent les deux premières places. Les seuls vrais mouvements du trimestre sont symétriques&nbsp;: Albus AIR gagne 0,3&nbsp;point quand Vega en cède autant (-0,3&nbsp;pt, à 10,3&nbsp;%).`,
     name: 'Infirmiers',
     shortName: 'infirmier libéral',
     hero: 'Évolution des parts de marché des logiciels métier utilisés par les infirmiers libéraux français.',
@@ -174,6 +181,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'kines',
+    latestUpdate: `<strong>Doctolib accélère</strong> (+1,4&nbsp;pt, à 16,3&nbsp;%) et se rapproche de Medi+4000 (18,8&nbsp;%), qui recule autant que Vega (-0,7&nbsp;pt chacun). Le podium reste inchangé, mais la 2e place se joue désormais à 2,5&nbsp;points.`,
     name: 'Kinésithérapeutes',
     shortName: 'kiné',
     hero: 'Évolution des parts de marché des logiciels métier utilisés par les masseurs-kinésithérapeutes français.',
@@ -213,6 +221,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'orthophonistes',
+    latestUpdate: `Soins 2000 conforte sa première place (32,4&nbsp;%, +0,4&nbsp;pt). En bas de tableau, <strong>Topaze AIR est le plus fort progresseur du trimestre</strong> (+0,7&nbsp;pt) au détriment d'Orthomax (-0,5&nbsp;pt).`,
     name: 'Orthophonistes',
     shortName: 'orthophoniste',
     hero: 'Évolution des parts de marché des logiciels métier utilisés par les orthophonistes français.',
@@ -252,6 +261,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'pharmacies',
+    latestUpdate: `Le duopole se resserre encore&nbsp;: <strong>Winpharma gagne 0,4&nbsp;point (36,7&nbsp;%)</strong> quand LGPI reste stable (39,9&nbsp;%) — l'écart n'est plus que de 3&nbsp;points. Smart RX FES cède 0,7&nbsp;point (10,4&nbsp;%).`,
     name: 'Pharmacies',
     shortName: 'pharmacie',
     hero: 'Évolution des parts de marché des logiciels de gestion utilisés par les pharmacies françaises.',
@@ -305,6 +315,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'medecins-specialistes',
+    latestUpdate: `Bascule symbolique&nbsp;: <strong>Doctolib (16,5&nbsp;%, +1,1&nbsp;pt) dépasse pour la première fois la catégorie «&nbsp;Autres&nbsp;»</strong> et devient le premier logiciel identifié du marché. Plus bas, Stellair Integral (5,7&nbsp;%) passe devant Intellio (5,2&nbsp;%), qui poursuit son recul.`,
     name: 'Médecins Spécialistes',
     shortName: 'médecin spécialiste',
     hero: 'Évolution des parts de marché des logiciels de gestion de cabinet utilisés par les médecins spécialistes français (toutes spécialités hors médecine générale).',
@@ -344,6 +355,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'opticiens',
+    latestUpdate: `Podium inchangé&nbsp;: Cosium Center reste leader (30,4&nbsp;%) devant Optimum Live (+0,4&nbsp;pt) et MyEasyOptic (+0,3&nbsp;pt), qui continuent tous deux de grignoter des parts sur le trimestre.`,
     name: 'Opticiens',
     shortName: 'opticien',
     hero: 'Évolution des parts de marché des logiciels de gestion utilisés par les opticiens-lunetiers français.',
@@ -383,6 +395,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'audioprothesistes',
+    latestUpdate: `Marché stable&nbsp;: Cosium Center domine toujours (44,4&nbsp;%) loin devant IDM Software (11,7&nbsp;%). Optimum Live poursuit sa lente progression (+0,3&nbsp;pt, à 5,2&nbsp;%).`,
     name: 'Audioprothésistes',
     shortName: 'audioprothésiste',
     hero: 'Évolution des parts de marché des logiciels de gestion utilisés par les audioprothésistes français.',
@@ -422,6 +435,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'orthoptistes',
+    latestUpdate: `Medi+4000 conserve son leadership (30,7&nbsp;%). Le seul vrai mouvement vient de <strong>Topaze AIR</strong> (+0,7&nbsp;pt, à 6,0&nbsp;%), qui s'installe seul à la 3e place des logiciels nommés, devant Orthomax.`,
     name: 'Orthoptistes',
     shortName: 'orthoptiste',
     hero: 'Évolution des parts de marché des logiciels métier utilisés par les orthoptistes français.',
@@ -461,6 +475,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'sages-femmes',
+    latestUpdate: `<strong>MaieuticApp accentue son avance</strong> (+1,3&nbsp;pt, à 24,3&nbsp;%) et s'éloigne de Weda (17,9&nbsp;%). Le reste du classement recule légèrement, confirmant la dynamique du spécialiste métier.`,
     name: 'Sages-Femmes',
     shortName: 'sage-femme',
     hero: 'Évolution des parts de marché des logiciels métier utilisés par les sages-femmes libérales françaises.',
@@ -500,6 +515,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'pedicures-podologues',
+    latestUpdate: `La fragmentation se poursuit&nbsp;: la catégorie «&nbsp;Autres&nbsp;» gagne encore 0,7&nbsp;point (47,2&nbsp;%) pendant que Medi+4000 (24,6&nbsp;%) et Intellio (-0,5&nbsp;pt) refluent. Aucun éditeur cloud n'émerge encore sur ce marché.`,
     name: 'Pédicures-Podologues',
     shortName: 'pédicure-podologue',
     hero: 'Évolution des parts de marché des logiciels métier utilisés par les pédicures-podologues français.',
@@ -539,6 +555,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'centres-sante',
+    latestUpdate: `Trio de tête stable&nbsp;: Intellio Editeurs (24,3&nbsp;%), Veasy (17,0&nbsp;%) et Galaxie Soins (14,4&nbsp;%). Seul MonLogicielMedical.com se distingue avec +0,3&nbsp;point sur le trimestre.`,
     name: 'Centres de santé',
     shortName: 'centre de santé',
     hero: 'Évolution des parts de marché des logiciels de gestion utilisés par les centres de santé pluri-professionnels français.',
@@ -578,6 +595,7 @@ export const specialites: Specialite[] = [
   // ────────────────────────────────────────────────────────────────────
   {
     slug: 'laboratoires-analyses',
+    latestUpdate: `Sur la métrique FSE, <strong>Hexalis cède 1,1&nbsp;point (31,0&nbsp;%)</strong> au profit de la catégorie «&nbsp;Autres&nbsp;» — un mouvement à relativiser, cette dernière agrégeant surtout des modules de facturation externes au SGL principal (voir l'analyse ci-dessous).`,
     name: "Laboratoires d'analyses",
     shortName: "laboratoire d'analyses",
     hero: "Évolution des parts de marché des logiciels de gestion (LIMS / SGL) utilisés par les laboratoires d'analyses biomédicales français.",
