@@ -82,8 +82,8 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
   },
   {
     name: 'CBA Informatique Libérale',
-    footprint: "Numéro 1 absolu du marché infirmier libéral (33 %) — éditeur historique 100 % spécialisé sur l'IDEL.",
-    products: 'Agathe YOU (E.Motion), Agathe (legacy)',
+    footprint: "Numéro 1 absolu du marché infirmier libéral (33 %) — l'éditeur historique de l'IDEL, qui se diversifie depuis peu vers les kinés avec Milo.",
+    products: 'Agathe YOU (E.Motion), Agathe (legacy), Milo (kinés)',
   },
   {
     name: 'Epsilog',
