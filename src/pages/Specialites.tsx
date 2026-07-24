@@ -16,7 +16,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Quelles sont les parts de marché des éditeurs de logiciels médicaux en France ?',
-    a: "Les parts de marché des éditeurs sont mesurées par le pourcentage de feuilles de soins électroniques (FSE) télétransmises via leur progiciel. En 2026, Cegedim Santé est l'éditeur le plus diversifié (Crossway, Medi+4000, Maiia, Simply-Vitale, MonLogicielMedical) ; Doctolib domine sur les médecins ; Vidal France (Weda) couvre généralistes et sages-femmes ; Equasens (LGPI) règne sur les pharmacies ; Imagex (Logos_w) sur les dentistes ; CBA (Agathe YOU) sur les infirmiers ; CompuGroup Medical (Vega, via Epsilog) sur les kinésithérapeutes ; Cosium sur l'optique et l'audioprothèse. En base cumulée tous métiers, CompuGroup Medical est d'ailleurs le 1er groupe éditeur, devant Cegedim Santé.",
+    a: "Les parts de marché des éditeurs sont mesurées par le pourcentage de feuilles de soins électroniques (FSE) télétransmises via leur progiciel. En 2026, Cegedim Santé est l'éditeur le plus diversifié (Crossway, Medi+4000, Maiia, Simply-Vitale, MonLogicielMedical) ; Doctolib domine sur les médecins ; Vidal France (Weda) couvre généralistes et sages-femmes ; Equasens (LGPI) règne sur les pharmacies ; Logjia (Logos_w + Julie) sur les dentistes ; CBA (Agathe YOU) sur les infirmiers ; CompuGroup Medical (Vega, via Epsilog) sur les kinésithérapeutes ; Cosium sur l'optique et l'audioprothèse. En base cumulée tous métiers, CompuGroup Medical est d'ailleurs le 1er groupe éditeur, devant Cegedim Santé.",
   },
   {
     q: 'Quel est le plus gros éditeur de logiciels médicaux en France ?',
@@ -44,7 +44,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Quel est le logiciel dentaire n°1 en France ?',
-    a: "Logos_w (Imagex) est le logiciel dentaire le plus utilisé en France en 2026, avec 45,9 % de parts de marché — il a doublé Julie (20,2 % en 2023, désormais 19,7 %, racheté par Imagex) en 2023.",
+    a: "Logos_w (groupe Logjia) est le logiciel dentaire le plus utilisé en France en 2026, avec 45,9 % de parts de marché — il a doublé Julie (20,2 % en 2023, désormais 19,7 %) en 2023. Depuis janvier 2026, Logos_w, Julie et JULiA sont réunis dans un même groupe, Logjia (~66 % du parc dentaire).",
   },
   {
     q: 'Quel est le logiciel infirmier libéral le plus utilisé ?',
@@ -85,9 +85,9 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
     products: 'ID. (LGPI)',
   },
   {
-    name: 'Imagex',
-    footprint: "Leader incontesté du marché dentaire avec Logos_w (46 %) — a doublé Julie en 2023, puis racheté Julie Solutions en 2026.",
-    products: 'Logos_w',
+    name: 'Logjia',
+    footprint: "Groupe né au 1ᵉʳ janvier 2026 de la fusion de Logos_w, Julie et JULiA (rachetés à Henry Schein One). Il réunit les deux premiers logiciels dentaires (Logos_w 46 % + Julie 20 %), soit ~66 % du parc de ville.",
+    products: 'Logos_w, Julie, JULiA',
   },
   {
     name: 'CBA Informatique Libérale',
@@ -108,11 +108,6 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
     name: 'Visiodent',
     footprint: "Présent en dentaire (Veasy 4 %) et leader de la nouvelle gamme cloud chez les centres de santé (17 %).",
     products: 'Veasy, Visiodent Ligne 100/500',
-  },
-  {
-    name: 'Henry Schein One',
-    footprint: "Numéro 2 du marché dentaire avec Julie (20 %) — éditeur global du groupe Henry Schein.",
-    products: 'Julie',
   },
   {
     name: 'Dedalus Healthcare',
@@ -139,8 +134,8 @@ const EDITOR_GROUPS: { name: string; share: string; brands: string }[] = [
   { name: 'Doctolib', share: '9,1 %', brands: 'Doctolib (croissance la plus rapide)' },
   { name: 'Sofia Développement', share: '8,0 %', brands: 'Albus AIR, Topaze AIR, Orthomax, Televitale' },
   { name: 'CBA Informatique Libérale', share: '7,6 %', brands: 'Agathe YOU, Milo' },
+  { name: 'Logjia', share: '6,1 %', brands: 'Logos_w, Julie, JULiA' },
   { name: 'Equasens', share: '4,3 %', brands: 'ID. (LGPI)' },
-  { name: 'Imagex', share: '4,3 %', brands: 'Logos_w, Julie' },
   { name: 'Vidal', share: '4,0 %', brands: 'Weda, DrSanté' },
 ]
 
@@ -149,7 +144,7 @@ const TOP_SOFTWARE: { name: string; editor: string; share: string; spe: number }
   { name: 'Doctolib', editor: 'Doctolib', share: '9,1 %', spe: 4 },
   { name: 'Agathe YOU', editor: 'CBA', share: '7,3 %', spe: 2 },
   { name: 'Medi+4000', editor: 'Cegedim Santé', share: '6,2 %', spe: 9 },
-  { name: 'Logos_w', editor: 'Imagex', share: '4,3 %', spe: 3 },
+  { name: 'Logos_w', editor: 'Logjia', share: '4,3 %', spe: 3 },
   { name: 'Soins 2000', editor: "Logisur'M", share: '3,9 %', spe: 3 },
 ]
 
@@ -433,7 +428,7 @@ export default function Specialites() {
             maxWidth: '68ch',
             marginBottom: '2.5rem',
           }}>
-            Le marché français du logiciel santé est structuré autour d'une quinzaine d'éditeurs majeurs. Certains sont <strong>multi-spécialités</strong> — parfois éclatés en plusieurs marques, comme CompuGroup Medical (Vega, HelloDoc, AxiSanté…) ou Cegedim Santé —, d'autres <strong>généralistes</strong> (Sofia Développement, Doctolib) ou <strong>verticaux mono-spécialité</strong> (Imagex en dentaire, CBA en infirmier libéral, Equasens en pharmacie, Cosium en optique/audio). Voici le panorama 2026, ordonné par poids stratégique sur le marché libéral français.
+            Le marché français du logiciel santé est structuré autour d'une quinzaine d'éditeurs majeurs. Certains sont <strong>multi-spécialités</strong> — parfois éclatés en plusieurs marques, comme CompuGroup Medical (Vega, HelloDoc, AxiSanté…) ou Cegedim Santé —, d'autres <strong>généralistes</strong> (Sofia Développement, Doctolib) ou <strong>verticaux mono-spécialité</strong> (Logjia en dentaire, CBA en infirmier libéral, Equasens en pharmacie, Cosium en optique/audio). Voici le panorama 2026, ordonné par poids stratégique sur le marché libéral français.
           </p>
 
           <div style={{
