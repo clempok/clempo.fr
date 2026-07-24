@@ -56,8 +56,13 @@ const FAQ: { q: string; a: string }[] = [
 // Ordonnés par poids stratégique global. Les % sont les leaders par spécialité.
 const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
   {
+    name: 'CompuGroup Medical (CGM)',
+    footprint: "Le plus gros groupe éditeur en base cumulée (~16 % de tous les télétransmetteurs, devant Cegedim) — souvent sous-estimé car éclaté en plusieurs marques. Leader des kinés (Vega, 42 %), 2ᵉ des orthophonistes (24 %) et orthoptistes (19 %), ~14 % des généralistes et 12 % des IDEL. Groupe allemand ; a racheté Epsilog (Vega) en 2019.",
+    products: 'Vega (Epsilog), HelloDoc & CGM eVITALE (Imagine Editions), AxiSanté, Acteur.fr (Aatlantide)',
+  },
+  {
     name: 'Cegedim Santé',
-    footprint: "Présent sur 8 spécialités sur 14 — l'éditeur le plus diversifié du marché français.",
+    footprint: "Présent sur 8 spécialités sur 14 — l'éditeur à la présence la plus large, même si sa base recule depuis 2022.",
     products: 'Crossway, MonLogicielMedical.com, Medi+4000, Simply-Vitale, Maiia Gestion, MEDICLICK',
   },
   {
@@ -84,11 +89,6 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
     name: 'CBA Informatique Libérale',
     footprint: "Numéro 1 absolu du marché infirmier libéral (33 %) — l'éditeur historique de l'IDEL, qui se diversifie depuis peu vers les kinés avec Milo.",
     products: 'Agathe YOU (E.Motion), Agathe (legacy), Milo (kinés)',
-  },
-  {
-    name: 'Epsilog',
-    footprint: "Leader des kinés (41 %), 2ᵉ des orthophonistes (20 %), 2ᵉ des orthoptistes (15 %). Position dominante sur la rééducation.",
-    products: 'Vega',
   },
   {
     name: 'Cosium',
@@ -406,7 +406,7 @@ export default function Specialites() {
             maxWidth: '68ch',
             marginBottom: '2.5rem',
           }}>
-            Le marché français du logiciel santé est structuré autour d'une quinzaine d'éditeurs majeurs. Certains sont <strong>généralistes multi-spécialités</strong> (Cegedim Santé, Sofia Développement, Doctolib), d'autres sont <strong>verticaux mono-spécialité</strong> (Imagex en dentaire, CBA en infirmier libéral, Equasens en pharmacie, Cosium en optique/audio). Voici le panorama 2026, ordonné par poids stratégique sur le marché libéral français.
+            Le marché français du logiciel santé est structuré autour d'une quinzaine d'éditeurs majeurs. Certains sont <strong>multi-spécialités</strong> — parfois éclatés en plusieurs marques, comme CompuGroup Medical (Vega, HelloDoc, AxiSanté…) ou Cegedim Santé —, d'autres <strong>généralistes</strong> (Sofia Développement, Doctolib) ou <strong>verticaux mono-spécialité</strong> (Imagex en dentaire, CBA en infirmier libéral, Equasens en pharmacie, Cosium en optique/audio). Voici le panorama 2026, ordonné par poids stratégique sur le marché libéral français.
           </p>
 
           <div style={{
