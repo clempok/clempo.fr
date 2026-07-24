@@ -16,7 +16,11 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Quelles sont les parts de marché des éditeurs de logiciels médicaux en France ?',
-    a: "Les parts de marché des éditeurs sont mesurées par le pourcentage de feuilles de soins électroniques (FSE) télétransmises via leur progiciel. En 2026, Cegedim Santé est l'éditeur le plus diversifié (Crossway, Medi+4000, Maiia, Simply-Vitale, MonLogicielMedical) ; Doctolib domine sur les médecins ; Vidal France (Weda) couvre généralistes et sages-femmes ; Equasens (LGPI) règne sur les pharmacies ; Imagex (Logos_w) sur les dentistes ; CBA (Agathe YOU) sur les infirmiers ; Epsilog (Vega) sur les kinésithérapeutes ; Cosium sur l'optique et l'audioprothèse.",
+    a: "Les parts de marché des éditeurs sont mesurées par le pourcentage de feuilles de soins électroniques (FSE) télétransmises via leur progiciel. En 2026, Cegedim Santé est l'éditeur le plus diversifié (Crossway, Medi+4000, Maiia, Simply-Vitale, MonLogicielMedical) ; Doctolib domine sur les médecins ; Vidal France (Weda) couvre généralistes et sages-femmes ; Equasens (LGPI) règne sur les pharmacies ; Imagex (Logos_w) sur les dentistes ; CBA (Agathe YOU) sur les infirmiers ; CompuGroup Medical (Vega, via Epsilog) sur les kinésithérapeutes ; Cosium sur l'optique et l'audioprothèse. En base cumulée tous métiers, CompuGroup Medical est d'ailleurs le 1er groupe éditeur, devant Cegedim Santé.",
+  },
+  {
+    q: 'Quel est le plus gros éditeur de logiciels médicaux en France ?',
+    a: "En base installée cumulée (praticiens qui télétransmettent, toutes spécialités confondues), le plus gros groupe éditeur français est CompuGroup Medical (CGM) avec environ 15 % des télétransmetteurs — via Vega (Epsilog), HelloDoc, CGM eVITALE et AxiSanté. Il devance Cegedim Santé (~14 % : Crossway, Medi+4000, Maiia Gestion, Simply-Vitale) et Doctolib (~9 %). Le logiciel individuel le plus utilisé reste Vega (Epsilog, groupe CGM), présent chez 5 professions de santé.",
   },
   {
     q: 'Comment sont calculées les parts de marché des logiciels santé ?',
@@ -125,6 +129,28 @@ const TOP_EDITORS: { name: string; footprint: string; products: string }[] = [
     footprint: "Acteur transverse chez les médecins (généralistes 7 %, spécialistes 6 %) — a su capter une partie des bascules dans le segment médecins.",
     products: 'Stellair Integral',
   },
+]
+
+// Vue cross-spécialités — base cumulée sur les 14 spécialités (juin 2026, source GIE).
+// Beaucoup de groupes sont éclatés en plusieurs marques : agréger change la hiérarchie.
+const EDITOR_GROUPS: { name: string; share: string; brands: string }[] = [
+  { name: 'CompuGroup Medical (CGM)', share: '15,3 %', brands: 'Vega, HelloDoc, CGM eVITALE, AxiSanté, Acteur.fr' },
+  { name: 'Cegedim Santé', share: '13,7 %', brands: 'Crossway, Medi+4000, Maiia Gestion, Simply-Vitale' },
+  { name: 'Doctolib', share: '9,1 %', brands: 'Doctolib (croissance la plus rapide)' },
+  { name: 'Sofia Développement', share: '8,0 %', brands: 'Albus AIR, Topaze AIR, Orthomax, Televitale' },
+  { name: 'CBA Informatique Libérale', share: '7,6 %', brands: 'Agathe YOU, Milo' },
+  { name: 'Equasens', share: '4,3 %', brands: 'ID. (LGPI)' },
+  { name: 'Imagex', share: '4,3 %', brands: 'Logos_w, Julie' },
+  { name: 'Vidal', share: '4,0 %', brands: 'Weda, DrSanté' },
+]
+
+const TOP_SOFTWARE: { name: string; editor: string; share: string; spe: number }[] = [
+  { name: 'Vega', editor: 'Epsilog (CGM)', share: '11,5 %', spe: 5 },
+  { name: 'Doctolib', editor: 'Doctolib', share: '9,1 %', spe: 4 },
+  { name: 'Agathe YOU', editor: 'CBA', share: '7,3 %', spe: 2 },
+  { name: 'Medi+4000', editor: 'Cegedim Santé', share: '6,2 %', spe: 9 },
+  { name: 'Logos_w', editor: 'Imagex', share: '4,3 %', spe: 3 },
+  { name: 'Soins 2000', editor: "Logisur'M", share: '3,9 %', spe: 3 },
 ]
 
 export default function Specialites() {
@@ -254,6 +280,7 @@ export default function Specialites() {
             {[
               'Source : GIE SESAM-Vitale',
               '14 spécialités',
+              '430 000+ praticiens',
               '100+ progiciels',
               '7 ans de données mensuelles',
               'CSV / XLSX gratuit',
@@ -467,6 +494,126 @@ export default function Specialites() {
                 </div>
               </article>
             ))}
+          </div>
+        </section>
+
+        {/* SECTION 2bis — VUE CROSS-SPÉCIALITÉS (base cumulée) */}
+        <section style={{
+          maxWidth: '1320px',
+          margin: '0 auto 5rem',
+          padding: '0 6vw',
+        }}>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <Eyebrow>// vue cross-spécialités — base cumulée</Eyebrow>
+          </div>
+          <h2 style={{
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'clamp(1.8rem, 3.6vw, 2.6rem)',
+            fontWeight: 700,
+            letterSpacing: '-0.025em',
+            lineHeight: 1.15,
+            marginBottom: '1.25rem',
+            maxWidth: '24ch',
+          }}>
+            Qui pèse le plus, tous métiers confondus&nbsp;?
+          </h2>
+          <p style={{
+            color: 'var(--graphite)',
+            fontSize: '1rem',
+            lineHeight: 1.6,
+            maxWidth: '68ch',
+            marginBottom: '2.5rem',
+          }}>
+            La lecture par spécialité masque le poids réel des grands groupes, souvent <strong>éclatés en plusieurs marques</strong>. En agrégeant les praticiens qui télétransmettent sur les 14 spécialités (juin 2026), la hiérarchie change&nbsp;: <strong>CompuGroup Medical</strong> (Vega, HelloDoc, AxiSanté…) devient le 1<sup>er</sup> groupe éditeur français, devant Cegedim Santé. À noter aussi&nbsp;: le marché grandit presque partout (13 spécialités sur 14 en hausse sur un an, portées par les podologues, opticiens et orthoptistes à +7&nbsp;%), la pharmacie étant la seule en recul (-1,5&nbsp;%).
+          </p>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '1.5rem',
+          }}>
+            {/* Top groupes éditeurs */}
+            <div style={{
+              background: 'var(--paper-soft)',
+              border: '1px solid rgba(10,10,11,0.08)',
+              borderRadius: 'var(--cb-radius)',
+              padding: '1.75rem',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.62rem',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: 'var(--signal-deep)',
+                marginBottom: '1.25rem',
+              }}>
+                // top groupes éditeurs
+              </div>
+              <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                {EDITOR_GROUPS.map((g, i) => (
+                  <li key={g.name} style={{ display: 'grid', gridTemplateColumns: '1.6rem 1fr auto', gap: '0.75rem', alignItems: 'baseline' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--steel)', fontVariantNumeric: 'tabular-nums' }}>{String(i + 1).padStart(2, '0')}</span>
+                    <span>
+                      <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--ink)' }}>{g.name}</span>
+                      <span style={{ display: 'block', fontSize: '0.76rem', color: 'var(--steel)', lineHeight: 1.4, marginTop: '0.1rem' }}>{g.brands}</span>
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{g.share}</span>
+                  </li>
+                ))}
+              </ol>
+              <p style={{ marginTop: '1.25rem', fontSize: '0.72rem', color: 'var(--steel)', lineHeight: 1.5 }}>
+                Part cumulée des télétransmetteurs sur les 14 spécialités couvertes (juin 2026).
+              </p>
+            </div>
+
+            {/* Top logiciels tous métiers */}
+            <div style={{
+              background: 'var(--paper-soft)',
+              border: '1px solid rgba(10,10,11,0.08)',
+              borderRadius: 'var(--cb-radius)',
+              padding: '1.75rem',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.62rem',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: 'var(--signal-deep)',
+                marginBottom: '1.25rem',
+              }}>
+                // top logiciels, tous métiers confondus
+              </div>
+              <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                {TOP_SOFTWARE.map((s, i) => (
+                  <li key={s.name} style={{ display: 'grid', gridTemplateColumns: '1.6rem 1fr auto', gap: '0.75rem', alignItems: 'baseline' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--steel)', fontVariantNumeric: 'tabular-nums' }}>{String(i + 1).padStart(2, '0')}</span>
+                    <span>
+                      <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--ink)' }}>{s.name}</span>
+                      <span style={{ display: 'block', fontSize: '0.76rem', color: 'var(--steel)', lineHeight: 1.4, marginTop: '0.1rem' }}>{s.editor} · {s.spe} spécialités</span>
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{s.share}</span>
+                  </li>
+                ))}
+              </ol>
+              <p style={{ marginTop: '1.25rem', fontSize: '0.72rem', color: 'var(--steel)', lineHeight: 1.5 }}>
+                Part cumulée d'un même progiciel sur toutes les spécialités où il est utilisé.
+              </p>
+            </div>
+          </div>
+
+          {/* Callout — faits saillants */}
+          <div style={{
+            marginTop: '1.5rem',
+            background: 'var(--paper-soft)',
+            border: '1px solid rgba(10,10,11,0.08)',
+            borderLeft: '3px solid var(--signal)',
+            borderRadius: 'var(--cb-radius)',
+            padding: '1.5rem 1.75rem',
+            fontSize: '0.95rem',
+            lineHeight: 1.6,
+            color: 'var(--graphite)',
+          }}>
+            <strong style={{ color: 'var(--ink)' }}>À retenir</strong> — <strong>Vega</strong> (Epsilog, groupe CGM) reste le logiciel n°1 tous métiers confondus (11,5&nbsp;%, présent chez 5 professions). <strong>Doctolib</strong> est le 2<sup>e</sup> et le plus rapide en croissance — 12<sup>e</sup> début 2024, il a dépassé Agathe YOU et Medi+4000 depuis. Le logiciel le plus <strong>transversal</strong> est <strong>DrSanté</strong> (Calimaps, groupe Vidal), utilisé sur 12 des 14 spécialités.
           </div>
         </section>
 
