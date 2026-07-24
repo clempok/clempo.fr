@@ -139,13 +139,14 @@ const EDITOR_GROUPS: { name: string; share: string; brands: string }[] = [
   { name: 'Vidal', share: '4,0 %', brands: 'Weda, DrSanté' },
 ]
 
-const TOP_SOFTWARE: { name: string; editor: string; share: string; spe: number }[] = [
-  { name: 'Vega', editor: 'Epsilog (CGM)', share: '11,5 %', spe: 5 },
-  { name: 'Doctolib', editor: 'Doctolib', share: '9,1 %', spe: 4 },
-  { name: 'Agathe YOU', editor: 'CBA', share: '7,3 %', spe: 2 },
-  { name: 'Medi+4000', editor: 'Cegedim Santé', share: '6,2 %', spe: 9 },
-  { name: 'Logos_w', editor: 'Logjia', share: '4,3 %', spe: 3 },
-  { name: 'Soins 2000', editor: "Logisur'M", share: '3,9 %', spe: 3 },
+// specialties = spécialités où le logiciel pèse au moins 1 % (juin 2026), par part décroissante.
+const TOP_SOFTWARE: { name: string; editor: string; share: string; specialties: string }[] = [
+  { name: 'Vega', editor: 'Epsilog (CGM)', share: '11,5 %', specialties: 'kinés, orthophonistes, orthoptistes, infirmiers, podologues' },
+  { name: 'Doctolib', editor: 'Doctolib', share: '9,1 %', specialties: 'généralistes, spécialistes, kinés' },
+  { name: 'Agathe YOU', editor: 'CBA', share: '7,3 %', specialties: 'infirmiers (kinés émergent)' },
+  { name: 'Medi+4000', editor: 'Cegedim Santé', share: '6,2 %', specialties: 'orthoptistes, podologues, kinés, orthophonistes, sages-femmes, infirmiers' },
+  { name: 'Logos_w', editor: 'Logjia', share: '4,3 %', specialties: 'dentistes, centres de santé' },
+  { name: 'Soins 2000', editor: "Logisur'M", share: '3,9 %', specialties: 'orthophonistes, infirmiers' },
 ]
 
 export default function Specialites() {
@@ -584,7 +585,7 @@ export default function Specialites() {
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--steel)', fontVariantNumeric: 'tabular-nums' }}>{String(i + 1).padStart(2, '0')}</span>
                     <span>
                       <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--ink)' }}>{s.name}</span>
-                      <span style={{ display: 'block', fontSize: '0.76rem', color: 'var(--steel)', lineHeight: 1.4, marginTop: '0.1rem' }}>{s.editor} · {s.spe} spécialités</span>
+                      <span style={{ display: 'block', fontSize: '0.76rem', color: 'var(--steel)', lineHeight: 1.4, marginTop: '0.1rem' }}>{s.editor} · {s.specialties}</span>
                     </span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{s.share}</span>
                   </li>
