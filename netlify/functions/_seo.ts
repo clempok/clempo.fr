@@ -2,10 +2,16 @@ import { getStore } from '@netlify/blobs'
 
 const SITE_ID = '266ec893-0de7-4f86-9559-e80fa4a1e3d7'
 
+// Regroupement thématique affiché dans l'admin. Purement descriptif : sert à
+// filtrer le tableau et à calculer des stats par cluster (les logiciels métiers
+// et les mots-clés marketing n'ont rien à voir en termes de maturité SEO).
+export type KeywordCategory = 'Logiciels métiers' | 'Marketing santé' | 'Systèmes de santé'
+
 export type KeywordRanking = {
   keyword: string
   targetPage: string
   volume: number // estimated monthly search volume
+  category?: KeywordCategory
   history: RankingEntry[]
 }
 
@@ -13,6 +19,10 @@ export type RankingEntry = {
   date: string // YYYY-MM-DD
   position: number | null // null = not found in top 100
   url?: string // URL found ranking
+  // Volumétrie GSC sur la fenêtre du scan. Une position sans impressions ne
+  // veut rien dire : c'est ce couple qui indique si le mot-clé pèse.
+  impressions?: number
+  clicks?: number
 }
 
 export type SeoData = {

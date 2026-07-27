@@ -1711,12 +1711,19 @@ type RankingEntry = {
   date: string
   position: number | null
   url?: string
+  impressions?: number
+  clicks?: number
 }
+
+// Miroir de KeywordCategory dans netlify/functions/_seo.ts.
+type KeywordCategory = 'Logiciels métiers' | 'Marketing santé' | 'Systèmes de santé'
+const KEYWORD_CATEGORIES: KeywordCategory[] = ['Logiciels métiers', 'Marketing santé', 'Systèmes de santé']
 
 type KeywordRanking = {
   keyword: string
   targetPage: string
   volume: number
+  category?: KeywordCategory
   history: RankingEntry[]
 }
 
@@ -1756,11 +1763,13 @@ function SeoView({ password }: { password: string }) {
   const [newKw, setNewKw] = useState('')
   const [newTarget, setNewTarget] = useState('/')
   const [newVolume, setNewVolume] = useState('')
+  const [newCategory, setNewCategory] = useState<KeywordCategory>('Logiciels métiers')
   const [checking, setChecking] = useState(false)
   const [checkResult, setCheckResult] = useState('')
   const { sort, toggle } = useSort()
   const [kwQuery, setKwQuery] = useState('')
   const [targetQuery, setTargetQuery] = useState('')
+  const [catFilter, setCatFilter] = useState<KeywordCategory | 'all'>('all')
 
   const refresh = useCallback(() => {
     setLoading(true)
@@ -1789,6 +1798,7 @@ function SeoView({ password }: { password: string }) {
           keyword: newKw.trim(),
           targetPage: newTarget.trim() || '/',
           volume: parseInt(newVolume) || 0,
+          category: newCategory,
         }),
       })
       if (!res.ok) {
@@ -1829,6 +1839,7 @@ function SeoView({ password }: { password: string }) {
   const kwQ = kwQuery.trim().toLowerCase()
   const targetQ = targetQuery.trim().toLowerCase()
   const filteredKeywords = keywords.filter(k => {
+    if (catFilter !== 'all' && k.category !== catFilter) return false
     if (kwQ && !k.keyword.toLowerCase().includes(kwQ)) return false
     if (targetQ && !k.targetPage.toLowerCase().includes(targetQ)) return false
     return true
@@ -1847,20 +1858,26 @@ function SeoView({ password }: { password: string }) {
         keyword: k => k.keyword.toLowerCase(),
         position: k => (k.history.length ? k.history[k.history.length - 1].position : null),
         volume: k => k.volume,
+        impressions: k => (k.history.length ? k.history[k.history.length - 1].impressions ?? null : null),
         target: k => k.targetPage.toLowerCase(),
       })
     : defaultSorted
 
-  // Stats
-  const tracked = keywords.length
-  const inTop10 = keywords.filter(k => {
+  // Stats — calculées sur la sélection courante, pour comparer les clusters
+  // (les logiciels métiers rankent, les mots-clés marketing pas encore).
+  const tracked = filteredKeywords.length
+  const inTop10 = filteredKeywords.filter(k => {
     const last = k.history[k.history.length - 1]
     return last && last.position !== null && last.position <= 10
   }).length
-  const inTop3 = keywords.filter(k => {
+  const inTop3 = filteredKeywords.filter(k => {
     const last = k.history[k.history.length - 1]
     return last && last.position !== null && last.position <= 3
   }).length
+  const totalImpressions = filteredKeywords.reduce((sum, k) => {
+    const last = k.history[k.history.length - 1]
+    return sum + (last?.impressions ?? 0)
+  }, 0)
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1100px' }}>
@@ -1937,11 +1954,35 @@ function SeoView({ password }: { password: string }) {
         </div>
       )}
 
+      {/* Filtre par cluster */}
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        {(['all', ...KEYWORD_CATEGORIES] as const).map(cat => {
+          const active = catFilter === cat
+          const count = cat === 'all' ? keywords.length : keywords.filter(k => k.category === cat).length
+          return (
+            <button
+              key={cat}
+              onClick={() => setCatFilter(cat)}
+              style={{
+                padding: '0.4rem 0.8rem', borderRadius: '999px', cursor: 'pointer',
+                border: `1px solid ${active ? ACCENT : '#e0e0e0'}`,
+                background: active ? ACCENT : '#fff',
+                color: active ? '#fff' : '#555',
+                fontSize: '0.75rem', fontWeight: active ? 600 : 500,
+              }}
+            >
+              {cat === 'all' ? 'Tous' : cat} ({count})
+            </button>
+          )
+        })}
+      </div>
+
       {/* Stats cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         <StatCard label="Mots-clés suivis" value={String(tracked)} />
         <StatCard label="Top 10 Google" value={String(inTop10)} sub={tracked ? `${Math.round((inTop10 / tracked) * 100)}%` : '—'} />
         <StatCard label="Top 3 Google" value={String(inTop3)} sub={tracked ? `${Math.round((inTop3 / tracked) * 100)}%` : '—'} />
+        <StatCard label="Impressions 28 j" value={totalImpressions.toLocaleString('fr-FR')} sub="cumul des mots-clés affichés" />
       </div>
 
       {/* Add keyword form */}
@@ -1953,12 +1994,12 @@ function SeoView({ password }: { password: string }) {
           <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#333', marginBottom: '0.75rem' }}>
             Ajouter un mot-clé
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 0.8fr auto', gap: '0.75rem', alignItems: 'end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.2fr 0.8fr auto', gap: '0.75rem', alignItems: 'end' }}>
             <div>
               <label style={labelStyle}>Mot-clé</label>
               <input
                 value={newKw} onChange={e => setNewKw(e.target.value)}
-                placeholder="marketing santé"
+                placeholder="logiciel opticien"
                 style={inputFieldStyle}
               />
             </div>
@@ -1969,6 +2010,16 @@ function SeoView({ password }: { password: string }) {
                 placeholder="/"
                 style={inputFieldStyle}
               />
+            </div>
+            <div>
+              <label style={labelStyle}>Cluster</label>
+              <select
+                value={newCategory}
+                onChange={e => setNewCategory(e.target.value as KeywordCategory)}
+                style={inputFieldStyle}
+              >
+                {KEYWORD_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <div>
               <label style={labelStyle}>Volume</label>
@@ -2011,6 +2062,7 @@ function SeoView({ password }: { password: string }) {
                 />
                 <Th label="Position" thStyle={thStyle} align="center" sortKey="position" sort={sort} onSort={toggle} />
                 <th style={{ ...thStyle, textAlign: 'center' }}>Tendance</th>
+                <Th label="Impr. 28 j" thStyle={thStyle} align="center" sortKey="impressions" sort={sort} onSort={toggle} />
                 <Th label="Volume" thStyle={thStyle} align="center" sortKey="volume" sort={sort} onSort={toggle} />
                 <Th
                   label="Page cible" thStyle={thStyle} sortKey="target" sort={sort} onSort={toggle}
@@ -2042,6 +2094,11 @@ function SeoView({ password }: { password: string }) {
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600, color: trend.color }}>
                       {trend.symbol}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'center', color: '#666' }}>
+                      {lastEntry?.impressions !== undefined
+                        ? lastEntry.impressions.toLocaleString('fr-FR')
+                        : '—'}
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'center', color: '#666' }}>
                       {kw.volume > 0 ? `${kw.volume}/mois` : '—'}
@@ -2106,7 +2163,8 @@ function SeoView({ password }: { password: string }) {
         <span style={{ color: '#991b1b' }}>50+</span> · {' '}
         <span style={{ color: '#a1a1aa' }}>Non classé</span>
         <br />
-        Les positions sont mises à jour automatiquement chaque semaine.
+        Source : Google Search Console. Position moyenne et impressions sur les 28 derniers jours
+        (données arrêtées à J-3, latence GSC). Scan automatique chaque lundi.
       </div>
     </div>
   )

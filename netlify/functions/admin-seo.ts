@@ -1,6 +1,6 @@
 import type { Handler } from '@netlify/functions'
 import { checkAuth } from './_analytics'
-import { readSeo, writeSeo, type KeywordRanking, type RankingEntry, type SeoData } from './_seo'
+import { readSeo, writeSeo, type KeywordCategory, type KeywordRanking, type RankingEntry, type SeoData } from './_seo'
 
 const handler: Handler = async (event) => {
   if (!checkAuth(event.headers as Record<string, string | undefined>)) {
@@ -23,8 +23,8 @@ const handler: Handler = async (event) => {
       const data = await readSeo()
 
       if (action === 'add-keyword') {
-        const { keyword, targetPage, volume } = body as {
-          keyword: string; targetPage: string; volume?: number
+        const { keyword, targetPage, volume, category } = body as {
+          keyword: string; targetPage: string; volume?: number; category?: KeywordCategory
         }
         if (!keyword?.trim()) {
           return { statusCode: 400, body: JSON.stringify({ error: 'Keyword required' }) }
@@ -38,6 +38,7 @@ const handler: Handler = async (event) => {
           volume: volume || 0,
           history: [],
         }
+        if (category) entry.category = category
         data.keywords.push(entry)
         await writeSeo(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true, keyword: entry }) }
@@ -55,8 +56,8 @@ const handler: Handler = async (event) => {
       }
 
       if (action === 'update-keyword') {
-        const { keyword, targetPage, volume } = body as {
-          keyword: string; targetPage?: string; volume?: number
+        const { keyword, targetPage, volume, category } = body as {
+          keyword: string; targetPage?: string; volume?: number; category?: KeywordCategory
         }
         const kw = data.keywords.find(k => k.keyword.toLowerCase() === keyword.toLowerCase())
         if (!kw) {
@@ -64,6 +65,7 @@ const handler: Handler = async (event) => {
         }
         if (targetPage !== undefined) kw.targetPage = targetPage
         if (volume !== undefined) kw.volume = volume
+        if (category !== undefined) kw.category = category
         await writeSeo(data)
         return { statusCode: 200, body: JSON.stringify({ ok: true, keyword: kw }) }
       }
@@ -94,19 +96,21 @@ const handler: Handler = async (event) => {
 
       if (action === 'bulk-init') {
         const { keywords } = body as {
-          keywords: { keyword: string; targetPage: string; volume: number }[]
+          keywords: { keyword: string; targetPage: string; volume: number; category?: KeywordCategory }[]
         }
         const added: string[] = []
         for (const k of keywords) {
           if (data.keywords.some(existing => existing.keyword.toLowerCase() === k.keyword.toLowerCase())) {
             continue
           }
-          data.keywords.push({
+          const entry: KeywordRanking = {
             keyword: k.keyword,
             targetPage: k.targetPage,
             volume: k.volume,
             history: [],
-          })
+          }
+          if (k.category) entry.category = k.category
+          data.keywords.push(entry)
           added.push(k.keyword)
         }
         await writeSeo(data)
