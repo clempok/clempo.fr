@@ -142,8 +142,20 @@ def restyle_data_sheet(ws):
     for col, w in widths.items():
         ws.column_dimensions[col].width = w
 
-    # Insert 2 rows at top so we can add the section banner + spacer
+    # Insert 2 rows at top so we can add the section banner + spacer.
+    # ⚠️ openpyxl déplace les valeurs mais PAS les ancres d'hyperliens : sans le
+    # recalage ci-dessous, toute la colonne LinkedIn pointe vers le profil situé
+    # 2 lignes plus bas (bug corrigé le 1er août 2026 sur la base en ligne).
+    links = [(c.row, c.column, c.hyperlink) for row in ws.iter_rows() for c in row if c.hyperlink]
+    for r, c, _ in links:
+        ws.cell(row=r, column=c).hyperlink = None
+
     ws.insert_rows(1, amount=2)
+
+    for r, c, link in links:
+        cell = ws.cell(row=r + 2, column=c)
+        link.ref = cell.coordinate
+        cell.hyperlink = link
     ws.row_dimensions[1].height = 18.0
     ws.row_dimensions[2].height = 7.5
     ws.row_dimensions[3].height = 30.0
