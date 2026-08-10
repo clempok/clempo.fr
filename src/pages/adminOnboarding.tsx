@@ -38,6 +38,8 @@ type AdminClient = {
   contactName?: string
   contactEmail?: string
   internalNote?: string
+  /** Intitulé lu par le client. Absent → « Onboarding ». */
+  questionnaireLabel?: string
   accessCode: string
   answers: Record<string, string>
   schema?: OnboardingSection[] | null
@@ -272,6 +274,7 @@ function CreateForm({
   const [slug, setSlug] = useState('')
   const [contactName, setContactName] = useState('')
   const [contactEmail, setContactEmail] = useState('')
+  const [questionnaireLabel, setQuestionnaireLabel] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
@@ -286,7 +289,7 @@ function CreateForm({
     setBusy(true)
     setErr('')
     try {
-      const json = await api({ action: 'create', companyName, slug: effectiveSlug, contactName, contactEmail })
+      const json = await api({ action: 'create', companyName, slug: effectiveSlug, contactName, contactEmail, questionnaireLabel })
       await onCreated(json.client as AdminClient)
     } catch (e2) {
       setErr((e2 as Error).message)
@@ -307,7 +310,17 @@ function CreateForm({
         />
         <LabeledInput label="Contact (nom)" value={contactName} onChange={setContactName} />
         <LabeledInput label="Contact (email)" value={contactEmail} onChange={setContactEmail} type="email" />
+        <LabeledInput
+          label="Intitulé lu par le client"
+          value={questionnaireLabel}
+          onChange={setQuestionnaireLabel}
+          placeholder="Onboarding"
+        />
       </div>
+      <p style={{ fontSize: '0.72rem', color: MUTED, marginTop: '0.5rem' }}>
+        L’en-tête de sa page, l’onglet et l’aperçu de lien. Vide = « Onboarding ».
+        Pour un espace qui n’est pas un démarrage de mission : « Questionnaire contenu », « Audit »…
+      </p>
       {err && <p style={{ color: '#dc2626', fontSize: '0.78rem', marginTop: '0.75rem' }}>{err}</p>}
       <button
         type="submit"
@@ -350,16 +363,23 @@ function ClientDetail({
   const progress = useMemo(() => overallProgress(answers, sections), [answers, sections])
   const url = `${SITE}/${client.slug}`
 
-  const emailBody = useMemo(() => (
-    `Bonjour${client.contactName ? ' ' + client.contactName.split(' ')[0] : ''},\n\n` +
-    `Avant qu'on démarre, j'ai préparé un espace pour rassembler ce dont j'ai besoin : ` +
-    `objectifs, cibles, produit, marketing déjà fait, concurrence, équipe, et vos documents.\n\n` +
-    `👉 ${url}\n` +
-    `Code d'accès : ${client.accessCode}\n\n` +
-    `Tout est enregistré au fur et à mesure : vous pouvez le remplir en plusieurs fois, ` +
-    `et déposer vos fichiers (BP, decks, créas, vidéo produit) directement dessus.\n\n` +
-    `À très vite,\nClément`
-  ), [client.contactName, client.accessCode, url])
+  // Le sommaire suit le questionnaire réellement servi : un espace sur mesure
+  // n'annonce pas les thèmes du standard.
+  const emailBody = useMemo(() => {
+    const sommaire = client.schema && client.schema.length
+      ? client.schema.map(s => `· ${s.title}`).join('\n')
+      : '· Objectifs, cibles, produit\n· Marketing déjà fait, concurrence, équipe\n· Vos documents'
+    return (
+      `Bonjour${client.contactName ? ' ' + client.contactName.split(' ')[0] : ''},\n\n` +
+      `Avant qu'on démarre, j'ai préparé un espace pour rassembler ce dont j'ai besoin :\n\n` +
+      `${sommaire}\n\n` +
+      `👉 ${url}\n` +
+      `Code d'accès : ${client.accessCode}\n\n` +
+      `Tout est enregistré au fur et à mesure : vous pouvez le remplir en plusieurs fois, ` +
+      `et déposer vos fichiers directement dessus.\n\n` +
+      `À très vite,\nClément`
+    )
+  }, [client.contactName, client.accessCode, client.schema, url])
 
   const saveNote = async () => {
     await api({ action: 'update', id: client.id, patch: { internalNote: note } })
@@ -489,6 +509,8 @@ function ClientDetail({
             </button>
           </div>
         </div>
+
+        <QuestionnaireLabelRow client={client} api={api} reload={reload} />
       </div>
 
       {studioOpen && (
@@ -760,6 +782,65 @@ function cloneSections(sections: OnboardingSection[]): OnboardingSection[] {
   }))
 }
 
+/**
+ * Intitulé que le client lit en en-tête de sa page (et dans l'onglet, et dans
+ * l'aperçu de lien). « Onboarding » ne convient pas à tous les espaces : un
+ * questionnaire contenu, un audit ou un brief de campagne portent leur propre
+ * nom sans que ça change quoi que ce soit au fonctionnement de l'espace.
+ */
+function QuestionnaireLabelRow({
+  client, api, reload,
+}: {
+  client: AdminClient
+  api: (p: Record<string, unknown>) => Promise<Record<string, unknown>>
+  reload: () => Promise<void>
+}) {
+  const stored = client.questionnaireLabel || ''
+  const [value, setValue] = useState(stored)
+  const [busy, setBusy] = useState(false)
+  const dirty = value.trim() !== stored
+
+  const save = async () => {
+    setBusy(true)
+    try {
+      await api({ action: 'update', id: client.id, patch: { questionnaireLabel: value } })
+      await reload()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap',
+      marginTop: '1rem', paddingTop: '0.9rem', borderTop: `1px solid ${BORDER}`,
+    }}>
+      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: MUTED }}>Intitulé lu par le client</span>
+      <input
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        placeholder="Onboarding"
+        style={{
+          flex: '1 1 200px', minWidth: 0, padding: '0.4rem 0.6rem', fontSize: '0.8rem',
+          border: `1px solid ${BORDER}`, borderRadius: 8, outline: 'none',
+          background: '#fff', fontFamily: "'Inter', sans-serif",
+        }}
+      />
+      <button
+        onClick={() => void save()}
+        disabled={!dirty || busy}
+        style={{
+          padding: '0.4rem 0.8rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
+          border: `1px solid ${BORDER}`, background: dirty ? ACCENT : '#fff',
+          color: dirty ? '#fff' : '#c7c7cd', cursor: dirty && !busy ? 'pointer' : 'default',
+        }}
+      >
+        {busy ? '…' : 'Enregistrer'}
+      </button>
+    </div>
+  )
+}
+
 type StudioMode = 'context' | 'editing'
 
 function SchemaStudio({
@@ -784,6 +865,9 @@ function SchemaStudio({
   const [prefill, setPrefill] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState('')
   const [err, setErr] = useState('')
+  const [pasteOpen, setPasteOpen] = useState(false)
+  const [pasted, setPasted] = useState('')
+  const [copied, setCopied] = useState(false)
 
   const authFetch = useCallback(async (url: string, payload: Record<string, unknown>) => {
     const res = await fetch(url, {
@@ -869,6 +953,66 @@ function SchemaStudio({
     }
   }
 
+  /**
+   * Charge un questionnaire écrit à la main, collé en JSON — un questionnaire
+   * long ou très spécifique se rédige plus vite dans un éditeur qu'ici, champ
+   * par champ. On ne fait que remettre la forme d'aplomb pour ouvrir l'éditeur
+   * sur quelque chose de manipulable : `sanitizeSchema` tranche à
+   * l'enregistrement, côté serveur.
+   */
+  const loadPasted = () => {
+    setErr('')
+    let raw: unknown
+    try {
+      raw = JSON.parse(pasted)
+    } catch {
+      setErr('JSON illisible. Collez le tableau complet, crochets compris.')
+      return
+    }
+    const arr = Array.isArray(raw) ? raw : (raw as { sections?: unknown } | null)?.sections
+    if (!Array.isArray(arr)) {
+      setErr('Attendu : un tableau de sections, ou un objet { "sections": [...] }.')
+      return
+    }
+    const sections: OnboardingSection[] = (arr as Record<string, unknown>[])
+      .filter(s => !!s && typeof s === 'object' && typeof s.title === 'string')
+      .map((s, i) => ({
+        id: typeof s.id === 'string' && s.id ? s.id : `section_${i + 1}`,
+        title: String(s.title),
+        icon: typeof s.icon === 'string' && s.icon ? s.icon : '📋',
+        intro: typeof s.intro === 'string' ? s.intro : undefined,
+        uploads: Array.isArray(s.uploads) ? s.uploads.map(String) : undefined,
+        fields: (Array.isArray(s.fields) ? (s.fields as Record<string, unknown>[]) : [])
+          .filter(f => !!f && typeof f === 'object' && typeof f.label === 'string')
+          .map((f, j) => ({
+            key: typeof f.key === 'string' && f.key ? f.key : `f_${i}_${j}`,
+            label: String(f.label),
+            help: typeof f.help === 'string' ? f.help : undefined,
+            type: FIELD_TYPES.includes(f.type as OnboardingFieldType) ? (f.type as OnboardingFieldType) : 'textarea',
+            placeholder: typeof f.placeholder === 'string' ? f.placeholder : undefined,
+            options: Array.isArray(f.options) ? f.options.map(String) : undefined,
+            essential: f.essential === true || undefined,
+            rows: typeof f.rows === 'number' ? f.rows : undefined,
+          })),
+      }))
+      .filter(s => s.fields.length > 0 || (s.uploads?.length || 0) > 0)
+
+    if (!sections.length) {
+      setErr('Aucune section exploitable : chacune attend un `title` et des `fields` avec un `label`.')
+      return
+    }
+    setDraft(sections)
+    setPasteOpen(false)
+    setMode('editing')
+  }
+
+  const copyDraft = () => {
+    void navigator.clipboard.writeText(JSON.stringify(draft, null, 2)).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    })
+  }
+
   const save = async () => {
     setErr('')
     setBusy('save')
@@ -937,7 +1081,12 @@ function SchemaStudio({
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {mode === 'editing' && (
-              <button onClick={() => setMode('context')} style={ghostBtn}>↻ Regénérer</button>
+              <>
+                <button onClick={copyDraft} style={ghostBtn} title="Copier le questionnaire en JSON">
+                  {copied ? 'Copié' : '⧉ JSON'}
+                </button>
+                <button onClick={() => setMode('context')} style={ghostBtn}>↻ Regénérer</button>
+              </>
             )}
             <button onClick={onClose} style={ghostBtn}>Fermer</button>
             {mode === 'editing' && (
@@ -1006,7 +1155,34 @@ function SchemaStudio({
                 >
                   Partir du standard et éditer à la main
                 </button>
+                <button onClick={() => setPasteOpen(v => !v)} style={ghostBtn}>
+                  {pasteOpen ? 'Annuler l’import' : '↥ Coller un questionnaire (JSON)'}
+                </button>
               </div>
+
+              {pasteOpen && (
+                <div style={{ marginTop: '1rem', border: `1px solid ${BORDER}`, borderRadius: 12, padding: '1rem', background: '#fafafa' }}>
+                  <p style={{ fontSize: '0.75rem', color: MUTED, lineHeight: 1.55, marginBottom: '0.5rem' }}>
+                    Un tableau de sections au format <code>{'{ id, title, icon, intro, uploads, fields }'}</code>,
+                    chaque champ portant <code>{'{ key, label, help, type, options, essential, rows }'}</code>.
+                    Une <code>key</code> déjà utilisée par ce client garde ses réponses ; la renommer les rend orphelines.
+                  </p>
+                  <textarea
+                    value={pasted}
+                    onChange={e => setPasted(e.target.value)}
+                    rows={8}
+                    placeholder='[ { "id": "posture", "title": "Ta posture publique", "icon": "🧭", "fields": [ … ] } ]'
+                    style={{ ...studioTextarea, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '0.75rem' }}
+                  />
+                  <button
+                    onClick={loadPasted}
+                    disabled={pasted.trim().length < 10}
+                    style={{ ...primaryBtn, marginTop: '0.6rem', opacity: pasted.trim().length < 10 ? 0.6 : 1 }}
+                  >
+                    Charger dans l’éditeur
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div>
@@ -1377,7 +1553,7 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
 }
 
 function LabeledInput({
-  label, value, onChange, type = 'text', required, autoFocus, prefix,
+  label, value, onChange, type = 'text', required, autoFocus, prefix, placeholder,
 }: {
   label: string
   value: string
@@ -1386,6 +1562,7 @@ function LabeledInput({
   required?: boolean
   autoFocus?: boolean
   prefix?: string
+  placeholder?: string
 }) {
   return (
     <label style={{ display: 'block' }}>
@@ -1399,6 +1576,7 @@ function LabeledInput({
           value={value}
           required={required}
           autoFocus={autoFocus}
+          placeholder={placeholder}
           onChange={e => onChange(e.target.value)}
           style={{
             flex: 1, minWidth: 0, padding: '0.55rem 0.7rem', fontSize: '0.85rem',

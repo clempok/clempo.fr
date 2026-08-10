@@ -1,0 +1,617 @@
+[
+  {
+    "id": "posture",
+    "title": "Ta posture publique",
+    "icon": "🧭",
+    "intro": "Avant d’écrire quoi que ce soit à ton nom, je dois savoir jusqu’où tu vas et ce que tu ne diras jamais. Deux consignes valables pour tout le questionnaire : ne rédige pas, dicte si c’est plus rapide — et sois précis plutôt que synthétique (noms, heures, lieux, chiffres ; j’anonymise après). Une question qui ne t’inspire rien, tu la sautes.",
+    "fields": [
+      {
+        "key": "posture_reputation_12m",
+        "label": "Dans douze mois, quand quelqu’un du secteur entend « Anthony Rougerie », qu’est-ce que tu veux qu’il se dise ?",
+        "help": "Opinion · Une phrase, ou trois mots. Pas le pitch de la boîte — toi.",
+        "type": "textarea",
+        "placeholder": "Ta réponse — dicte-la si c’est plus rapide…",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "posture_clivant",
+        "label": "Sur quoi es-tu prêt à être clivant publiquement ? Quelle opinion tu défendrais même si la moitié du secteur n’est pas d’accord ?",
+        "help": "Opinion · C’est la question la plus importante du questionnaire. Un compte LinkedIn qui ne dérange personne ne convertit personne. Donne-m’en deux ou trois si tu peux.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "posture_lignes_rouges",
+        "label": "Les lignes rouges. Sujets, personnes, structures, chiffres que tu ne veux jamais voir passer dans un post.",
+        "help": "Cadre · Sois brutal et précis. Je préfère une liste trop longue qu’un dérapage.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "posture_menagements",
+        "label": "Y a-t-il des gens ou des institutions que tu ne veux pas froisser ? ARS, Département, fédérations, financeurs, partenaires, concurrents, salariés.",
+        "help": "Cadre · Dis-moi qui, et ce qui te met en risque avec eux concrètement.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "posture_expo_perso",
+        "label": "Tu te sens comment à l’idée de raconter ta vie sur LinkedIn ?",
+        "help": "Cadre · Réponds franchement — je calibrerai le ratio perso / secteur là-dessus.",
+        "type": "select",
+        "options": [
+          "À l’aise, je raconte tout",
+          "OK si ça sert un propos, pas de nombrilisme",
+          "Mal à l’aise mais je le fais si c’est utile",
+          "Je préfère parler du secteur que de moi"
+        ]
+      },
+      {
+        "key": "posture_post_marquant",
+        "label": "Un post ou un compte LinkedIn du secteur qui t’a marqué récemment. De qui, et pourquoi il t’a marqué ?",
+        "help": "Noms · Colle le lien si tu l’as. Et dis-moi ce que tu aurais fait différemment.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "posture_perf_passee",
+        "label": "Un contenu que TU as déjà publié qui a bien marché. Lequel, quels chiffres, et pourquoi à ton avis ?",
+        "help": "Chiffre · Vues, commentaires, DM reçus, RDV générés. Même approximatif.",
+        "type": "textarea",
+        "rows": 3
+      }
+    ]
+  },
+  {
+    "id": "origines",
+    "title": "Aide-soignant — les origines",
+    "icon": "🩺",
+    "intro": "Objectif : revaloriser le métier d’aide-soignant à travers ton parcours. C’est la matière la plus rentable en contenu — un parcours comme le tien, personne d’autre ne l’a dans ce secteur. J’ai besoin de scènes, pas d’un CV.",
+    "fields": [
+      {
+        "key": "origines_pourquoi_as",
+        "label": "Pourquoi aide-soignant ? Raconte le moment exact qui t’a fait choisir ce métier.",
+        "help": "Scène · Quel âge, où, à cause de qui ou de quoi. Ce que ta famille en a dit. Si c’était un choix par défaut, dis-le — c’est encore plus fort.",
+        "type": "textarea",
+        "placeholder": "Ta réponse — dicte-la si c’est plus rapide…",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "origines_premiere_journee",
+        "label": "Ta première journée. Ton premier patient, ta première toilette. Qu’est-ce que personne ne t’avait dit ?",
+        "help": "Scène · Les détails physiques comptent : l’odeur, l’heure, le silence, tes mains. C’est ça qui fait qu’un post est lu jusqu’au bout.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "origines_premiers_chiffres",
+        "label": "Ton premier salaire, tes horaires, tes kilomètres. Les chiffres bruts.",
+        "help": "Chiffre · Et dis-moi si je peux les publier tels quels.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "origines_phrase_mepris",
+        "label": "La phrase la plus méprisante qu’on t’ait dite sur ton métier. Qui, où, quand.",
+        "help": "Scène · Un médecin, un membre de ta famille, un inconnu à un dîner, un patient. Cite-la mot pour mot si tu t’en souviens.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "origines_plus_belle_phrase",
+        "label": "Et la plus belle qu’un patient ou une famille t’ait dite.",
+        "help": "Scène · Même exercice : les mots exacts.",
+        "type": "textarea",
+        "rows": 3
+      }
+    ]
+  },
+  {
+    "id": "bascule",
+    "title": "Aide-soignant — la bascule",
+    "icon": "🚀",
+    "intro": "Le passage de salarié à dirigeant : le déclencheur, ce que tu as risqué, ce que ça t’a coûté. L’échec raconté avec précision est le contenu qui performe le mieux sur LinkedIn.",
+    "fields": [
+      {
+        "key": "bascule_declencheur",
+        "label": "Le jour où tu as décidé de créer ta structure. C’était quoi le déclencheur exact ?",
+        "help": "Scène · Un événement précis, pas « j’en avais marre ». Une réunion, un refus, une décision de ta direction, un patient. Le moment où tu t’es dit « je peux faire mieux ».",
+        "type": "textarea",
+        "placeholder": "Ta réponse — dicte-la si c’est plus rapide…",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "bascule_risques",
+        "label": "Qu’est-ce que tu as risqué ? Argent mis, salaire abandonné, dettes, situation de famille à ce moment-là.",
+        "help": "Chiffre · Les chiffres réels sont ce qui rend une histoire d’entrepreneur crédible. Dis-moi lesquels sont publiables.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "bascule_soutiens",
+        "label": "Qui t’a dit que tu n’y arriverais pas ? Et qui t’a tendu la main ?",
+        "help": "Scène · Les deux histoires m’intéressent autant l’une que l’autre.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "bascule_erreur",
+        "label": "Ta plus grosse erreur des trois premières années. Ce qu’elle t’a coûté, en euros ou en gens.",
+        "help": "Scène · L’échec raconté avec précision est le contenu qui performe le mieux sur LinkedIn — à condition d’être vraiment coûteux.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "bascule_abandon",
+        "label": "Le moment où tu as failli tout arrêter.",
+        "help": "Scène · Qu’est-ce qui t’a fait rester ?",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "bascule_avantage_terrain",
+        "label": "Qu’est-ce que ton passé d’aide-soignant te permet de faire aujourd’hui qu’un dirigeant qui n’a jamais fait de terrain ne peut pas faire ?",
+        "help": "Opinion · Un exemple concret et récent, pas une généralité. Une décision que tu as prise cette année et qu’un autre n’aurait pas prise.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      }
+    ]
+  },
+  {
+    "id": "metier",
+    "title": "Le métier vu d’en haut",
+    "icon": "📊",
+    "intro": "Ce que ton poste te donne à voir aujourd’hui : les chiffres réels de tes structures, les vrais chemins de carrière d’un aide-soignant, et ce qui les bloque.",
+    "fields": [
+      {
+        "key": "metier_chiffres_structures",
+        "label": "Tes structures aujourd’hui, en chiffres. Salariés, dont combien d’AS et d’auxiliaires, ancienneté moyenne, turnover, absentéisme, bénéficiaires, CA.",
+        "help": "Chiffre · Donne-moi tout ce que tu as. Ce qui est publiable ou non, on le tranche dans la dernière section.",
+        "type": "textarea",
+        "placeholder": "Ta réponse — dicte-la si c’est plus rapide…",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "metier_parcours_carriere",
+        "label": "Les vrais chemins de carrière d’un aide-soignant aujourd’hui. Liste-les, et pour chacun : ce que ça change en salaire, et ce que ça change dans le quotidien.",
+        "help": "Mécanique · AS → responsable de secteur ? → IDEC ? → VAE infirmier ? → formateur ? → cadre ? → créer sa boîte ? Dis-moi lesquels existent vraiment et lesquels sont des promesses de brochure.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "metier_promotion_interne",
+        "label": "Quelqu’un que TU as fait monter. D’où il ou elle partait, où il ou elle en est aujourd’hui.",
+        "help": "Scène · Prénom (ou anonyme), la durée, le déclic, et le détail qui rend l’histoire vraie. Si tu peux lui demander l’autorisation de raconter, c’est un des meilleurs posts qu’on puisse faire.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "metier_freins_reels",
+        "label": "Qu’est-ce qui bloque réellement ces parcours ? Pas le frein officiel — le vrai.",
+        "help": "Opinion · Financement de la formation, remplacement pendant l’absence, hiérarchie qui protège son poste, auto-censure, niveau scolaire, garde d’enfants. Dis ce que tu vois.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "metier_conseil_jeune_as",
+        "label": "Ce que tu dirais à un aide-soignant de vingt-deux ans qui pense qu’il est coincé.",
+        "help": "Opinion · Écris-le comme si tu lui parlais, pas comme un conseil LinkedIn.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "metier_reponse_directeur",
+        "label": "Ce que tu réponds à un directeur qui dit « je n’arrive pas à recruter ».",
+        "help": "Opinion · Ce que tu penses vraiment, même si c’est désagréable pour lui.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "metier_voix_a_relayer",
+        "label": "Les gens dont l’histoire mérite d’être repartagée sur ce sujet. Dans le secteur ou en dehors.",
+        "help": "Noms · Noms, liens LinkedIn si tu les as, et pourquoi eux. Tu les connais personnellement ou pas ?",
+        "type": "textarea",
+        "rows": 3
+      }
+    ]
+  },
+  {
+    "id": "finvie",
+    "title": "La fin de vie à domicile",
+    "icon": "🕯️",
+    "intro": "Le sujet le plus puissant et le plus risqué du secteur. Promesse ferme : rien de ce que tu écris ici ne sera publié tel quel — anonymisation complète (prénoms, lieux, dates décalées), et je te soumets chaque post de ce thème avant publication. Commence par la première question : si tu réponds « non », saute le reste de la section, aucun problème.",
+    "fields": [
+      {
+        "key": "finvie_cadre",
+        "label": "Es-tu à l’aise pour parler de fin de vie publiquement, et jusqu’où ?",
+        "help": "Cadre · Réponds à ça d’abord. Ta réponse commande tout le reste de la section.",
+        "type": "select",
+        "options": [
+          "Oui, sans réserve",
+          "Oui, mais tout anonymisé et rien d’identifiable",
+          "Seulement l’organisationnel : ce qui coince dans le système, pas les personnes",
+          "Non — on ne traite pas ce thème"
+        ],
+        "essential": true
+      },
+      {
+        "key": "finvie_conviction",
+        "label": "Une conviction forte que tu as sur la fin de vie à domicile, et qui dérange.",
+        "help": "Opinion · Par exemple : est-ce qu’on ment aux familles sur ce que « mourir chez soi » implique vraiment ?",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "finvie_accompagnement",
+        "label": "Un accompagnement de fin de vie qui t’a marqué. Raconte-le au maximum de détails.",
+        "help": "Scène · L’heure, la pièce, qui était là, qui n’était pas là, ce qui a été dit, qui a appelé qui. J’anonymise intégralement — mais j’ai besoin du réel pour écrire du vrai.",
+        "type": "textarea",
+        "placeholder": "Ta réponse — dicte-la si c’est plus rapide…",
+        "rows": 6,
+        "essential": true
+      },
+      {
+        "key": "finvie_dysfonctionnement",
+        "label": "Le pire dysfonctionnement que tu aies vu en fin de vie à domicile. Qu’est-ce qui n’a pas circulé, entre qui et qui ?",
+        "help": "Scène · Une prescription d’antalgique qui n’arrive pas, un médecin injoignable un week-end, une hospitalisation contre la volonté du patient, une équipe qui découvre le décès en arrivant. C’est le cœur de notre sujet produit.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "finvie_reussite",
+        "label": "Et une fin de vie à domicile qui s’est bien passée. Qu’est-ce qui était en place que les autres n’ont pas ?",
+        "help": "Scène · J’ai besoin du contre-exemple : c’est lui qui rend l’argument constructif au lieu d’accusateur.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "finvie_familles_trop_tard",
+        "label": "Les trois choses que les familles découvrent trop tard.",
+        "help": "Opinion · Ce que personne ne leur dit au moment où elles disent « on veut le garder à la maison ».",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "finvie_equipes_deuil",
+        "label": "Comment tes équipes vivent ça ? Qu’est-ce qui est prévu pour elles après un décès — et qu’est-ce qui ne l’est pas ?",
+        "help": "Mécanique · Le deuil des soignants à domicile est un angle presque jamais traité. Si tu as fait quelque chose là-dessus dans tes structures, raconte.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "finvie_aide_a_mourir",
+        "label": "Le débat sur l’aide à mourir : tu veux le porter publiquement ou pas ?",
+        "help": "Cadre · Un « non » est parfaitement défendable — beaucoup de dirigeants du secteur s’y tiennent.",
+        "type": "select",
+        "options": [
+          "Oui, j’ai un avis et je l’assume",
+          "J’ai un avis mais je ne veux pas l’exposer",
+          "Non, je reste sur l’accompagnement et les moyens",
+          "Je ne sais pas encore"
+        ]
+      },
+      {
+        "key": "finvie_aide_a_mourir_avis",
+        "label": "Si tu veux le porter : ton avis, en quelques lignes.",
+        "help": "Opinion · À ne remplir que si tu as répondu « oui » à la question précédente.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "finvie_systeme_accroche",
+        "label": "Directives anticipées, personne de confiance, HAD, soins palliatifs à domicile, astreinte de nuit : où le système accroche dans la vraie vie ?",
+        "help": "Mécanique · Le décalage entre ce que prévoit le texte et ce qui se passe un samedi soir.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "finvie_voix_du_sujet",
+        "label": "Les voix, associations ou soignants qui parlent bien de ce sujet et qu’on pourrait citer, inviter ou interviewer.",
+        "help": "Noms · Y compris des gens que tu ne connais pas mais dont tu suis le travail.",
+        "type": "textarea",
+        "rows": 3
+      }
+    ]
+  },
+  {
+    "id": "sad",
+    "title": "La réforme SAAD / SSIAD → SAD",
+    "icon": "📋",
+    "intro": "Tu as ici un avantage rare : tu subis la réforme dans tes propres structures pendant que tout le monde la commente. Je veux ton vécu de dirigeant, pas une explication de texte — LinkedIn est déjà saturé de décryptages.",
+    "fields": [
+      {
+        "key": "sad_explication_simple",
+        "label": "Explique la réforme à un salarié, en trois phrases, sans jargon.",
+        "help": "Mécanique · Fais-le vraiment en trois phrases. Si tu y arrives, c’est un post ; si tu n’y arrives pas, c’est encore plus intéressant.",
+        "type": "textarea",
+        "placeholder": "Ta réponse — dicte-la si c’est plus rapide…",
+        "rows": 4
+      },
+      {
+        "key": "sad_changements_concrets",
+        "label": "Concrètement, chez toi, qu’est-ce qui a changé depuis 2023 ?",
+        "help": "Scène · Pas ce que dit le décret : ce qui a changé dans une journée de travail. Un document en plus, une réunion en plus, un logiciel, un poste créé, une visite de contrôle. Du tangible.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "sad_cpom",
+        "label": "Le CPOM : où tu en es, ce que l’ARS ou le Département t’a demandé exactement, combien de temps ça t’a pris, qui l’a rédigé.",
+        "help": "Mécanique · L’échéance du 31/12/2026 approche — beaucoup de directeurs sont dans le flou et cherchent des retours d’expérience. Le tien vaut de l’or.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "sad_financements",
+        "label": "Tarif plancher, dotation qualité, dotation de coordination : l’argent est-il arrivé ? Combien, et tu en as fait quoi ?",
+        "help": "Chiffre · C’est LA question que les directeurs se posent entre eux et que personne ne pose en public. Chiffres si tu peux.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "sad_promesse_vs_realite",
+        "label": "La promesse de la réforme contre la réalité. La plus grosse arnaque intellectuelle de cette réforme, selon toi.",
+        "help": "Opinion · Sois direct. C’est ce genre de phrase qui fait 400 commentaires.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "sad_prouver_effectivite",
+        "label": "Qu’est-ce que la réforme te demande de PROUVER que personne ne sait prouver aujourd’hui ?",
+        "help": "Opinion · Le cahier des charges des SAD impose de « justifier l’effectivité » de la coordination lors des contrôles. Est-ce qu’on te l’a déjà demandé ? Comment tu ferais si un contrôleur te le demandait demain matin ?",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "sad_coordination_fictive",
+        "label": "L’expression « coordination fictive » te parle ? Tu l’as déjà entendue, dans quelle bouche ?",
+        "help": "Opinion · Si oui, raconte le contexte. Si non, dis-moi juste ce que ça t’évoque.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "sad_off_directeurs",
+        "label": "Ce qu’un directeur de SAD te dit en off, en marge d’une réunion, sur cette réforme.",
+        "help": "Scène · Les phrases qu’on ne dit pas devant l’ARS. C’est là que se trouvent les meilleurs hooks.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "sad_ministre_24h",
+        "label": "Ministre pendant vingt-quatre heures. Une seule mesure. Laquelle ?",
+        "help": "Opinion · Et qu’est-ce que ça changerait chez toi dès le mois suivant ?",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "sad_qui_decrypte",
+        "label": "Qui décrypte bien la réforme publiquement ? Et où as-tu des contacts dans les fédérations ?",
+        "help": "Noms · J’ai repéré Sébastien Messier (Nexus ESMS / « ESMS en Zone Sensible ») et Olivier Dupille (UNASSI) — tu les connais ? On vise plutôt FEDESAP, FEHAP, FHF, UNASSI : dis-moi où tu as des entrées réelles, y compris fragiles.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "sad_echeances_redoutees",
+        "label": "Les échéances 2026-2027 que les directeurs redoutent le plus.",
+        "help": "Mécanique · Dans l’ordre. Ce sont nos dates de publication.",
+        "type": "textarea",
+        "rows": 3
+      }
+    ]
+  },
+  {
+    "id": "coordination",
+    "title": "La coordination des soins",
+    "icon": "🔗",
+    "intro": "Le cœur du produit : chaque réponse ici devient à la fois un post et un argument de vente. Je cherche surtout l’incident — le moment où l’info n’est pas passée et où ça a coûté quelque chose à quelqu’un.",
+    "fields": [
+      {
+        "key": "coord_incident",
+        "label": "Un incident réel où l’information n’est pas passée. Le plus précis possible.",
+        "help": "Scène · Qui savait quoi, qui aurait dû savoir, à quel moment ça a cassé, et ce qui s’est passé ensuite : chute, hospitalisation, erreur de traitement, famille qui découvre. Donne-m’en deux ou trois si tu en as.",
+        "type": "textarea",
+        "placeholder": "Ta réponse — dicte-la si c’est plus rapide…",
+        "rows": 6,
+        "essential": true
+      },
+      {
+        "key": "coord_cout",
+        "label": "Ça a coûté quoi ? En temps, en argent, en jours d’hospitalisation, en confiance de la famille.",
+        "help": "Chiffre · Estime à la louche, je le préciserai. Un chiffre approximatif vaut mieux que pas de chiffre.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "coord_scene_reelle",
+        "label": "À quoi ressemble vraiment la coordination aujourd’hui dans une structure moyenne ? Décris la scène.",
+        "help": "Scène · Cahier papier sur la table de la cuisine, groupe WhatsApp, téléphone qui sonne, mails, post-its, tableau blanc. Ce que tu vois quand tu entres dans une agence à 8h.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "coord_journee_idec",
+        "label": "Une journée de responsable de secteur ou d’IDEC : combien d’appels, combien d’interruptions, combien de temps passé à chercher une information ?",
+        "help": "Chiffre · Chiffre-le même approximativement — et si tu peux, demande à une de tes responsables de compter sur une seule journée cette semaine. Ce chiffre-là vaudrait un post à lui tout seul.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "coord_moment_cle",
+        "label": "Le moment de la journée où tout se joue.",
+        "help": "Scène · 7h ? 13h ? Le vendredi 17h ? Le dimanche ? Raconte pourquoi.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "coord_qui_refuse",
+        "label": "Qui refuse de coordonner, et pourquoi ? Le vrai blocage humain.",
+        "help": "Opinion · Les IDEL ? Les médecins traitants ? Les familles ? Tes propres équipes ? Ne sois pas diplomate ici, je filtrerai.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "coord_turnover_savoir",
+        "label": "Le turnover : quand quelqu’un part, qu’est-ce qui part avec lui ? Donne un exemple vécu.",
+        "help": "Scène · Une auxiliaire qui connaissait le code de la porte, l’heure où le chien doit sortir, le fait que Mme D. ne prend ses gouttes que dans du sirop. Ce savoir-là n’est écrit nulle part.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "coord_remplacant_7h",
+        "label": "Un remplaçant arrive à 7h chez un bénéficiaire qu’il ne connaît pas. Décris ce qu’il sait et ce qu’il ne sait pas.",
+        "help": "Scène · Minute par minute si tu peux. C’est la meilleure démonstration du problème qu’on résout.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "coord_limite_logiciel",
+        "label": "Ce que ton logiciel métier ne te dira jamais.",
+        "help": "Opinion · On m’a soufflé la formule « votre logiciel compte des heures, il ne dit rien de ce qui se passe au domicile ». Tu la valides, tu la corriges, tu la trouves fausse ?",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "coord_sauvetage",
+        "label": "Une fois où la coordination a sauvé quelque chose.",
+        "help": "Scène · J’ai besoin d’un cas positif, sinon tout le compte devient un catalogue de catastrophes.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "coord_objections",
+        "label": "Ce que tu réponds à : « on a déjà un groupe WhatsApp », « on a déjà notre logiciel », « c’est un outil de plus pour mes équipes ».",
+        "help": "Opinion · Tes réponses réelles en rendez-vous. Ce sont les trois objections qu’on va traiter en contenu ET dans l’argumentaire commercial.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "coord_structures_modeles",
+        "label": "Les structures, DAC, CPTS ou réseaux qui font ça bien et qu’on pourrait citer ou interviewer.",
+        "help": "Noms · Y compris s’ils ne sont pas clients — surtout s’ils ne sont pas clients.",
+        "type": "textarea",
+        "rows": 3
+      }
+    ]
+  },
+  {
+    "id": "preuves",
+    "title": "Carnet d’adresses et preuves",
+    "icon": "📇",
+    "intro": "La partie logistique. Moins excitante, mais c’est elle qui détermine si la stratégie tient debout : ce qu’on a le droit de publier, avec qui, et combien de temps tu peux vraiment y consacrer. Tu peux déposer tes photos, rushes et verbatims en bas de cette section.",
+    "uploads": ["contenus", "video", "autres"],
+    "fields": [
+      {
+        "key": "preuves_top10_linkedin",
+        "label": "Les dix personnes les plus intéressantes du secteur sur LinkedIn selon toi.",
+        "help": "Noms · Nom, pourquoi eux, et surtout : tu les connais personnellement ou pas ? Ce sont les comptes qu’on va commenter tous les jours.",
+        "type": "textarea",
+        "placeholder": "Ta réponse — dicte-la si c’est plus rapide…",
+        "rows": 6,
+        "essential": true
+      },
+      {
+        "key": "preuves_relations_directes",
+        "label": "Ceux que tu connais assez bien pour leur proposer un échange, une interview ou un post à deux.",
+        "help": "Noms · Même s’ils te doivent juste un café. C’est notre canal le moins cher et le plus efficace.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "preuves_veille",
+        "label": "Ce que tu lis sur le secteur : comptes, newsletters, médias, groupes.",
+        "help": "Noms · Y compris les trucs que tu lis en diagonale.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "preuves_evenements",
+        "label": "Les congrès, salons, groupes et événements où sont tes prospects — au-delà de SilverEco Cannes.",
+        "help": "Mécanique · Avec les dates si tu les as, et ceux où tu es déjà inscrit ou invité.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "preuves_stock_medias",
+        "label": "Ce que tu as déjà en stock : vidéos tournées, photos, témoignages, verbatims, articles de presse, captures.",
+        "help": "Mécanique · Liste-les et dis-moi où c’est stocké. Ne les trie pas — même les rushes non montés m’intéressent. Tu peux les déposer juste en dessous.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "preuves_chiffres_publiables",
+        "label": "Les chiffres de tes structures que tu m’autorises à publier.",
+        "help": "Chiffre · Coche ce qui est publiable.",
+        "type": "checkboxes",
+        "options": [
+          "Chiffre d’affaires",
+          "Nombre de salariés",
+          "Nombre de bénéficiaires accompagnés",
+          "Nombre d’interventions par an",
+          "Ancienneté moyenne des équipes",
+          "Taux de turnover",
+          "Taux d’absentéisme",
+          "Nombre de communes couvertes",
+          "Ton parcours et tes salaires passés",
+          "Aucun chiffre financier"
+        ],
+        "essential": true
+      },
+      {
+        "key": "preuves_chiffres_conditions",
+        "label": "Des conditions sur ces chiffres ?",
+        "help": "Cadre · Arrondi, ordre de grandeur, sans nommer la structure, pas avant telle date…",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "preuves_distinctions",
+        "label": "Prix, distinctions, labels, certifications — obtenus ou en cours.",
+        "help": "Mécanique · Y compris les candidatures en cours, ça fait du contenu de série.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "preuves_temps_dispo",
+        "label": "Ton temps réel. Combien de posts par semaine tu peux valider, combien de vidéos par mois tu peux tourner, et tu préfères écrire ou parler ?",
+        "help": "Cadre · Sois réaliste, pas ambitieux. Je préfère construire un rythme que tu tiendras douze mois qu’un plan qui meurt en octobre.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "preuves_question_manquante",
+        "label": "Qu’est-ce que j’ai oublié de te demander, et que tu meurs d’envie de raconter ?",
+        "help": "Opinion · La meilleure question du questionnaire est souvent celle que je n’ai pas posée.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      }
+    ]
+  }
+]

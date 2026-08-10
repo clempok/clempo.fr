@@ -13,6 +13,7 @@ import {
   slugifyOnboarding,
   logoKey,
   parseImageDataUri,
+  cleanQuestionnaireLabel,
   CONTEXT_SUMMARY_MAX,
   RESERVED_SLUGS,
 } from './_onboarding'
@@ -105,6 +106,7 @@ const handler: Handler = async (event) => {
       contactName: String(body.contactName || '').trim() || undefined,
       contactEmail: String(body.contactEmail || '').trim() || undefined,
       internalNote: String(body.internalNote || '').trim() || undefined,
+      questionnaireLabel: cleanQuestionnaireLabel(body.questionnaireLabel) || undefined,
       accessCode: generateAccessCode(),
       answers: {},
       files: [],
@@ -146,6 +148,10 @@ const handler: Handler = async (event) => {
       if (typeof patch[key] === 'string') {
         client[key] = (patch[key] as string).trim() || undefined
       }
+    }
+    // Vide → on retire le champ, le client relit « Onboarding ».
+    if (typeof patch.questionnaireLabel === 'string') {
+      client.questionnaireLabel = cleanQuestionnaireLabel(patch.questionnaireLabel) || undefined
     }
     await saveOnboarding(data)
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ client }) }

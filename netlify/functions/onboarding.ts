@@ -8,6 +8,7 @@ import {
   saveOnboarding,
   slugifyOnboarding,
   CHUNK_BYTES,
+  DEFAULT_QUESTIONNAIRE_LABEL,
   MAX_ANSWER_CHARS,
   MAX_FILES,
   MAX_FILE_BYTES,
@@ -33,6 +34,7 @@ function publicView(c: OnboardingClient) {
   return {
     companyName: c.companyName,
     contactName: c.contactName || '',
+    questionnaireLabel: c.questionnaireLabel || DEFAULT_QUESTIONNAIRE_LABEL,
     answers: c.answers || {},
     schema: c.schema || null,
     contextSummary: c.contextSummary || '',
@@ -66,15 +68,16 @@ const handler: Handler = async (event) => {
     if (!slug) return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: 'Missing slug' }) }
     const data = await loadOnboarding()
     const client = data.clients.find(c => c.slug === slug)
-    // Nom + présence de logo sont volontairement publics : ils alimentent
-    // l'aperçu de lien (og:image) de l'invitation envoyée au client. Le contenu
-    // du questionnaire, lui, reste derrière le code.
+    // Nom, intitulé et présence de logo sont volontairement publics : ils
+    // alimentent l'aperçu de lien (og:image) de l'invitation envoyée au client.
+    // Le contenu du questionnaire, lui, reste derrière le code.
     return {
       statusCode: 200,
       headers: HEADERS,
       body: JSON.stringify({
         found: !!client,
         companyName: client?.companyName || '',
+        questionnaireLabel: client ? client.questionnaireLabel || DEFAULT_QUESTIONNAIRE_LABEL : '',
         hasLogo: !!client?.logoMime,
       }),
     }
@@ -266,9 +269,10 @@ async function notifySubmission(client: OnboardingClient): Promise<void> {
     return
   }
   const answered = Object.values(client.answers || {}).filter(v => v && v.trim()).length
+  const label = client.questionnaireLabel || DEFAULT_QUESTIONNAIRE_LABEL
   const html = `
     <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;color:#111">
-      <h2 style="color:#1A1A6B;margin:0 0 4px">Onboarding terminé — ${escapeHtml(client.companyName)}</h2>
+      <h2 style="color:#1A1A6B;margin:0 0 4px">${escapeHtml(label)} terminé — ${escapeHtml(client.companyName)}</h2>
       <p style="color:#666;margin:0 0 20px;font-size:14px">
         ${escapeHtml(client.contactName || 'Le client')} vient de valider son questionnaire.
       </p>
@@ -290,7 +294,7 @@ async function notifySubmission(client: OnboardingClient): Promise<void> {
     body: JSON.stringify({
       from: 'Clempo.fr <noreply@clempo.fr>',
       to: ['clement.pougetosmont@gmail.com'],
-      subject: `✅ Onboarding terminé — ${client.companyName}`,
+      subject: `✅ ${label} terminé — ${client.companyName}`,
       html,
     }),
   })

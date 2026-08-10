@@ -166,6 +166,19 @@ client édite un champ pré-rempli, le save public retire sa clé de `prefilledK
 section. Voir [[reference_netlify_function_timeout_llm]] (mémoire) pour le pattern
 background + poll.
 
+**Questionnaire écrit à la main** : studio admin → **Coller un questionnaire
+(JSON)**, un tableau de sections au format `OnboardingSection[]`. La forme est
+remise d'aplomb côté front pour ouvrir l'éditeur, puis `sanitizeSchema` tranche
+au save. Le bouton **⧉ JSON** ressort le brouillon courant, pour l'itérer hors
+de l'admin. Questionnaires versionnés dans `questionnaires/*.json`.
+
+**Intitulé du questionnaire** : `client.questionnaireLabel` (défaut
+`DEFAULT_QUESTIONNAIRE_LABEL` = « Onboarding »), éditable dans la fiche client.
+Il porte l'en-tête de la page client, le titre d'onglet, l'`og:title` de l'edge
+function et l'email « terminé » — pour les espaces qui ne sont pas un démarrage
+de mission (« Questionnaire contenu », « Audit »…). L'email d'invitation
+proposé dans l'admin liste les sections du schéma réellement servi.
+
 **Accès client** : code à 6 caractères généré à la création, mémorisé en
 localStorage côté client. 15 échecs en 15 min → 429 sur ce slug.
 

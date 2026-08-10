@@ -53,6 +53,8 @@ type ClientFile = {
 type ClientData = {
   companyName: string
   contactName: string
+  /** Intitulé affiché en en-tête : « Onboarding », « Questionnaire contenu »… */
+  questionnaireLabel?: string
   answers: Record<string, string>
   /** Questionnaire personnalisé ; null → le client voit le standard. */
   schema?: OnboardingSection[] | null
@@ -177,7 +179,7 @@ export default function Onboarding() {
   }, [slug, openSpace])
 
   useEffect(() => {
-    if (data) document.title = `Onboarding — ${data.companyName}`
+    if (data) document.title = `${data.questionnaireLabel || 'Onboarding'} — ${data.companyName}`
   }, [data])
 
   /* ── Sauvegarde automatique ────────────────────────────────────────────── */
@@ -453,7 +455,7 @@ function OnboardingForm({
               />
             )}
             <div style={{ minWidth: 0 }}>
-              <p className="onb-eyebrow" style={{ color: SIGNAL_DEEP }}>Onboarding</p>
+              <p className="onb-eyebrow" style={{ color: SIGNAL_DEEP }}>{data.questionnaireLabel || 'Onboarding'}</p>
               <p style={{
                 fontFamily: FS, fontSize: '1.15rem', fontWeight: 400, letterSpacing: '-0.015em',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1,

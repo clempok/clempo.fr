@@ -35,6 +35,22 @@ export const CONTEXT_SUMMARY_MAX = 2000
 /** Clé réservée du champ « corrigez mon résumé du contexte » (1re section). */
 export const CONTEXT_FIELD_KEY = 'contexte_ajustements'
 
+/**
+ * Intitulé du questionnaire, tel que le client le lit : en-tête de sa page,
+ * titre d'onglet, aperçu de lien, email de fin. « Onboarding » convient à un
+ * démarrage de mission ; un espace qui sert à autre chose (« Questionnaire
+ * contenu », « Audit »…) porte son propre intitulé.
+ */
+export const DEFAULT_QUESTIONNAIRE_LABEL = 'Onboarding'
+
+const QUESTIONNAIRE_LABEL_MAX = 40
+
+/** Normalise un intitulé saisi dans l'admin. Vide → on retombe sur le défaut. */
+export function cleanQuestionnaireLabel(raw: unknown): string {
+  if (typeof raw !== 'string') return ''
+  return raw.replace(/\s+/g, ' ').trim().slice(0, QUESTIONNAIRE_LABEL_MAX)
+}
+
 export type OnboardingStatus = 'draft' | 'in_progress' | 'submitted'
 
 export type OnboardingFile = {
@@ -217,6 +233,8 @@ export type OnboardingClient = {
   companyName: string
   contactName?: string
   contactEmail?: string
+  /** Intitulé lu par le client. Absent → DEFAULT_QUESTIONNAIRE_LABEL. */
+  questionnaireLabel?: string
   /** Code à 6 caractères transmis au client. Régénérable depuis l'admin. */
   accessCode: string
   /** Note interne, visible seulement dans l'admin. */

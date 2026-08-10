@@ -55,8 +55,8 @@ export default async (request: Request, context: Context): Promise<Response | vo
   // Passe-plat : racine, sous-chemins, fichiers, vraies pages du site.
   if (!slug || slug.includes('/') || slug.includes('.') || SITE_SEGMENTS.has(slug)) return
 
-  // Nom + présence de logo (endpoint public, ne révèle rien de confidentiel).
-  let meta: { found?: boolean; companyName?: string; hasLogo?: boolean }
+  // Nom, intitulé, présence de logo (endpoint public, rien de confidentiel).
+  let meta: { found?: boolean; companyName?: string; questionnaireLabel?: string; hasLogo?: boolean }
   try {
     const r = await fetch(`${url.origin}/.netlify/functions/onboarding?slug=${encodeURIComponent(slug)}`)
     meta = await r.json()
@@ -77,7 +77,7 @@ export default async (request: Request, context: Context): Promise<Response | vo
 async function rewrite(
   slug: string,
   url: URL,
-  meta: { companyName?: string; hasLogo?: boolean },
+  meta: { companyName?: string; questionnaireLabel?: string; hasLogo?: boolean },
   context: Context,
 ): Promise<Response | void> {
   const res = await context.next()
@@ -85,7 +85,8 @@ async function rewrite(
 
   let html = await res.text()
   const company = meta.companyName || 'Votre entreprise'
-  const title = `Onboarding ${company} — Clément Pouget-Osmont`
+  const label = meta.questionnaireLabel || 'Onboarding'
+  const title = `${label} ${company} — Clément Pouget-Osmont`
   const description = `Votre espace pour préparer notre collaboration : quelques questions et vos documents clés, à remplir à votre rythme.`
   const image = meta.hasLogo
     ? `${url.origin}/.netlify/functions/onboarding-logo?slug=${encodeURIComponent(slug)}`
