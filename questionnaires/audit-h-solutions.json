@@ -1,0 +1,571 @@
+[
+  {
+    "id": "contexte",
+    "title": "Le point de départ",
+    "icon": "🧭",
+    "intro": "Nous démarrons en septembre, en même temps que votre passage au payant : autant que la réunion de lancement serve à trancher, pas à découvrir. Trois consignes valables pour tout le questionnaire — ne rédigez pas, dictez si c’est plus rapide ; « je ne sais pas » est une vraie réponse, elle me dit ce qu’il faut instrumenter ; une question qui ne vous parle pas, vous la sautez.",
+    "uploads": ["bp"],
+    "fields": [
+      {
+        "key": "contexte_ajustements",
+        "label": "Ce résumé est-il juste ? Complétez ou corrigez ce qui manque.",
+        "help": "Il vient de notre échange et de votre devis — précisez ce qui mérite de l’être.",
+        "type": "textarea",
+        "placeholder": "Votre réponse — dictez-la si c’est plus rapide…",
+        "rows": 3
+      },
+      {
+        "key": "ctx_attentes",
+        "label": "À la fin de la réunion de lancement, sur quoi voulez-vous être fixé ?",
+        "help": "Trois décisions maximum. Si vous n’en citez qu’une, tant mieux.",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "ctx_arbitrages",
+        "label": "Quels arbitrages traînent aujourd’hui parce que vous n’arrivez pas à trancher seul ?",
+        "help": "B2C ou mutuelles, podcast ou pas, gratuit ou payant sur tel contenu… Ceux qui reviennent d’une semaine sur l’autre.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "ctx_objectif_10k",
+        "label": "L’objectif de 10 000 comptes créés d’ici fin décembre : d’où vient ce chiffre, et qu’est-ce qu’il débloque une fois atteint ?",
+        "help": "Je veux savoir s’il sert à convaincre un investisseur, une mutuelle, ou s’il vous sert de cap personnel.",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "ctx_une_seule_chose",
+        "label": "Si vous ne pouviez mener qu’un seul chantier d’ici décembre, lequel, et pourquoi celui-là ?",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "ctx_non_negociable",
+        "label": "Ce qui est déjà décidé et non négociable",
+        "help": "Décisions prises, engagements pris, principes personnels. Ça m’évite de vous reproposer ce que vous avez déjà enterré.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "ctx_qui",
+        "label": "Qui répond à ce questionnaire, et qui doit être présent à la réunion de lancement ?",
+        "type": "text",
+        "placeholder": "Léo seul ? Léo + Julien ?"
+      }
+    ]
+  },
+  {
+    "id": "produit",
+    "title": "Hippocrate, dans le détail",
+    "icon": "🧩",
+    "intro": "Je dois pouvoir pitcher l’application aussi bien que vous — et surtout comprendre à quel moment précis un utilisateur décroche.",
+    "uploads": ["video", "produit"],
+    "fields": [
+      {
+        "key": "prod_parcours",
+        "label": "Racontez le parcours d’un utilisateur, du téléchargement au trentième jour.",
+        "help": "Ce qu’il voit, ce qu’on lui demande, ce qu’il reçoit, à quel moment. Le plus factuel possible, écran par écran si vous pouvez.",
+        "type": "textarea",
+        "placeholder": "Votre réponse — dictez-la si c’est plus rapide…",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "prod_modules",
+        "label": "Les modules disponibles aujourd’hui, et ceux qui arrivent",
+        "help": "Lesquels sont activés le plus souvent, lesquels ne le sont jamais, et ce que vous en déduisez.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "prod_verbatims",
+        "label": "Que disent, mot pour mot, les utilisateurs qui restent ?",
+        "help": "Copiez-collez trois avis, messages ou retours bruts. Les vrais mots valent mieux qu’un résumé — c’est avec eux qu’on écrit les pages de vente.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "prod_gamification",
+        "label": "Le chantier gamification d’août : qu’est-ce qui est prévu exactement, et quelle hypothèse de rétention derrière ?",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "prod_contenu",
+        "label": "Comment le contenu est produit",
+        "help": "Qui écrit, à quel rythme, validé par qui, à quel coût réel — en comptant votre temps.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "prod_tech",
+        "label": "Stack technique et outils de mesure dans l’application",
+        "help": "Firebase, Amplitude, RevenueCat, notifications push… et qui sait s’en servir dans l’équipe.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "prod_acces",
+        "label": "Un accès de test pour moi",
+        "help": "Compte de démonstration, TestFlight, ou simplement la version gratuite : dites-moi ce qui est le plus simple pour vous.",
+        "type": "textarea",
+        "rows": 2
+      }
+    ]
+  },
+  {
+    "id": "pilote",
+    "title": "Les chiffres du pilote",
+    "icon": "📊",
+    "intro": "Des ordres de grandeur suffisent, et « je ne sais pas » est une réponse utile : elle me dit ce qu’il faut mesurer avant de décider quoi que ce soit.",
+    "uploads": ["data"],
+    "fields": [
+      {
+        "key": "pil_volumes",
+        "label": "Téléchargements, comptes créés et comptes actifs, mois par mois depuis janvier",
+        "help": "Même approximatif. Et surtout : entre 5 000 téléchargements et 3 000 comptes, où partent les 2 000 autres ?",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "pil_actifs",
+        "label": "Combien de personnes ouvrent l’application dans une journée, une semaine, un mois donnés ?",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "pil_retention",
+        "label": "Sur 100 nouveaux comptes, combien sont encore là au bout d’une semaine ? d’un mois ?",
+        "help": "Si le chiffre n’existe pas, dites-le franchement : c’est le premier indicateur que nous mettrons en place ensemble.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "pil_activation",
+        "label": "Que se passe-t-il à la première ouverture ?",
+        "help": "Combien vont au bout de l’inscription, activent un module, font une première action.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "pil_profil",
+        "label": "Qui sont vraiment vos utilisateurs ?",
+        "help": "Âge, sexe, région, patients ou soignants, comment ils vous ont connu. Même à la louche.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "pil_decrochage",
+        "label": "Que disent ceux qui décrochent ?",
+        "help": "Avis sur les stores, désinstallations, mails, silences. Ce qui revient le plus souvent.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "pil_mesure",
+        "label": "Ce qui est suivi aujourd’hui, et où",
+        "help": "Tableau de bord, Firebase, consoles App Store et Play Store, tableur. Précisez qui y a accès et à quelle fréquence vous le regardez.",
+        "type": "textarea",
+        "rows": 3
+      }
+    ]
+  },
+  {
+    "id": "payant",
+    "title": "Le passage au payant",
+    "icon": "💳",
+    "intro": "C’est l’échéance la plus proche et la plus lourde de conséquences : elle conditionne la trésorerie, le discours aux investisseurs et l’ouverture du canal mutuelles.",
+    "uploads": ["creas"],
+    "fields": [
+      {
+        "key": "pay_scenario",
+        "label": "Le scénario exact du passage au payant, dates à l’appui",
+        "help": "Qui voit quoi et quand : base existante, nouveaux inscrits, deux semaines d’essai, jour de bascule du paywall, messages envoyés.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "pay_decoupage",
+        "label": "Ce qui reste gratuit, ce qui devient payant",
+        "help": "La frontière précise. Et pourquoi celle-là plutôt qu’une autre.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "pay_conversion",
+        "label": "Combien pensez-vous convertir, et sur quoi repose ce chiffre ?",
+        "help": "Une intuition assumée vaut mieux qu’un chiffre inventé — dites-moi simplement laquelle des deux c’est.",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "pay_pricing",
+        "label": "8,99 € par mois, 34,99 € par an : comment ces prix ont-ils été fixés ?",
+        "help": "Testés, comparés à d’autres applications, ou décidés à l’instinct ? Précisez aussi l’offre prévue pour la base existante.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "pay_seuil",
+        "label": "Fin octobre, à partir de quel chiffre considérez-vous le passage au payant réussi ? Et à partir de quel chiffre vous changez de plan ?",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "pay_risques",
+        "label": "Qu’est-ce qui vous inquiète le plus dans cette bascule ?",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "pay_technique",
+        "label": "Le paiement, côté technique et économique",
+        "help": "Abonnement in-app ou paiement web, outil utilisé, commission des stores, gestion des résiliations et des remboursements.",
+        "type": "textarea",
+        "rows": 3
+      }
+    ]
+  },
+  {
+    "id": "acquisition",
+    "title": "L’acquisition organique",
+    "icon": "📣",
+    "intro": "Vous avez construit 3 000 comptes sans un euro de publicité. Je cherche à savoir ce qui, là-dedans, est reproductible sur deux nouveaux territoires — et ce qui tenait à une retombée, une rencontre ou un coup de chance.",
+    "uploads": ["contenus"],
+    "fields": [
+      {
+        "key": "acq_sources",
+        "label": "D’où viennent les comptes créés, et dans quelles proportions ?",
+        "help": "Médias locaux, podcast, réseaux sociaux, bouche-à-oreille, recherche dans les stores. Même une répartition au jugé m’aide.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "acq_medias",
+        "label": "Comment obtenez-vous les retombées presse, concrètement ?",
+        "help": "Qui contacte qui, avec quel message, combien de retombées, et ce que chacune produit comme pic de téléchargements. Citez les trois plus grosses.",
+        "type": "textarea",
+        "rows": 5,
+        "essential": true
+      },
+      {
+        "key": "acq_territoires",
+        "label": "Le plan Occitanie et Aveyron",
+        "help": "Pourquoi ces territoires, qui vous y connaît déjà, ce qui est calé et ce qui reste entièrement à faire.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "acq_reseaux",
+        "label": "Vos comptes sur les réseaux sociaux",
+        "help": "Lesquels, quelle audience, quel rythme, quels formats marchent le mieux. Votre compte personnel autant que celui de la marque.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "acq_newsletter",
+        "label": "La newsletter et la base email",
+        "help": "Nombre d’inscrits, rythme d’envoi, taux d’ouverture, et ce qu’elle produit réellement.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "acq_stores",
+        "label": "Les fiches App Store et Play Store",
+        "help": "Notes, nombre d’avis, mots-clés visés, captures et description retravaillées ou non.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "acq_echecs",
+        "label": "Ce qui a été tenté et n’a pas marché",
+        "help": "Sans filtre. C’est souvent l’information la plus utile de tout le questionnaire.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "acq_paid",
+        "label": "Publicité payante : où en êtes-vous ?",
+        "type": "select",
+        "options": [
+          "Jamais testée",
+          "Testée puis arrêtée",
+          "En cours, petit budget",
+          "Écartée par choix de positionnement",
+          "Écartée faute de budget"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "podcast",
+    "title": "Le podcast",
+    "icon": "🎙️",
+    "intro": "Deux épisodes par mois, environ 1 200 € : c’est votre poste de dépense le plus visible. La question n’est pas de savoir s’il est bon — il l’est — mais ce qu’il rapporte, à quoi, et à quelle échéance.",
+    "fields": [
+      {
+        "key": "pod_role",
+        "label": "À quoi sert le podcast dans le projet ?",
+        "help": "Notoriété, crédibilité médicale, acquisition, réseau, plaisir personnel. Plusieurs réponses possibles — mais classez-les par ordre d’importance.",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "pod_audience",
+        "label": "Les chiffres : écoutes par épisode, vues YouTube, évolution depuis le lancement",
+        "help": "Et les trois épisodes qui ont le mieux marché, avec votre explication.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "pod_attribution",
+        "label": "Que savez-vous de son effet sur l’application ?",
+        "help": "Pic de téléchargements après un épisode, lien tracké, code, utilisateurs qui vous citent le podcast — ou rien de mesuré, et c’est une réponse en soi.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "pod_economie",
+        "label": "Les 1 200 € par mois : ce que ça couvre exactement",
+        "help": "Montage, studio, invités, diffusion — et le temps que ça vous prend à vous.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "pod_deonto",
+        "label": "Ce que la déontologie vous autorise et vous interdit entre le podcast et Hippocrate",
+        "help": "Montage en société séparée, obligations Transparence.gouv, position de votre conseil de l’Ordre, ce que vous vous interdisez par principe. Soyez précis : je ne recommanderai rien qui vous mette en risque.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      }
+    ]
+  },
+  {
+    "id": "mutuelles",
+    "title": "Le canal mutuelles",
+    "icon": "🤝",
+    "intro": "C’est là que se trouve l’argent à court terme, et c’est là que vous avez le moins de repères. Autant partir de ce qui existe déjà plutôt que de la théorie.",
+    "uploads": ["presentations"],
+    "fields": [
+      {
+        "key": "mut_discussions",
+        "label": "Où en sont les discussions, concrètement ?",
+        "help": "Noms des mutuelles, qui vous a répondu, ce qui s’est dit, ce qui bloque. Même un « j’ai croisé quelqu’un à un événement » compte.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "mut_offre",
+        "label": "Que leur vendriez-vous exactement, et à quel prix ?",
+        "help": "Licence par adhérent, forfait annuel, pilote gratuit, marque blanche. Votre hypothèse actuelle suffit, même bancale.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "mut_decideur",
+        "label": "Chez une mutuelle de 30 à 50 000 adhérents, qui décide ?",
+        "help": "Direction générale, prévention, innovation, action sociale ? Distinguez ce que vous savez de ce que vous supposez.",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "mut_preuves",
+        "label": "Que vous demandera-t-on comme preuves ?",
+        "help": "Taux d’engagement, économies attendues, sécurité des données, caution scientifique. Et ce qu’on vous a déjà demandé, si le sujet est venu.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "mut_conformite",
+        "label": "Ce que le B2B2C impose côté données et conformité",
+        "help": "Hébergement des données de santé, RGPD, sécurité, statut réglementaire de l’application. Ce qui est en place, ce qui manque.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "mut_reseau",
+        "label": "Qui, dans votre réseau, peut ouvrir une porte ?",
+        "help": "Mutuelles, courtiers, élus locaux, sociétés savantes, invités du podcast, associations de patients.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "mut_temps",
+        "label": "Qui porte ces rendez-vous, et avec quel temps disponible ?",
+        "type": "textarea",
+        "rows": 3
+      }
+    ]
+  },
+  {
+    "id": "concurrence",
+    "title": "Le marché et les alternatives",
+    "icon": "⚔️",
+    "intro": "Vous ne vous battez sans doute pas contre une autre application, mais contre le fait de ne rien faire. Je veux le vérifier avant de construire quoi que ce soit.",
+    "uploads": ["marche", "concurrence"],
+    "fields": [
+      {
+        "key": "conc_alternative",
+        "label": "Aujourd’hui, que fait votre utilisateur type à défaut d’Hippocrate ?",
+        "help": "Rien, une application verticale, un compte Instagram, son médecin, un coach, une recherche Google à deux heures du matin.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "conc_directs",
+        "label": "Les acteurs qui vous ressemblent le plus",
+        "help": "Nom, et en une ligne ce qu’ils font mieux que vous. Y compris les créateurs de contenu santé, pas seulement les applications.",
+        "type": "textarea",
+        "rows": 4
+      },
+      {
+        "key": "conc_mutuelles",
+        "label": "Ce que les mutuelles proposent déjà à leurs adhérents en prévention",
+        "help": "Alan, services d’assistance, plateformes de coaching. Ce que vous en savez, même partiellement.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "conc_choix",
+        "label": "Quand quelqu’un choisit Hippocrate plutôt qu’autre chose, pourquoi ?",
+        "help": "Et l’inverse : les raisons qu’on vous donne de ne pas s’en servir.",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "conc_veille",
+        "label": "Ce que vous surveillez, et ce qui vous inquiète",
+        "type": "textarea",
+        "rows": 2
+      }
+    ]
+  },
+  {
+    "id": "moyens",
+    "title": "Temps, argent, équipe",
+    "icon": "🧮",
+    "intro": "Le cœur de l’arbitrage : je ne peux recommander aucun chantier sans savoir ce qu’il coûte en semaines de travail et en euros réellement disponibles.",
+    "uploads": ["strategie"],
+    "fields": [
+      {
+        "key": "moy_equipe",
+        "label": "Qui fait quoi aujourd’hui ?",
+        "help": "Vous, votre associé, les prestataires, les contributeurs contenu. Rôle, temps réel par semaine, rémunéré ou non.",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "moy_temps",
+        "label": "Votre semaine type",
+        "help": "Gardes, jours consacrés au projet, et ce qui saute en premier quand la semaine déborde.",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "moy_budget",
+        "label": "Le budget mobilisable d’ici décembre, et ce qui est déjà engagé",
+        "help": "Podcast, développement, outils, prestations. Un ordre de grandeur suffit.",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "moy_runway",
+        "label": "Trésorerie et runway",
+        "help": "Jusqu’à quand vous tenez au rythme actuel, subventions et prêts obtenus, ce qui reste à venir.",
+        "type": "textarea",
+        "rows": 3,
+        "essential": true
+      },
+      {
+        "key": "moy_levee",
+        "label": "La levée visée en 2027",
+        "help": "Montant, calendrier, investisseurs déjà approchés et ce qu’ils vous ont répondu.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "moy_outils",
+        "label": "Vos outils de travail et de suivi",
+        "help": "CRM, emailing, analytics, gestion de projet. Et ceux que vous détestez utiliser.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "moy_deleguer",
+        "label": "Qu’est-ce que vous voulez arrêter de faire vous-même ?",
+        "help": "Et à l’inverse, ce que vous ne déléguerez jamais.",
+        "type": "textarea",
+        "rows": 3
+      }
+    ]
+  },
+  {
+    "id": "fin",
+    "title": "Pour finir",
+    "icon": "💬",
+    "uploads": ["autres"],
+    "fields": [
+      {
+        "key": "fin_sensibles",
+        "label": "Sujets sensibles ou zones à ne pas toucher",
+        "help": "Déontologie, associé, sujets personnels, décision récente à ne pas rouvrir.",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "fin_deja_dit",
+        "label": "Ce qu’on vous a déjà conseillé et que vous ne voulez pas réentendre",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "fin_scenarios",
+        "label": "Au 31 décembre : le scénario dont vous seriez fier, et celui que vous voulez éviter à tout prix",
+        "type": "textarea",
+        "rows": 4,
+        "essential": true
+      },
+      {
+        "key": "fin_autre",
+        "label": "Autre chose que je devrais savoir ?",
+        "type": "textarea",
+        "rows": 3
+      },
+      {
+        "key": "fin_dispos",
+        "label": "Vos disponibilités pour la réunion de lancement en septembre",
+        "type": "text",
+        "placeholder": "Créneaux qui vous vont, ou jours à éviter"
+      }
+    ]
+  }
+]
