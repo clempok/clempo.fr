@@ -4,6 +4,7 @@ import { upsertContact, addPendingNps, detectLanguage } from './_crm'
 import { JOURNALISTES_SHEET_URL } from './_journalistes'
 import { DECIDEURS_HOSPITALIERS_SHEET_URL } from './_decideurs-hospitaliers'
 import { INFLUENCEURS_SANTE_SHEET_URL } from './_influenceurs-sante'
+import { PRATICIENS_INFLUENTS_SHEET_URL } from './_praticiens-influents'
 import { sendResourceDeliveryEmail } from './_email-templates'
 import type { ResourceLink } from './_email-templates'
 
@@ -69,6 +70,9 @@ const handler: Handler = async (event) => {
     }
     if (formName === 'influenceurs-sante') {
       return handleInfluenceursSante({ firstName, lastName, email, company, source })
+    }
+    if (formName === 'praticiens-influents') {
+      return handlePraticiensInfluents({ firstName, lastName, email, company, source })
     }
     if (formName === 'brochure') {
       return handleBrochure({ firstName, lastName, email, company, phone, lang })
@@ -263,6 +267,49 @@ async function handleInfluenceursSante(d: {
         ? 'the health creators database (Instagram & TikTok)'
         : 'la base des influenceurs santé (Instagram & TikTok)',
       links: [{ label: lang === 'EN' ? 'Open the database' : 'Ouvrir la base', url: INFLUENCEURS_SANTE_SHEET_URL }],
+    })
+  }
+
+  // No per-download alert — same rationale as the décideurs base above.
+  return { statusCode: 200, body: 'OK' }
+}
+
+async function handlePraticiensInfluents(d: {
+  firstName: string; lastName: string; email: string; company: string; source: string
+}) {
+  if (!d.email) return { statusCode: 400, body: 'Missing email' }
+
+  await Promise.all([
+    recordEvent({
+      type: 'praticiens-influents',
+      firstName: d.firstName,
+      lastName: d.lastName,
+      email: d.email,
+      company: d.company,
+    }),
+    upsertContact({
+      email: d.email,
+      firstName: d.firstName,
+      lastName: d.lastName,
+      company: d.company,
+      source: d.source ? `Praticiens influents (${d.source})` : 'Praticiens influents',
+      status: 'Lead',
+      origin: 'Lead Magnet',
+    }, 'Lead'),
+  ])
+  await addPendingNps(d.email, 'praticiens-influents', 'Base praticiens influents')
+
+  {
+    const lang = detectLanguage({ email: d.email, firstName: d.firstName })
+    await deliverResource({
+      formName: 'praticiens-influents',
+      email: d.email,
+      firstName: d.firstName,
+      language: lang,
+      resourceLabel: lang === 'EN'
+        ? 'the French medical KOL database (university hospitals & learned societies)'
+        : 'la base des praticiens influents (CHU & sociétés savantes)',
+      links: [{ label: lang === 'EN' ? 'Open the database' : 'Ouvrir la base', url: PRATICIENS_INFLUENTS_SHEET_URL }],
     })
   }
 

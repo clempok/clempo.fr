@@ -21,7 +21,7 @@ const SITE_SEGMENTS = new Set([
   'articles', 'confirmation', 'admin', 'booking', 'devis', 'transition-cmo',
   'consultant-marketing-sante', 'parts-de-marche-logiciels-medicaux',
   'specialites', 'merci-nps', 'hiring', 'decideurs-hospitaliers',
-  'influenceurs-sante', 'tools', 'data',
+  'influenceurs-sante', 'praticiens-influents', 'tools', 'data',
 ])
 
 function escapeAttr(s: string): string {

@@ -4,6 +4,7 @@ import { instrumentEmailHtml, newSendId, saveSendRecord } from './_email-trackin
 import { JOURNALISTES_SHEET_URL } from './_journalistes'
 import { DECIDEURS_HOSPITALIERS_SHEET_URL } from './_decideurs-hospitaliers'
 import { INFLUENCEURS_SANTE_SHEET_URL } from './_influenceurs-sante'
+import { PRATICIENS_INFLUENTS_SHEET_URL } from './_praticiens-influents'
 
 /**
  * Editable email templates for the nurture sequence, stored in Netlify Blobs
@@ -379,8 +380,17 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
     url: `${SITE_URL}/influenceurs-sante`,
   },
   {
+    id: 'praticiens-influents',
+    slugs: s => s === 'praticiens-influents',
+    label: {
+      FR: 'La base des praticiens influents (PU-PH, chefs de service, sociétés savantes)',
+      EN: 'The medical KOL database (professors, department heads, learned societies)',
+    },
+    url: `${SITE_URL}/praticiens-influents`,
+  },
+  {
     id: 'data-specialites',
-    slugs: s => s === 'data-download' || !['decideurs-hospitaliers', 'journalistes', 'influenceurs-sante'].includes(s),
+    slugs: s => s === 'data-download' || !['decideurs-hospitaliers', 'journalistes', 'influenceurs-sante', 'praticiens-influents'].includes(s),
     label: {
       FR: 'Les parts de marché des logiciels médicaux, spécialité par spécialité',
       EN: 'Medical software market shares, specialty by specialty',
@@ -406,6 +416,7 @@ export function resourceAccessUrl(slug: string): string {
   if (slug === 'journalistes') return JOURNALISTES_SHEET_URL
   if (slug === 'decideurs-hospitaliers') return DECIDEURS_HOSPITALIERS_SHEET_URL
   if (slug === 'influenceurs-sante') return INFLUENCEURS_SANTE_SHEET_URL
+  if (slug === 'praticiens-influents') return PRATICIENS_INFLUENTS_SHEET_URL
   // Data downloads store the specialty slug (one XLSX per specialty); the
   // legacy generic 'data-download' slug has no file — fall back to the page.
   if (slug && slug !== 'data-download') return `${SITE_URL}/data/specialites/${slug}.xlsx`

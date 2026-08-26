@@ -50,6 +50,7 @@ const routes = [
   '/hiring',
   '/decideurs-hospitaliers',
   '/influenceurs-sante',
+  '/praticiens-influents',
   ...slugs.map(s => `/articles/${s}`),
   ...specialiteSlugs.map(s => `/specialites/${s}`),
 ]
@@ -68,13 +69,17 @@ async function prerender() {
     let fullHtml = template.replace('<!--app-html-->', html)
 
     // Inject Helmet head tags into <head>. Strip the static <title>,
-    // <meta name="description">, and <link rel="canonical"> so we don't
-    // end up with duplicates (Google may pick the wrong one).
+    // <meta name="description">, <link rel="canonical"> et les images de
+    // partage, sinon on se retrouve avec des doublons (Google peut choisir le
+    // mauvais, et les scrapers de liens retiennent la PREMIÈRE og:image —
+    // celle du template, qui écrasait l'image dédiée d'une page).
     if (head) {
       fullHtml = fullHtml
         .replace(/<title>[^<]*<\/title>/, '')
         .replace(/<meta name="description"[^>]*\/?>/, '')
         .replace(/<link rel="canonical"[^>]*\/?>/, '')
+        .replace(/<meta property="og:image"[^>]*\/?>/, '')
+        .replace(/<meta name="twitter:image"[^>]*\/?>/, '')
         .replace('</head>', `${head}\n</head>`)
     }
 

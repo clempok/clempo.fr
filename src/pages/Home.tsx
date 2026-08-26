@@ -14,12 +14,20 @@ import DecideursHospitaliersSheetPreview from '../components/DecideursHospitalie
 import { DECIDEURS_HOSPITALIERS_TITLE, DECIDEURS_HOSPITALIERS_SUB } from '../lib/decideurs-hospitaliers'
 import InfluenceursSanteForm, { InfluenceursSanteNetlifyRegistration } from '../components/InfluenceursSanteForm'
 import InfluenceursSanteSheetPreview from '../components/InfluenceursSanteSheetPreview'
+import PraticiensInfluentsForm, { PraticiensInfluentsNetlifyRegistration } from '../components/PraticiensInfluentsForm'
+import PraticiensInfluentsSheetPreview from '../components/PraticiensInfluentsSheetPreview'
 import {
   INFLUENCEURS_SANTE_TITLE,
   INFLUENCEURS_SANTE_SUB,
   INFLUENCEURS_SANTE_INSTAGRAM,
   INFLUENCEURS_SANTE_TIKTOK,
 } from '../lib/influenceurs-sante'
+import {
+  PRATICIENS_INFLUENTS_TITLE,
+  PRATICIENS_INFLUENTS_SUB,
+  PRATICIENS_INFLUENTS_ETABS,
+  PRATICIENS_INFLUENTS_SOCIETES,
+} from '../lib/praticiens-influents'
 import { bookingUrl } from '../lib/cta'
 import Booking from './Booking'
 import YouTubeFacade from '../components/YouTubeFacade'
@@ -113,6 +121,7 @@ export default function Home() {
   const revealJo = useReveal()
   const revealDh = useReveal()
   const revealIs = useReveal()
+  const revealPi = useReveal()
   const revealBrochure = useReveal()
 
   // Form input styling — brand-book flat fields, radius 4px
@@ -1418,6 +1427,125 @@ export default function Home() {
             @media (max-width: 880px) {
               .ish-grid { grid-template-columns: 1fr; gap: 2.5rem; }
               .ish-grid > div:last-child { order: -1; }
+            }
+          `}</style>
+        </section>
+
+        {/* ═════════════════════════════════════════════════════ */}
+        {/* PRATICIENS INFLUENTS (KOL) FORM                         */}
+        {/* ═════════════════════════════════════════════════════ */}
+        <section id="praticiens-influents" style={{
+          background: '#F4F4F2',
+          color: 'var(--ink)',
+          padding: 'clamp(4rem, 9vw, 7rem) 6vw',
+          position: 'relative',
+          overflow: 'hidden',
+          borderTop: '1px solid rgba(10,10,11,0.06)',
+        }}>
+          {/* Hidden Netlify form registration so the build picks up the schema */}
+          <PraticiensInfluentsNetlifyRegistration />
+
+          {/* Subtle dotmatrix accent */}
+          <div className="cb-dotmatrix" aria-hidden style={{
+            position: 'absolute', top: 0, left: 0,
+            width: '38%', height: '60%',
+            opacity: 0.18, pointerEvents: 'none',
+          }} />
+
+          <div
+            ref={revealPi}
+            className="cb-reveal pi-grid"
+            style={{
+              maxWidth: '1180px',
+              margin: '0 auto',
+              position: 'relative',
+            }}
+          >
+            {/* Left col: GSheet preview */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <PraticiensInfluentsSheetPreview />
+            </div>
+
+            {/* Right col: title + form */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 600,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  color: 'var(--ink)', background: 'var(--signal)',
+                  padding: '0.35rem 0.75rem', borderRadius: '4px',
+                }}>
+                  🎓 Ressource gratuite
+                </span>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '0.65rem', fontWeight: 500,
+                  letterSpacing: '0.15em', textTransform: 'uppercase',
+                  color: 'var(--steel)',
+                  padding: '0.35rem 0',
+                }}>
+                  France 🇫🇷 · {PRATICIENS_INFLUENTS_ETABS} établissements · {PRATICIENS_INFLUENTS_SOCIETES} sociétés savantes
+                </span>
+              </div>
+
+              <h2 style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'clamp(1.9rem, 4.5vw, 2.9rem)',
+                fontWeight: 400,
+                color: 'var(--ink)',
+                margin: '0 0 1rem',
+                lineHeight: 1.1,
+                letterSpacing: '-0.01em',
+              }}>
+                {PRATICIENS_INFLUENTS_TITLE}
+              </h2>
+              <p style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '1.05rem',
+                color: 'var(--steel)',
+                lineHeight: 1.65,
+                margin: '0 0 2.25rem',
+                maxWidth: '520px',
+              }}>
+                {PRATICIENS_INFLUENTS_SUB}
+              </p>
+
+              <PraticiensInfluentsForm variant="modal" theme="light" source="home" />
+
+              <p style={{
+                marginTop: '1.25rem',
+                fontSize: '0.82rem',
+                color: 'var(--steel)',
+                fontFamily: 'var(--font-sans)',
+              }}>
+                Plus de détails ?{' '}
+                <Link to="/praticiens-influents" style={{
+                  color: 'var(--ink)',
+                  fontWeight: 600,
+                  textDecoration: 'underline',
+                  textDecorationThickness: '1px',
+                  textUnderlineOffset: '3px',
+                }}>
+                  Voir la page complète →
+                </Link>
+              </p>
+            </div>
+          </div>
+
+          <style>{`
+            .pi-grid {
+              display: grid;
+              grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+              gap: clamp(2rem, 4vw, 4.5rem);
+              align-items: center;
+            }
+            @media (max-width: 880px) {
+              .pi-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+              .pi-grid > div:first-child { order: 1; }
+              .pi-grid > div:last-child { order: 0; }
             }
           `}</style>
         </section>
