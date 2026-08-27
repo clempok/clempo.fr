@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import {
-  PRATICIENS_INFLUENTS_SHEET_URL,
-  PRATICIENS_INFLUENTS_TITLE,
-  PRATICIENS_INFLUENTS_SUB,
-} from '../lib/praticiens-influents'
+  MEDECINS_KOLS_SHEET_URL,
+  MEDECINS_KOLS_TITLE,
+  MEDECINS_KOLS_SUB,
+} from '../lib/medecins-kols'
 
 type Variant = 'full' | 'compact' | 'modal'
 type Theme = 'light' | 'dark'
@@ -22,10 +22,10 @@ function setCidCookie(email: string) {
   } catch { /* ignore */ }
 }
 
-export default function PraticiensInfluentsForm({
+export default function MedecinsKolsForm({
   variant = 'full',
   theme = 'light',
-  source = 'praticiens-influents',
+  source = 'medecins-kols',
   onSubmitted,
 }: Props) {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', company: '' })
@@ -39,7 +39,7 @@ export default function PraticiensInfluentsForm({
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-          'form-name': 'praticiens-influents',
+          'form-name': 'medecins-kols',
           'first-name': form.firstName,
           'last-name': form.lastName,
           'email': form.email,
@@ -137,7 +137,7 @@ export default function PraticiensInfluentsForm({
           📩 Le lien vient aussi de vous être envoyé par email — pratique pour retrouver la base plus tard.
         </p>
         <a
-          href={PRATICIENS_INFLUENTS_SHEET_URL}
+          href={MEDECINS_KOLS_SHEET_URL}
           target="_blank"
           rel="noopener noreferrer"
           style={{
@@ -207,7 +207,7 @@ export default function PraticiensInfluentsForm({
             margin: '0 0 0.75rem',
             lineHeight: 1.15,
           }}>
-            {PRATICIENS_INFLUENTS_TITLE}
+            {MEDECINS_KOLS_TITLE}
           </h2>
           <p style={{
             fontFamily: 'var(--font-sans)',
@@ -217,13 +217,13 @@ export default function PraticiensInfluentsForm({
             margin: variant === 'compact' ? '0 0 1.25rem' : '0 0 2rem',
             maxWidth: '520px',
           }}>
-            {PRATICIENS_INFLUENTS_SUB}
+            {MEDECINS_KOLS_SUB}
           </p>
         </>
       )}
 
-      <form name="praticiens-influents" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-        <input type="hidden" name="form-name" value="praticiens-influents" />
+      <form name="medecins-kols" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <input type="hidden" name="form-name" value="medecins-kols" />
         <input type="hidden" name="source" value={source} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -309,10 +309,10 @@ export default function PraticiensInfluentsForm({
 
 // Hidden Netlify form registration. Mount once at the app root so Netlify
 // detects the form schema at deploy time (works around static-pre-render).
-export function PraticiensInfluentsNetlifyRegistration() {
+export function MedecinsKolsNetlifyRegistration() {
   return (
-    <form name="praticiens-influents" data-netlify="true" hidden>
-      <input type="hidden" name="form-name" value="praticiens-influents" />
+    <form name="medecins-kols" data-netlify="true" hidden>
+      <input type="hidden" name="form-name" value="medecins-kols" />
       <input type="text" name="first-name" />
       <input type="text" name="last-name" />
       <input type="email" name="email" />

@@ -24,7 +24,7 @@ import NpsThanks from './pages/NpsThanks'
 import Hiring from './pages/Hiring'
 import DecideursHospitaliers from './pages/DecideursHospitaliers'
 import InfluenceursSante from './pages/InfluenceursSante'
-import PraticiensInfluents from './pages/PraticiensInfluents'
+import MedecinsKols from './pages/MedecinsKols'
 import Onboarding from './pages/Onboarding'
 
 // Premiers segments d'URL appartenant à une vraie page du site. Tout le reste
@@ -40,7 +40,7 @@ const SITE_SEGMENTS = new Set([
   'articles', 'confirmation', 'admin', 'booking', 'devis', 'transition-cmo',
   'consultant-marketing-sante', 'parts-de-marche-logiciels-medicaux',
   'specialites', 'merci-nps', 'hiring', 'decideurs-hospitaliers',
-  'influenceurs-sante', 'praticiens-influents',
+  'influenceurs-sante', 'medecins-kols',
 ])
 
 function isOnboardingPath(pathname: string): boolean {
@@ -213,7 +213,7 @@ function Shell() {
         <Route path="/hiring" element={<Hiring />} />
         <Route path="/decideurs-hospitaliers" element={<DecideursHospitaliers />} />
         <Route path="/influenceurs-sante" element={<InfluenceursSante />} />
-        <Route path="/praticiens-influents" element={<PraticiensInfluents />} />
+        <Route path="/medecins-kols" element={<MedecinsKols />} />
         {/* Attrape-tout : espaces d'onboarding client. Doit rester en dernier. */}
         <Route path="/:slug" element={<Onboarding />} />
       </Routes>

@@ -14,8 +14,8 @@ import DecideursHospitaliersSheetPreview from '../components/DecideursHospitalie
 import { DECIDEURS_HOSPITALIERS_TITLE, DECIDEURS_HOSPITALIERS_SUB } from '../lib/decideurs-hospitaliers'
 import InfluenceursSanteForm, { InfluenceursSanteNetlifyRegistration } from '../components/InfluenceursSanteForm'
 import InfluenceursSanteSheetPreview from '../components/InfluenceursSanteSheetPreview'
-import PraticiensInfluentsForm, { PraticiensInfluentsNetlifyRegistration } from '../components/PraticiensInfluentsForm'
-import PraticiensInfluentsSheetPreview from '../components/PraticiensInfluentsSheetPreview'
+import MedecinsKolsForm, { MedecinsKolsNetlifyRegistration } from '../components/MedecinsKolsForm'
+import MedecinsKolsSheetPreview from '../components/MedecinsKolsSheetPreview'
 import {
   INFLUENCEURS_SANTE_TITLE,
   INFLUENCEURS_SANTE_SUB,
@@ -23,11 +23,11 @@ import {
   INFLUENCEURS_SANTE_TIKTOK,
 } from '../lib/influenceurs-sante'
 import {
-  PRATICIENS_INFLUENTS_TITLE,
-  PRATICIENS_INFLUENTS_SUB,
-  PRATICIENS_INFLUENTS_ETABS,
-  PRATICIENS_INFLUENTS_SOCIETES,
-} from '../lib/praticiens-influents'
+  MEDECINS_KOLS_TITLE,
+  MEDECINS_KOLS_SUB,
+  MEDECINS_KOLS_ETABS,
+  MEDECINS_KOLS_SOCIETES,
+} from '../lib/medecins-kols'
 import { bookingUrl } from '../lib/cta'
 import Booking from './Booking'
 import YouTubeFacade from '../components/YouTubeFacade'
@@ -121,7 +121,7 @@ export default function Home() {
   const revealJo = useReveal()
   const revealDh = useReveal()
   const revealIs = useReveal()
-  const revealPi = useReveal()
+  const revealMk = useReveal()
   const revealBrochure = useReveal()
 
   // Form input styling — brand-book flat fields, radius 4px
@@ -1434,7 +1434,7 @@ export default function Home() {
         {/* ═════════════════════════════════════════════════════ */}
         {/* PRATICIENS INFLUENTS (KOL) FORM                         */}
         {/* ═════════════════════════════════════════════════════ */}
-        <section id="praticiens-influents" style={{
+        <section id="medecins-kols" style={{
           background: '#F4F4F2',
           color: 'var(--ink)',
           padding: 'clamp(4rem, 9vw, 7rem) 6vw',
@@ -1443,7 +1443,7 @@ export default function Home() {
           borderTop: '1px solid rgba(10,10,11,0.06)',
         }}>
           {/* Hidden Netlify form registration so the build picks up the schema */}
-          <PraticiensInfluentsNetlifyRegistration />
+          <MedecinsKolsNetlifyRegistration />
 
           {/* Subtle dotmatrix accent */}
           <div className="cb-dotmatrix" aria-hidden style={{
@@ -1453,8 +1453,8 @@ export default function Home() {
           }} />
 
           <div
-            ref={revealPi}
-            className="cb-reveal pi-grid"
+            ref={revealMk}
+            className="cb-reveal mk-grid"
             style={{
               maxWidth: '1180px',
               margin: '0 auto',
@@ -1467,7 +1467,7 @@ export default function Home() {
               justifyContent: 'center',
               alignItems: 'center',
             }}>
-              <PraticiensInfluentsSheetPreview />
+              <MedecinsKolsSheetPreview />
             </div>
 
             {/* Right col: title + form */}
@@ -1487,7 +1487,7 @@ export default function Home() {
                   color: 'var(--steel)',
                   padding: '0.35rem 0',
                 }}>
-                  France 🇫🇷 · {PRATICIENS_INFLUENTS_ETABS} établissements · {PRATICIENS_INFLUENTS_SOCIETES} sociétés savantes
+                  France 🇫🇷 · {MEDECINS_KOLS_ETABS} établissements · {MEDECINS_KOLS_SOCIETES} sociétés savantes
                 </span>
               </div>
 
@@ -1500,7 +1500,7 @@ export default function Home() {
                 lineHeight: 1.1,
                 letterSpacing: '-0.01em',
               }}>
-                {PRATICIENS_INFLUENTS_TITLE}
+                {MEDECINS_KOLS_TITLE}
               </h2>
               <p style={{
                 fontFamily: 'var(--font-sans)',
@@ -1510,10 +1510,10 @@ export default function Home() {
                 margin: '0 0 2.25rem',
                 maxWidth: '520px',
               }}>
-                {PRATICIENS_INFLUENTS_SUB}
+                {MEDECINS_KOLS_SUB}
               </p>
 
-              <PraticiensInfluentsForm variant="modal" theme="light" source="home" />
+              <MedecinsKolsForm variant="modal" theme="light" source="home" />
 
               <p style={{
                 marginTop: '1.25rem',
@@ -1522,7 +1522,7 @@ export default function Home() {
                 fontFamily: 'var(--font-sans)',
               }}>
                 Plus de détails ?{' '}
-                <Link to="/praticiens-influents" style={{
+                <Link to="/medecins-kols" style={{
                   color: 'var(--ink)',
                   fontWeight: 600,
                   textDecoration: 'underline',
@@ -1536,16 +1536,16 @@ export default function Home() {
           </div>
 
           <style>{`
-            .pi-grid {
+            .mk-grid {
               display: grid;
               grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
               gap: clamp(2rem, 4vw, 4.5rem);
               align-items: center;
             }
             @media (max-width: 880px) {
-              .pi-grid { grid-template-columns: 1fr; gap: 2.5rem; }
-              .pi-grid > div:first-child { order: 1; }
-              .pi-grid > div:last-child { order: 0; }
+              .mk-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+              .mk-grid > div:first-child { order: 1; }
+              .mk-grid > div:last-child { order: 0; }
             }
           `}</style>
         </section>

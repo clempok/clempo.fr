@@ -1,20 +1,20 @@
 import { Link } from 'react-router-dom'
 import { Linkedin, Building2, MapPin, Stethoscope, Landmark, BadgeCheck, Layers, GitMerge } from 'lucide-react'
 import SEO from '../components/SEO'
-import PraticiensInfluentsForm, { PraticiensInfluentsNetlifyRegistration } from '../components/PraticiensInfluentsForm'
-import PraticiensInfluentsSheetPreview from '../components/PraticiensInfluentsSheetPreview'
+import MedecinsKolsForm, { MedecinsKolsNetlifyRegistration } from '../components/MedecinsKolsForm'
+import MedecinsKolsSheetPreview from '../components/MedecinsKolsSheetPreview'
 import {
-  PRATICIENS_INFLUENTS_TITLE,
-  PRATICIENS_INFLUENTS_SUB,
-  PRATICIENS_INFLUENTS_COUNT,
-  PRATICIENS_INFLUENTS_CHU,
-  PRATICIENS_INFLUENTS_SAVANTES,
-  PRATICIENS_INFLUENTS_DOUBLES,
-  PRATICIENS_INFLUENTS_ETABS,
-  PRATICIENS_INFLUENTS_SOCIETES,
-  PRATICIENS_INFLUENTS_SPECIALITES,
-  PRATICIENS_INFLUENTS_LINKEDIN,
-} from '../lib/praticiens-influents'
+  MEDECINS_KOLS_TITLE,
+  MEDECINS_KOLS_SUB,
+  MEDECINS_KOLS_COUNT,
+  MEDECINS_KOLS_CHU,
+  MEDECINS_KOLS_SAVANTES,
+  MEDECINS_KOLS_DOUBLES,
+  MEDECINS_KOLS_ETABS,
+  MEDECINS_KOLS_SOCIETES,
+  MEDECINS_KOLS_SPECIALITES,
+  MEDECINS_KOLS_LINKEDIN,
+} from '../lib/medecins-kols'
 import { bookingUrl } from '../lib/cta'
 
 const ACCENT = '#0A0A0B'
@@ -24,17 +24,17 @@ const MUTED = '#6B6F7A'
 const TEXT = '#0A0A0B'
 const BG_OFF = '#F4F4F2'
 
-const SRC = 'praticiens-influents'
+const SRC = 'medecins-kols'
 
 const fr = (n: number) => n.toLocaleString('fr-FR')
 
-const TITLE = `${fr(PRATICIENS_INFLUENTS_COUNT)} KOL santé · PU-PH, chefs de service & sociétés savantes | Clempo`
-const META = `Base de ${fr(PRATICIENS_INFLUENTS_COUNT)} praticiens influents français : PU-PH, MCU-PH, chefs de service de ${fr(PRATICIENS_INFLUENTS_ETABS)} établissements et dirigeants de ${PRATICIENS_INFLUENTS_SOCIETES} sociétés savantes. Spécialité, établissement, fonction et LinkedIn. Téléchargement gratuit.`
+const TITLE = `${fr(MEDECINS_KOLS_COUNT)} KOL santé · PU-PH, chefs de service & sociétés savantes | Clempo`
+const META = `Base de ${fr(MEDECINS_KOLS_COUNT)} médecins KOL français : PU-PH, MCU-PH, chefs de service de ${fr(MEDECINS_KOLS_ETABS)} établissements et dirigeants de ${MEDECINS_KOLS_SOCIETES} sociétés savantes. Spécialité, établissement, fonction et LinkedIn. Téléchargement gratuit.`
 
 const JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'Dataset',
-  'name': 'Praticiens influents (KOL) — CHU & sociétés savantes, France',
+  'name': 'Médecins KOL (leaders d’opinion) — CHU & sociétés savantes, France',
   'description': META,
   'creator': {
     '@type': 'Person',
@@ -51,12 +51,12 @@ const JSON_LD = {
     'advisory board médical',
   ],
   'spatialCoverage': { '@type': 'Country', 'name': 'France' },
-  'license': 'https://www.clempo.fr/praticiens-influents',
+  'license': 'https://www.clempo.fr/medecins-kols',
   'isAccessibleForFree': true,
   'distribution': {
     '@type': 'DataDownload',
     'encodingFormat': 'application/vnd.google-apps.spreadsheet',
-    'contentUrl': 'https://www.clempo.fr/praticiens-influents',
+    'contentUrl': 'https://www.clempo.fr/medecins-kols',
   },
   'variableMeasured': [
     'Titre', 'Nom', 'Prénom', 'Spécialité médicale', 'Service / intitulé d\'origine',
@@ -90,11 +90,11 @@ const USECASES = [
   },
   {
     title: 'Cartographier les KOL d\'une spécialité',
-    text: `${PRATICIENS_INFLUENTS_SPECIALITES} spécialités segmentées. Sortez la liste complète des leaders d'une aire thérapeutique, avec l'établissement et la société savante de rattachement.`,
+    text: `${MEDECINS_KOLS_SPECIALITES} spécialités segmentées. Sortez la liste complète des leaders d'une aire thérapeutique, avec l'établissement et la société savante de rattachement.`,
   },
   {
     title: 'Préparer un congrès ou un symposium',
-    text: `Les ${PRATICIENS_INFLUENTS_SOCIETES} sociétés savantes couvertes sont celles qui organisent les congrès de spécialité. Vous savez à qui parler du programme scientifique avant que le call for papers ne sorte.`,
+    text: `Les ${MEDECINS_KOLS_SOCIETES} sociétés savantes couvertes sont celles qui organisent les congrès de spécialité. Vous savez à qui parler du programme scientifique avant que le call for papers ne sorte.`,
   },
   {
     title: 'Recruter des investigateurs',
@@ -109,7 +109,7 @@ const FAQ = [
   },
   {
     q: "Que veut dire « profil double » ?",
-    a: `${fr(PRATICIENS_INFLUENTS_DOUBLES)} praticiens sont à la fois hospitalo-universitaires et dirigeants d'une société savante. Ce sont statistiquement les profils les plus influents du fichier. Ils apparaissent sur une seule ligne, avec les deux colonnes remplies — filtrez la colonne « Sources » sur « CHU + Société savante » pour les isoler.`,
+    a: `${fr(MEDECINS_KOLS_DOUBLES)} praticiens sont à la fois hospitalo-universitaires et dirigeants d'une société savante. Ce sont statistiquement les profils les plus influents du fichier. Ils apparaissent sur une seule ligne, avec les deux colonnes remplies — filtrez la colonne « Sources » sur « CHU + Société savante » pour les isoler.`,
   },
   {
     q: "Est-ce que la couverture est exhaustive ?",
@@ -121,11 +121,11 @@ const FAQ = [
   },
   {
     q: "Y a-t-il des emails ?",
-    a: `Non — volontairement. Le fichier donne le nom, la spécialité, l'établissement, la fonction et le profil LinkedIn (${fr(PRATICIENS_INFLUENTS_LINKEDIN)} profils rattachés, soit 76 % des lignes). L'approche d'un leader d'opinion se fait par LinkedIn, par un congrès ou par une introduction, pas par une adresse trouvée dans un fichier.`,
+    a: `Non — volontairement. Le fichier donne le nom, la spécialité, l'établissement, la fonction et le profil LinkedIn (${fr(MEDECINS_KOLS_LINKEDIN)} profils rattachés, soit 76 % des lignes). L'approche d'un leader d'opinion se fait par LinkedIn, par un congrès ou par une introduction, pas par une adresse trouvée dans un fichier.`,
   },
   {
     q: "Quel format est livré ?",
-    a: `Un Google Sheet partagé en lecture (${fr(PRATICIENS_INFLUENTS_COUNT)} lignes, 12 colonnes, un onglet couverture et un onglet base). Dupliquez-le dans votre Drive pour le filtrer librement, ou exportez-le en CSV/XLSX.`,
+    a: `Un Google Sheet partagé en lecture (${fr(MEDECINS_KOLS_COUNT)} lignes, 12 colonnes, un onglet couverture et un onglet base). Dupliquez-le dans votre Drive pour le filtrer librement, ou exportez-le en CSV/XLSX.`,
   },
   {
     q: "Pourquoi gratuit ?",
@@ -133,18 +133,18 @@ const FAQ = [
   },
 ]
 
-export default function PraticiensInfluents() {
+export default function MedecinsKols() {
   return (
     <>
       <SEO
         title={TITLE}
         description={META}
-        canonical="/praticiens-influents"
-        ogImage="https://www.clempo.fr/og-praticiens-influents.png"
+        canonical="/medecins-kols"
+        ogImage="https://www.clempo.fr/og-medecins-kols.png"
         jsonLd={JSON_LD}
       />
 
-      <PraticiensInfluentsNetlifyRegistration />
+      <MedecinsKolsNetlifyRegistration />
 
       <main style={{ paddingTop: '6rem' }}>
         {/* ── HERO + FORM ── */}
@@ -161,7 +161,7 @@ export default function PraticiensInfluents() {
             opacity: 0.18, pointerEvents: 'none',
           }} />
 
-          <div className="pi-grid" style={{
+          <div className="mk-grid" style={{
             maxWidth: '1180px',
             margin: '0 auto',
             position: 'relative',
@@ -182,7 +182,7 @@ export default function PraticiensInfluents() {
                   color: 'rgba(255,255,255,0.7)',
                   padding: '0.35rem 0',
                 }}>
-                  France 🇫🇷 · {fr(PRATICIENS_INFLUENTS_ETABS)} établissements · {PRATICIENS_INFLUENTS_SOCIETES} sociétés savantes
+                  France 🇫🇷 · {fr(MEDECINS_KOLS_ETABS)} établissements · {MEDECINS_KOLS_SOCIETES} sociétés savantes
                 </span>
               </div>
 
@@ -195,7 +195,7 @@ export default function PraticiensInfluents() {
                 lineHeight: 1.08,
                 letterSpacing: '-0.01em',
               }}>
-                {PRATICIENS_INFLUENTS_TITLE}
+                {MEDECINS_KOLS_TITLE}
               </h1>
               <p style={{
                 fontFamily: 'var(--font-sans)',
@@ -205,10 +205,10 @@ export default function PraticiensInfluents() {
                 margin: '0 0 2.25rem',
                 maxWidth: '560px',
               }}>
-                {PRATICIENS_INFLUENTS_SUB}
+                {MEDECINS_KOLS_SUB}
               </p>
 
-              <PraticiensInfluentsForm variant="modal" theme="dark" source="page-hero" />
+              <MedecinsKolsForm variant="modal" theme="dark" source="page-hero" />
             </div>
 
             <div style={{
@@ -216,7 +216,7 @@ export default function PraticiensInfluents() {
               justifyContent: 'center',
               alignItems: 'center',
             }}>
-              <PraticiensInfluentsSheetPreview />
+              <MedecinsKolsSheetPreview />
             </div>
           </div>
         </section>
@@ -230,12 +230,12 @@ export default function PraticiensInfluents() {
               gap: '1.5rem',
             }}>
               {[
-                { n: fr(PRATICIENS_INFLUENTS_COUNT), l: 'Praticiens influents', sub: 'PU-PH, chefs de service, dirigeants de sociétés savantes' },
-                { n: fr(PRATICIENS_INFLUENTS_CHU), l: 'Hospitalo-universitaires', sub: `CHU et CLCC — ${fr(PRATICIENS_INFLUENTS_ETABS)} établissements` },
-                { n: fr(PRATICIENS_INFLUENTS_SAVANTES), l: 'Dirigeants de société savante', sub: `${PRATICIENS_INFLUENTS_SOCIETES} sociétés couvertes` },
-                { n: fr(PRATICIENS_INFLUENTS_DOUBLES), l: 'Profils doubles', sub: 'CHU et société savante à la fois' },
-                { n: String(PRATICIENS_INFLUENTS_SPECIALITES), l: 'Spécialités', sub: 'Nomenclature DES + odontologie' },
-                { n: fr(PRATICIENS_INFLUENTS_LINKEDIN), l: 'Profils LinkedIn', sub: '76 % des lignes' },
+                { n: fr(MEDECINS_KOLS_COUNT), l: 'Médecins KOL', sub: 'PU-PH, chefs de service, dirigeants de sociétés savantes' },
+                { n: fr(MEDECINS_KOLS_CHU), l: 'Hospitalo-universitaires', sub: `CHU et CLCC — ${fr(MEDECINS_KOLS_ETABS)} établissements` },
+                { n: fr(MEDECINS_KOLS_SAVANTES), l: 'Dirigeants de société savante', sub: `${MEDECINS_KOLS_SOCIETES} sociétés couvertes` },
+                { n: fr(MEDECINS_KOLS_DOUBLES), l: 'Profils doubles', sub: 'CHU et société savante à la fois' },
+                { n: String(MEDECINS_KOLS_SPECIALITES), l: 'Spécialités', sub: 'Nomenclature DES + odontologie' },
+                { n: fr(MEDECINS_KOLS_LINKEDIN), l: 'Profils LinkedIn', sub: '76 % des lignes' },
               ].map((s, i) => (
                 <div key={i}>
                   <p style={{
@@ -277,13 +277,13 @@ export default function PraticiensInfluents() {
           }}>
             {[
               { icon: BadgeCheck,  t: 'Titre et identité',     s: 'Pr, Dr, M., Mme + nom et prénom' },
-              { icon: Stethoscope, t: 'Spécialité médicale',   s: `${PRATICIENS_INFLUENTS_SPECIALITES} spécialités normalisées, filtrables directement` },
+              { icon: Stethoscope, t: 'Spécialité médicale',   s: `${MEDECINS_KOLS_SPECIALITES} spécialités normalisées, filtrables directement` },
               { icon: Layers,      t: "Service d'origine",     s: "L'intitulé brut du service, plus fin que la spécialité" },
-              { icon: Building2,   t: 'Établissement',         s: `CHU, CHRU, CLCC — ${fr(PRATICIENS_INFLUENTS_ETABS)} établissements nommés` },
-              { icon: Landmark,    t: 'Société savante',       s: `${PRATICIENS_INFLUENTS_SOCIETES} sociétés, collèges et académies` },
+              { icon: Building2,   t: 'Établissement',         s: `CHU, CHRU, CLCC — ${fr(MEDECINS_KOLS_ETABS)} établissements nommés` },
+              { icon: Landmark,    t: 'Société savante',       s: `${MEDECINS_KOLS_SOCIETES} sociétés, collèges et académies` },
               { icon: BadgeCheck,  t: 'Fonction',              s: 'PU-PH, MCU-PH, chef de service, président, membre du CA…' },
               { icon: MapPin,      t: 'Ville et département',  s: 'Pour cibler un territoire ou un centre investigateur' },
-              { icon: Linkedin,    t: 'Profil LinkedIn',       s: `${fr(PRATICIENS_INFLUENTS_LINKEDIN)} URL vérifiées sur le nom de famille` },
+              { icon: Linkedin,    t: 'Profil LinkedIn',       s: `${fr(MEDECINS_KOLS_LINKEDIN)} URL vérifiées sur le nom de famille` },
             ].map((c, i) => {
               const Icon = c.icon
               return (
@@ -316,7 +316,7 @@ export default function PraticiensInfluents() {
                   // Top 10 des spécialités
                 </p>
                 <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.4rem, 2.6vw, 1.9rem)', fontWeight: 400, color: TEXT, margin: '0 0 1.5rem', letterSpacing: '-0.015em' }}>
-                  {PRATICIENS_INFLUENTS_SPECIALITES} spécialités, de la cardiologie à l'odontologie.
+                  {MEDECINS_KOLS_SPECIALITES} spécialités, de la cardiologie à l'odontologie.
                 </h3>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                   {SPECIALITES.map((c, i) => (
@@ -369,7 +369,7 @@ export default function PraticiensInfluents() {
                 }}>
                   <GitMerge size={20} color={SIGNAL} strokeWidth={1.7} />
                   <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '1rem', fontWeight: 600, color: TEXT, margin: 0 }}>
-                    {fr(PRATICIENS_INFLUENTS_DOUBLES)} profils à double casquette
+                    {fr(MEDECINS_KOLS_DOUBLES)} profils à double casquette
                   </p>
                   <p style={{ fontSize: '0.88rem', color: MUTED, margin: 0, lineHeight: 1.6 }}>
                     Hospitalo-universitaires <em>et</em> dirigeants d'une société savante. Une seule
@@ -492,7 +492,7 @@ export default function PraticiensInfluents() {
               les mises à jour. Pas de spam, pas de revente.
             </p>
             <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-              <PraticiensInfluentsForm variant="modal" theme="dark" source="page-bottom" />
+              <MedecinsKolsForm variant="modal" theme="dark" source="page-bottom" />
             </div>
 
             <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
@@ -516,15 +516,15 @@ export default function PraticiensInfluents() {
       </main>
 
       <style>{`
-        .pi-grid {
+        .mk-grid {
           display: grid;
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: clamp(2rem, 4vw, 4.5rem);
           align-items: center;
         }
         @media (max-width: 880px) {
-          .pi-grid { grid-template-columns: 1fr; gap: 2.5rem; }
-          .pi-grid > div:last-child { order: -1; }
+          .mk-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+          .mk-grid > div:last-child { order: -1; }
         }
       `}</style>
     </>

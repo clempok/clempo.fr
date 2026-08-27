@@ -1,14 +1,14 @@
 """
-Visuels du lead magnet « praticiens influents ».
+Visuels du lead magnet « médecins KOL ».
 
 Deux formats, même parti pris que render_linkedin_decideurs.py : l'artefact
 (le Google Sheet) occupe le cadre, le texte se réduit à des notes de marge.
 
   post  1080×1080 — l'image à poster sur LinkedIn
-  og    1200×630  — l'aperçu de lien (public/og-praticiens-influents.png)
+  og    1200×630  — l'aperçu de lien (public/og-medecins-kols.png)
 
 Usage :
-  python3 scripts/render_linkedin_praticiens.py [post|og] [chemin/sortie.png]
+  python3 scripts/render_linkedin_medecins_kols.py [post|og] [chemin/sortie.png]
 """
 import sys
 from pathlib import Path
@@ -68,7 +68,7 @@ def draw_tracked(draw, xy, text, ft, fill, letter_spacing=0):
 
 
 # Données factices mais plausibles — le vrai fichier est derrière le formulaire.
-# Mêmes lignes que le mockup React (PraticiensInfluentsSheetPreview.tsx).
+# Mêmes lignes que le mockup React (MedecinsKolsSheetPreview.tsx).
 BLUE   = (26, 115, 232)
 PURPLE = (147, 52, 230)
 GREEN  = (24, 128, 56)
@@ -136,7 +136,7 @@ def render_sheet_mockup(width, rows_count=16):
     fn_font = font(F_SANS, 18)
     sub_font = font(F_MONO, 12)
     d.text((icon_x + icon_size + 12, y0 + 7),
-           "4 035 praticiens influents · France",
+           "4 035 médecins KOL · France",
            font=fn_font, fill=(32, 33, 36, 255))
     d.text((icon_x + icon_size + 12, y0 + 30),
            "Google Sheets · partagé",
@@ -244,7 +244,7 @@ def render_post() -> Image.Image:
 
     # Marginalia du bas : l'URL, soulignée en signal
     cta_font = font(F_MONO_BOLD, 14)
-    cta_text = "→ CLEMPO.FR/PRATICIENS-INFLUENTS"
+    cta_text = "→ CLEMPO.FR/MEDECINS-KOLS"
     cw = text_width(d, cta_text, cta_font, letter_spacing=2.0)
     cta_y = CANVAS - 50
     draw_tracked(d, ((CANVAS - cw) // 2, cta_y), cta_text, cta_font, INK, letter_spacing=2.0)
@@ -279,7 +279,7 @@ def render_og() -> Image.Image:
 
     # Titre : Instrument Serif n'est pas dans le pack, on reste sur le sans bold
     title_font = font(F_SANS_BOLD, 46)
-    for i, line in enumerate(["4 035 praticiens", "influents"]):
+    for i, line in enumerate(["4 035 médecins", "KOL en France"]):
         d.text((x, 188 + i * 56), line, font=title_font, fill=INK)
 
     sub_font = font(F_SANS, 19)
@@ -291,7 +291,7 @@ def render_og() -> Image.Image:
         d.text((x, 322 + i * 30), line, font=sub_font, fill=STEEL)
 
     cta_font = font(F_MONO_BOLD, 14)
-    cta_text = "→ CLEMPO.FR/PRATICIENS-INFLUENTS"
+    cta_text = "→ CLEMPO.FR/MEDECINS-KOLS"
     draw_tracked(d, (x, 462), cta_text, cta_font, INK, letter_spacing=1.4)
     d.rectangle([x, 490, x + 58, 492], fill=SIGNAL)
 
@@ -299,8 +299,8 @@ def render_og() -> Image.Image:
 
 
 FORMATS = {
-    "post": (render_post, Path("/tmp/clempo-linkedin/clempo-linkedin-praticiens.png")),
-    "og":   (render_og,   Path("public/og-praticiens-influents.png")),
+    "post": (render_post, Path("/tmp/clempo-linkedin/clempo-linkedin-medecins-kols.png")),
+    "og":   (render_og,   Path("public/og-medecins-kols.png")),
 }
 
 

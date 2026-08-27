@@ -4,7 +4,7 @@ import { upsertContact, addPendingNps, detectLanguage } from './_crm'
 import { JOURNALISTES_SHEET_URL } from './_journalistes'
 import { DECIDEURS_HOSPITALIERS_SHEET_URL } from './_decideurs-hospitaliers'
 import { INFLUENCEURS_SANTE_SHEET_URL } from './_influenceurs-sante'
-import { PRATICIENS_INFLUENTS_SHEET_URL } from './_praticiens-influents'
+import { MEDECINS_KOLS_SHEET_URL } from './_medecins-kols'
 import { sendResourceDeliveryEmail } from './_email-templates'
 import type { ResourceLink } from './_email-templates'
 
@@ -71,8 +71,8 @@ const handler: Handler = async (event) => {
     if (formName === 'influenceurs-sante') {
       return handleInfluenceursSante({ firstName, lastName, email, company, source })
     }
-    if (formName === 'praticiens-influents') {
-      return handlePraticiensInfluents({ firstName, lastName, email, company, source })
+    if (formName === 'medecins-kols') {
+      return handleMedecinsKols({ firstName, lastName, email, company, source })
     }
     if (formName === 'brochure') {
       return handleBrochure({ firstName, lastName, email, company, phone, lang })
@@ -274,14 +274,14 @@ async function handleInfluenceursSante(d: {
   return { statusCode: 200, body: 'OK' }
 }
 
-async function handlePraticiensInfluents(d: {
+async function handleMedecinsKols(d: {
   firstName: string; lastName: string; email: string; company: string; source: string
 }) {
   if (!d.email) return { statusCode: 400, body: 'Missing email' }
 
   await Promise.all([
     recordEvent({
-      type: 'praticiens-influents',
+      type: 'medecins-kols',
       firstName: d.firstName,
       lastName: d.lastName,
       email: d.email,
@@ -292,24 +292,24 @@ async function handlePraticiensInfluents(d: {
       firstName: d.firstName,
       lastName: d.lastName,
       company: d.company,
-      source: d.source ? `Praticiens influents (${d.source})` : 'Praticiens influents',
+      source: d.source ? `Médecins KOL (${d.source})` : 'Médecins KOL',
       status: 'Lead',
       origin: 'Lead Magnet',
     }, 'Lead'),
   ])
-  await addPendingNps(d.email, 'praticiens-influents', 'Base praticiens influents')
+  await addPendingNps(d.email, 'medecins-kols', 'Base médecins KOL')
 
   {
     const lang = detectLanguage({ email: d.email, firstName: d.firstName })
     await deliverResource({
-      formName: 'praticiens-influents',
+      formName: 'medecins-kols',
       email: d.email,
       firstName: d.firstName,
       language: lang,
       resourceLabel: lang === 'EN'
         ? 'the French medical KOL database (university hospitals & learned societies)'
-        : 'la base des praticiens influents (CHU & sociétés savantes)',
-      links: [{ label: lang === 'EN' ? 'Open the database' : 'Ouvrir la base', url: PRATICIENS_INFLUENTS_SHEET_URL }],
+        : 'la base des médecins KOL (CHU & sociétés savantes)',
+      links: [{ label: lang === 'EN' ? 'Open the database' : 'Ouvrir la base', url: MEDECINS_KOLS_SHEET_URL }],
     })
   }
 

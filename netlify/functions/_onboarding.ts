@@ -330,7 +330,7 @@ export const RESERVED_SLUGS = new Set([
   'admin', 'articles', 'booking', 'devis', 'confirmation', 'hiring',
   'transition-cmo', 'consultant-marketing-sante', 'parts-de-marche-logiciels-medicaux',
   'specialites', 'merci-nps', 'decideurs-hospitaliers', 'influenceurs-sante',
-  'praticiens-influents',
+  'medecins-kols', 'praticiens-influents',
   'sitemap.xml', 'robots.txt', 'assets', 'tools', 'data', 'api', 'onboarding',
 ])
 

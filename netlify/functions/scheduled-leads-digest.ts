@@ -31,18 +31,18 @@ type NpsRow = {
   ts: string
 }
 
-type DigestType = 'decideurs-hospitaliers' | 'influenceurs-sante' | 'praticiens-influents' | 'data-download' | 'journalistes' | 'brochure' | 'hiring'
+type DigestType = 'decideurs-hospitaliers' | 'influenceurs-sante' | 'medecins-kols' | 'data-download' | 'journalistes' | 'brochure' | 'hiring'
 
 const SECTION_META: Record<DigestType, { emoji: string; label: string }> = {
   'decideurs-hospitaliers': { emoji: '🏥', label: 'Base décideurs hospitaliers' },
   'influenceurs-sante':     { emoji: '📱', label: 'Base influenceurs santé' },
-  'praticiens-influents':   { emoji: '🎓', label: 'Base praticiens influents' },
+  'medecins-kols':   { emoji: '🎓', label: 'Base médecins KOL' },
   'data-download':          { emoji: '📊', label: 'Data santé' },
   'journalistes':           { emoji: '📋', label: 'Liste journalistes' },
   'brochure':               { emoji: '📥', label: 'Brochure services' },
   'hiring':                 { emoji: '🎓', label: 'Candidatures stage' },
 }
-const SECTION_ORDER: DigestType[] = ['decideurs-hospitaliers', 'influenceurs-sante', 'praticiens-influents', 'data-download', 'journalistes', 'brochure', 'hiring']
+const SECTION_ORDER: DigestType[] = ['decideurs-hospitaliers', 'influenceurs-sante', 'medecins-kols', 'data-download', 'journalistes', 'brochure', 'hiring']
 
 /**
  * Récap quotidien unique — l'email qui remplace toutes les alertes unitaires.

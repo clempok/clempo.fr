@@ -50,7 +50,7 @@ const routes = [
   '/hiring',
   '/decideurs-hospitaliers',
   '/influenceurs-sante',
-  '/praticiens-influents',
+  '/medecins-kols',
   ...slugs.map(s => `/articles/${s}`),
   ...specialiteSlugs.map(s => `/specialites/${s}`),
 ]

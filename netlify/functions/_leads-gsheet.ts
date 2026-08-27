@@ -24,7 +24,7 @@ const DOWNLOAD_SOURCE_HINTS = [
   'decideurs hospitaliers',
   'influenceurs santé',
   'influenceurs sante',
-  'praticiens influents',
+  'médecins KOL',
   'data ',
   'data-download',
 ]
@@ -41,7 +41,7 @@ function labelFromSource(source: string): string {
   if (s.includes('journalistes')) return 'Liste journalistes santé'
   if (s.includes('décideurs') || s.includes('decideurs')) return 'Base décideurs hospitaliers'
   if (s.includes('influenceurs')) return 'Base influenceurs santé'
-  if (s.includes('praticiens influents')) return 'Base praticiens influents'
+  if (s.includes('médecins KOL')) return 'Base médecins KOL'
   if (s.startsWith('data ') || s.includes('data-')) return source.replace(/^Data\s*/i, 'Data — ')
   return source
 }

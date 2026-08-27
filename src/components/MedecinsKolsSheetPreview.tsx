@@ -30,7 +30,7 @@ const SRC_COLOR: Record<Row['src'], string> = {
   'CHU + SS': '#188038',
 }
 
-export default function PraticiensInfluentsSheetPreview() {
+export default function MedecinsKolsSheetPreview() {
   return (
     <div
       aria-hidden
@@ -80,7 +80,7 @@ export default function PraticiensInfluentsSheetPreview() {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
           }}>
-            4 035 praticiens influents · France
+            4 035 médecins KOL · France
           </span>
           <span style={{ fontSize: '0.65rem', color: '#5f6368' }}>
             Google Sheets · partagé

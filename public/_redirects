@@ -5,6 +5,9 @@
 /systemes-sante-incription            /articles/systeme-sante-europe                301
 /a-propos                             /#about                                       301
 
+# Renommage de la page des médecins KOL (ex-/praticiens-influents)
+/praticiens-influents                 /medecins-kols                                301!
+
 # Renommage SEO de la page "Parts de marché logiciels médicaux"
 # (les sous-pages /specialites/:slug ne sont PAS impactées — match exact)
 /specialites                          /parts-de-marche-logiciels-medicaux           301!
