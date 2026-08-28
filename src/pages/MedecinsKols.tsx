@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Linkedin, Building2, MapPin, Stethoscope, Landmark, BadgeCheck, Layers, GitMerge } from 'lucide-react'
+import { Linkedin, Building2, MapPin, Stethoscope, Landmark, BadgeCheck, Layers, GitMerge, BookOpen } from 'lucide-react'
 import SEO from '../components/SEO'
 import MedecinsKolsForm, { MedecinsKolsNetlifyRegistration } from '../components/MedecinsKolsForm'
 import MedecinsKolsSheetPreview from '../components/MedecinsKolsSheetPreview'
@@ -9,11 +9,15 @@ import {
   MEDECINS_KOLS_COUNT,
   MEDECINS_KOLS_CHU,
   MEDECINS_KOLS_SAVANTES,
-  MEDECINS_KOLS_DOUBLES,
+  MEDECINS_KOLS_REVUES_MEMBRES,
+  MEDECINS_KOLS_MULTI,
+  MEDECINS_KOLS_TRIPLES,
   MEDECINS_KOLS_ETABS,
   MEDECINS_KOLS_SOCIETES,
+  MEDECINS_KOLS_REVUES,
   MEDECINS_KOLS_SPECIALITES,
   MEDECINS_KOLS_LINKEDIN,
+  MEDECINS_KOLS_LINKEDIN_PCT,
 } from '../lib/medecins-kols'
 import { bookingUrl } from '../lib/cta'
 
@@ -28,13 +32,13 @@ const SRC = 'medecins-kols'
 
 const fr = (n: number) => n.toLocaleString('fr-FR')
 
-const TITLE = `${fr(MEDECINS_KOLS_COUNT)} KOL santé · PU-PH, chefs de service & sociétés savantes | Clempo`
-const META = `Base de ${fr(MEDECINS_KOLS_COUNT)} médecins KOL français : PU-PH, MCU-PH, chefs de service de ${fr(MEDECINS_KOLS_ETABS)} établissements et dirigeants de ${MEDECINS_KOLS_SOCIETES} sociétés savantes. Spécialité, établissement, fonction et LinkedIn. Téléchargement gratuit.`
+const TITLE = `${fr(MEDECINS_KOLS_COUNT)} KOL santé · PU-PH, sociétés savantes & revues médicales | Clempo`
+const META = `Base de ${fr(MEDECINS_KOLS_COUNT)} médecins KOL français : PU-PH, MCU-PH, chefs de service de ${fr(MEDECINS_KOLS_ETABS)} établissements, dirigeants de ${MEDECINS_KOLS_SOCIETES} sociétés savantes et comités de rédaction de ${MEDECINS_KOLS_REVUES} revues médicales. Spécialité, établissement, fonction et LinkedIn. Téléchargement gratuit.`
 
 const JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'Dataset',
-  'name': 'Médecins KOL (leaders d’opinion) — CHU & sociétés savantes, France',
+  'name': 'Médecins KOL (leaders d’opinion) — CHU, sociétés savantes & revues médicales, France',
   'description': META,
   'creator': {
     '@type': 'Person',
@@ -48,6 +52,7 @@ const JSON_LD = {
     'PU-PH',
     'chefs de service CHU',
     'sociétés savantes',
+    'comité de rédaction revue médicale',
     'advisory board médical',
   ],
   'spatialCoverage': { '@type': 'Country', 'name': 'France' },
@@ -60,27 +65,29 @@ const JSON_LD = {
   },
   'variableMeasured': [
     'Titre', 'Nom', 'Prénom', 'Spécialité médicale', 'Service / intitulé d\'origine',
-    'Établissement', 'Société savante', 'Fonction', 'Ville', 'Département', 'Lien LinkedIn', 'Sources',
+    'Établissement', 'Société savante', 'Revue médicale', 'Fonction', 'Ville', 'Département',
+    'Lien LinkedIn', 'Sources',
   ],
 }
 
-/** Top spécialités du fichier (nomenclature DES, 60 spécialités au total). */
+/** Top spécialités du fichier (nomenclature DES, 63 spécialités au total). */
 const SPECIALITES = [
-  { label: 'Biologie médicale', count: 298 },
-  { label: 'Hématologie', count: 186 },
-  { label: 'Cardiologie', count: 178 },
-  { label: 'Gynécologie-obstétrique', count: 163 },
-  { label: 'Pédiatrie', count: 161 },
+  { label: 'Biologie médicale', count: 305 },
+  { label: 'Hématologie', count: 203 },
+  { label: 'Cardiologie', count: 188 },
+  { label: 'Radiologie et imagerie médicale', count: 178 },
+  { label: 'Oncologie', count: 176 },
+  { label: 'Pédiatrie', count: 171 },
+  { label: 'Gynécologie-obstétrique', count: 169 },
+  { label: 'Maladies infectieuses et tropicales', count: 161 },
+  { label: 'Endocrinologie-diabétologie-nutrition', count: 157 },
   { label: 'Chirurgie viscérale et digestive', count: 154 },
-  { label: 'Endocrinologie-diabétologie-nutrition', count: 135 },
-  { label: 'Anesthésie-réanimation', count: 134 },
-  { label: 'Radiologie et imagerie médicale', count: 134 },
-  { label: 'Oncologie', count: 125 },
 ]
 
 const FONCTIONS = [
   'PU-PH', 'MCU-PH', 'Chef de service', 'Chef de pôle', 'Président',
-  'Vice-Président', 'Secrétaire Général', 'Trésorier', 'Membre du CA', 'Référent',
+  'Vice-Président', 'Secrétaire Général', 'Trésorier', 'Membre du CA',
+  'Rédacteur en chef', 'Comité de rédaction',
 ]
 
 const USECASES = [
@@ -97,6 +104,10 @@ const USECASES = [
     text: `Les ${MEDECINS_KOLS_SOCIETES} sociétés savantes couvertes sont celles qui organisent les congrès de spécialité. Vous savez à qui parler du programme scientifique avant que le call for papers ne sorte.`,
   },
   {
+    title: 'Viser les comités de rédaction',
+    text: `Les membres des comités de ${MEDECINS_KOLS_REVUES} revues médicales décident de ce qui se publie dans leur spécialité. C'est le levier le plus direct pour faire exister une donnée clinique auprès des prescripteurs.`,
+  },
+  {
     title: 'Recruter des investigateurs',
     text: "Filtrez par département et par service pour cibler les centres capables de porter votre étude clinique — le chef de service est nommé, avec son intitulé de service d'origine.",
   },
@@ -105,11 +116,11 @@ const USECASES = [
 const FAQ = [
   {
     q: "D'où viennent ces données ?",
-    a: "Deux sources publiques, fusionnées et dédoublonnées : l'annuaire de la Fédération Hospitalière de France (relevé en août 2026) pour les PU-PH, MCU-PH et chefs de service des CHU et CLCC ; les pages « bureau » et « conseil d'administration » des sites officiels des sociétés savantes pour leurs dirigeants.",
+    a: `Trois sources publiques, fusionnées et dédoublonnées : l'annuaire de la Fédération Hospitalière de France (relevé en août 2026) pour les PU-PH, MCU-PH et chefs de service des CHU et CLCC ; les pages « bureau » et « conseil d'administration » des sites officiels des ${MEDECINS_KOLS_SOCIETES} sociétés savantes ; les ours des ${MEDECINS_KOLS_REVUES} revues médicales françaises qui publient leur comité de rédaction, pour leurs rédacteurs en chef et membres de comité.`,
   },
   {
-    q: "Que veut dire « profil double » ?",
-    a: `${fr(MEDECINS_KOLS_DOUBLES)} praticiens sont à la fois hospitalo-universitaires et dirigeants d'une société savante. Ce sont statistiquement les profils les plus influents du fichier. Ils apparaissent sur une seule ligne, avec les deux colonnes remplies — filtrez la colonne « Sources » sur « CHU + Société savante » pour les isoler.`,
+    q: "Que veut dire « profil multi-sources » ?",
+    a: `${fr(MEDECINS_KOLS_MULTI)} praticiens apparaissent dans au moins deux des trois sources, et ${MEDECINS_KOLS_TRIPLES} dans les trois à la fois : hospitalo-universitaire, dirigeant d'une société savante et membre d'un comité de rédaction. Ce sont statistiquement les profils les plus influents du fichier. Ils occupent une seule ligne, toutes colonnes remplies — filtrez la colonne « Sources » sur celles qui contiennent un « + » pour les isoler.`,
   },
   {
     q: "Est-ce que la couverture est exhaustive ?",
@@ -121,11 +132,11 @@ const FAQ = [
   },
   {
     q: "Y a-t-il des emails ?",
-    a: `Non — volontairement. Le fichier donne le nom, la spécialité, l'établissement, la fonction et le profil LinkedIn (${fr(MEDECINS_KOLS_LINKEDIN)} profils rattachés, soit 76 % des lignes). L'approche d'un leader d'opinion se fait par LinkedIn, par un congrès ou par une introduction, pas par une adresse trouvée dans un fichier.`,
+    a: `Non — volontairement. Le fichier donne le nom, la spécialité, l'établissement, la fonction et le profil LinkedIn (${fr(MEDECINS_KOLS_LINKEDIN)} profils rattachés, soit ${MEDECINS_KOLS_LINKEDIN_PCT} % des lignes). L'approche d'un leader d'opinion se fait par LinkedIn, par un congrès ou par une introduction, pas par une adresse trouvée dans un fichier.`,
   },
   {
     q: "Quel format est livré ?",
-    a: `Un Google Sheet partagé en lecture (${fr(MEDECINS_KOLS_COUNT)} lignes, 12 colonnes, un onglet couverture et un onglet base). Dupliquez-le dans votre Drive pour le filtrer librement, ou exportez-le en CSV/XLSX.`,
+    a: `Un Google Sheet partagé en lecture (${fr(MEDECINS_KOLS_COUNT)} lignes, 13 colonnes, un onglet couverture et un onglet base). Dupliquez-le dans votre Drive pour le filtrer librement, ou exportez-le en CSV/XLSX.`,
   },
   {
     q: "Pourquoi gratuit ?",
@@ -182,7 +193,7 @@ export default function MedecinsKols() {
                   color: 'rgba(255,255,255,0.7)',
                   padding: '0.35rem 0',
                 }}>
-                  France 🇫🇷 · {fr(MEDECINS_KOLS_ETABS)} établissements · {MEDECINS_KOLS_SOCIETES} sociétés savantes
+                  France 🇫🇷 · {fr(MEDECINS_KOLS_ETABS)} établissements · {MEDECINS_KOLS_SOCIETES} sociétés savantes · {MEDECINS_KOLS_REVUES} revues
                 </span>
               </div>
 
@@ -230,12 +241,13 @@ export default function MedecinsKols() {
               gap: '1.5rem',
             }}>
               {[
-                { n: fr(MEDECINS_KOLS_COUNT), l: 'Médecins KOL', sub: 'PU-PH, chefs de service, dirigeants de sociétés savantes' },
+                { n: fr(MEDECINS_KOLS_COUNT), l: 'Médecins KOL', sub: 'PU-PH, chefs de service, sociétés savantes, comités de rédaction' },
                 { n: fr(MEDECINS_KOLS_CHU), l: 'Hospitalo-universitaires', sub: `CHU et CLCC — ${fr(MEDECINS_KOLS_ETABS)} établissements` },
                 { n: fr(MEDECINS_KOLS_SAVANTES), l: 'Dirigeants de société savante', sub: `${MEDECINS_KOLS_SOCIETES} sociétés couvertes` },
-                { n: fr(MEDECINS_KOLS_DOUBLES), l: 'Profils doubles', sub: 'CHU et société savante à la fois' },
+                { n: fr(MEDECINS_KOLS_REVUES_MEMBRES), l: 'Comités de rédaction', sub: `${MEDECINS_KOLS_REVUES} revues médicales` },
+                { n: fr(MEDECINS_KOLS_MULTI), l: 'Profils multi-sources', sub: `Dont ${MEDECINS_KOLS_TRIPLES} présents dans les trois` },
                 { n: String(MEDECINS_KOLS_SPECIALITES), l: 'Spécialités', sub: 'Nomenclature DES + odontologie' },
-                { n: fr(MEDECINS_KOLS_LINKEDIN), l: 'Profils LinkedIn', sub: '76 % des lignes' },
+                { n: fr(MEDECINS_KOLS_LINKEDIN), l: 'Profils LinkedIn', sub: `${MEDECINS_KOLS_LINKEDIN_PCT} % des lignes` },
               ].map((s, i) => (
                 <div key={i}>
                   <p style={{
@@ -259,7 +271,7 @@ export default function MedecinsKols() {
         {/* ── COLONNES DISPONIBLES ── */}
         <section style={{ padding: 'clamp(4rem, 7vw, 6rem) 4vw', maxWidth: '1180px', margin: '0 auto' }}>
           <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: SIGNAL, marginBottom: '1rem', fontWeight: 500 }}>
-            // 12 colonnes par ligne
+            // 13 colonnes par ligne
           </p>
           <h2 style={{
             fontFamily: 'var(--font-serif)',
@@ -281,7 +293,8 @@ export default function MedecinsKols() {
               { icon: Layers,      t: "Service d'origine",     s: "L'intitulé brut du service, plus fin que la spécialité" },
               { icon: Building2,   t: 'Établissement',         s: `CHU, CHRU, CLCC — ${fr(MEDECINS_KOLS_ETABS)} établissements nommés` },
               { icon: Landmark,    t: 'Société savante',       s: `${MEDECINS_KOLS_SOCIETES} sociétés, collèges et académies` },
-              { icon: BadgeCheck,  t: 'Fonction',              s: 'PU-PH, MCU-PH, chef de service, président, membre du CA…' },
+              { icon: BookOpen,    t: 'Revue médicale',        s: `${MEDECINS_KOLS_REVUES} revues — rédacteurs en chef et comités` },
+              { icon: BadgeCheck,  t: 'Fonction',              s: 'PU-PH, MCU-PH, chef de service, président, rédacteur en chef…' },
               { icon: MapPin,      t: 'Ville et département',  s: 'Pour cibler un territoire ou un centre investigateur' },
               { icon: Linkedin,    t: 'Profil LinkedIn',       s: `${fr(MEDECINS_KOLS_LINKEDIN)} URL vérifiées sur le nom de famille` },
             ].map((c, i) => {
@@ -333,7 +346,7 @@ export default function MedecinsKols() {
                   ))}
                 </ul>
                 <p style={{ marginTop: '1.25rem', fontSize: '0.85rem', color: MUTED, lineHeight: 1.6 }}>
-                  Et 50 autres, dont les six sous-spécialités odontologiques (ODF, endodontie,
+                  Et {MEDECINS_KOLS_SPECIALITES - SPECIALITES.length} autres, dont les six sous-spécialités odontologiques (ODF, endodontie,
                   parodontologie, chirurgie orale, odontologie pédiatrique, médecine bucco-dentaire).
                 </p>
               </div>
@@ -355,8 +368,8 @@ export default function MedecinsKols() {
                   ))}
                 </div>
                 <p style={{ marginTop: '1.5rem', fontSize: '0.85rem', color: MUTED, lineHeight: 1.6 }}>
-                  300+ libellés au total : un PU-PH qui dirige aussi un pôle et siège au bureau
-                  d'une société savante porte les trois mentions sur la même ligne.
+                  300+ libellés au total : un PU-PH qui dirige aussi un pôle, siège au bureau d'une
+                  société savante et signe l'édito d'une revue porte toutes ces mentions sur la même ligne.
                 </p>
 
                 <div style={{
@@ -369,11 +382,13 @@ export default function MedecinsKols() {
                 }}>
                   <GitMerge size={20} color={SIGNAL} strokeWidth={1.7} />
                   <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '1rem', fontWeight: 600, color: TEXT, margin: 0 }}>
-                    {fr(MEDECINS_KOLS_DOUBLES)} profils à double casquette
+                    {fr(MEDECINS_KOLS_MULTI)} profils multi-sources
                   </p>
                   <p style={{ fontSize: '0.88rem', color: MUTED, margin: 0, lineHeight: 1.6 }}>
-                    Hospitalo-universitaires <em>et</em> dirigeants d'une société savante. Une seule
-                    ligne, les deux colonnes remplies. C'est par eux qu'on commence une cartographie KOL.
+                    Hospitalo-universitaires, dirigeants d'une société savante <em>ou</em> membres d'un
+                    comité de rédaction — présents dans au moins deux de ces rôles, et {MEDECINS_KOLS_TRIPLES} dans
+                    les trois à la fois. Une seule ligne, toutes les colonnes remplies. C'est par eux
+                    qu'on commence une cartographie KOL.
                   </p>
                 </div>
               </div>
@@ -385,7 +400,7 @@ export default function MedecinsKols() {
         <section style={{ padding: 'clamp(4rem, 7vw, 6rem) 4vw', maxWidth: '1180px', margin: '0 auto' }}>
           <div>
             <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: SIGNAL, marginBottom: '1rem', fontWeight: 500 }}>
-              // 4 façons de l'utiliser
+              // 5 façons de l'utiliser
             </p>
             <h2 style={{
               fontFamily: 'var(--font-serif)',

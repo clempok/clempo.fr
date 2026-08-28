@@ -383,7 +383,7 @@ export const RESOURCE_CATALOG: ResourceCatalogEntry[] = [
     id: 'medecins-kols',
     slugs: s => s === 'medecins-kols',
     label: {
-      FR: 'La base des médecins KOL (PU-PH, chefs de service, sociétés savantes)',
+      FR: 'La base des médecins KOL (PU-PH, chefs de service, sociétés savantes, revues)',
       EN: 'The medical KOL database (professors, department heads, learned societies)',
     },
     url: `${SITE_URL}/medecins-kols`,

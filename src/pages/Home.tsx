@@ -27,6 +27,7 @@ import {
   MEDECINS_KOLS_SUB,
   MEDECINS_KOLS_ETABS,
   MEDECINS_KOLS_SOCIETES,
+  MEDECINS_KOLS_REVUES,
 } from '../lib/medecins-kols'
 import { bookingUrl } from '../lib/cta'
 import Booking from './Booking'
@@ -1487,7 +1488,7 @@ export default function Home() {
                   color: 'var(--steel)',
                   padding: '0.35rem 0',
                 }}>
-                  France 🇫🇷 · {MEDECINS_KOLS_ETABS} établissements · {MEDECINS_KOLS_SOCIETES} sociétés savantes
+                  France 🇫🇷 · {MEDECINS_KOLS_ETABS} établissements · {MEDECINS_KOLS_SOCIETES} sociétés · {MEDECINS_KOLS_REVUES} revues
                 </span>
               </div>
 

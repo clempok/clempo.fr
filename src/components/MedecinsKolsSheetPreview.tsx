@@ -1,3 +1,4 @@
+import { MEDECINS_KOLS_COUNT } from '../lib/medecins-kols'
 /**
  * Decorative mockup of a Google Sheet preview to entice download.
  * Uses fake-but-plausible data — actual practitioners are in the linked GSheet.
@@ -80,7 +81,7 @@ export default function MedecinsKolsSheetPreview() {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
           }}>
-            4 035 médecins KOL · France
+            {MEDECINS_KOLS_COUNT.toLocaleString('fr-FR')} médecins KOL · France
           </span>
           <span style={{ fontSize: '0.65rem', color: '#5f6368' }}>
             Google Sheets · partagé

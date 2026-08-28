@@ -308,7 +308,7 @@ async function handleMedecinsKols(d: {
       language: lang,
       resourceLabel: lang === 'EN'
         ? 'the French medical KOL database (university hospitals & learned societies)'
-        : 'la base des médecins KOL (CHU & sociétés savantes)',
+        : 'la base des médecins KOL (CHU, sociétés savantes & revues)',
       links: [{ label: lang === 'EN' ? 'Open the database' : 'Ouvrir la base', url: MEDECINS_KOLS_SHEET_URL }],
     })
   }
