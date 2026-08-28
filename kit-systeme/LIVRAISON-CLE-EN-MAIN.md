@@ -181,7 +181,7 @@ révoqué quand même : la maintenance n'est pas une raison de garder l'admin.
 ## La fiche d'accès (à copier pour chaque client)
 
 ```
-FICHE D'ACCÈS — <Client> — ouverte le <date>, offboarding prévu le <date>
+FICHE D'ACCÈS · <Client> · ouverte le <date>, offboarding prévu le <date>
 
 | Outil       | Compte (email) | Créé le | Accès Clément     | Révoqué le |
 |-------------|----------------|---------|-------------------|------------|
