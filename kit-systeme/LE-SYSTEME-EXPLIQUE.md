@@ -35,7 +35,7 @@ Opportunités (RDV qualifiés)
 Clients
 ```
 
-Chaque étage est compté, chaque taux de passage est affiché semaine par semaine dans le tableau de bord. L'humain garde la main sur trois choses : la **publication de contenu**, la **validation de chaque message sortant** (aucun DM LinkedIn ne part sans accord explicite), et les **rendez-vous**.
+Chaque étage est compté, chaque taux de passage est affiché semaine par semaine dans le tableau de bord. L'humain garde la main sur trois choses : le **fond du contenu** (posts, articles, ressources : voir la section 8), la **validation de chaque message sortant** (aucun DM LinkedIn ne part sans accord explicite), et les **rendez-vous**.
 
 Le système se compose de **4 briques** :
 
@@ -180,7 +180,19 @@ Total de fonctionnement typique hors Claude : **moins de 30 € par mois**. L'é
 
 ---
 
-## 8. Le quotidien de l'opérateur
+## 8. Ce que le back office ne fait pas
+
+Le système industrialise la distribution, pas la matière. Trois choses restent de la responsabilité de l'équipe :
+
+- **Les posts LinkedIn** : le carburant du haut de funnel. Le rituel du matin mesure leurs retombées et en tire les leads, mais n'écrit pas les posts.
+- **Les articles SEO** : le blog est outillé (structure, balises, prérendu, maillage interne), mais l'expertise et les angles viennent de vous.
+- **Les lead magnets** : le moteur de capture est fourni (page, formulaire, livraison, relances) ; la ressource qui donne envie de laisser son email (la base de données, le benchmark, le guide) se construit avec votre connaissance du métier.
+
+Le back office aide à **mettre en forme** ces contenus et à les **intégrer dans le flow** (publication, capture, séquences, mesure). Mais le fond des sujets doit venir de l'équipe : c'est votre expertise qui fait la différence, un outil ne la remplace pas.
+
+---
+
+## 9. Le quotidien de l'opérateur
 
 Le système automatise l'exécution, pas la stratégie. Ce qu'il reste à faire :
 
@@ -199,7 +211,7 @@ Le système automatise l'exécution, pas la stratégie. Ce qu'il reste à faire 
 
 ---
 
-## 9. Garde-fous et limites assumées
+## 10. Garde-fous et limites assumées
 
 - **Aucun message ne part sans validation humaine.** Ni DM, ni invitation. Les emails automatiques, eux, suivent des templates que vous avez validés, avec des plafonds journaliers.
 - **Quota email** : 100 emails/jour en plan gratuit Resend. Le système répartit ce budget entre les familles d'emails via des plafonds réglables ; si votre volume dépasse, le passage au plan payant est une variable d'environnement à changer.
@@ -209,7 +221,7 @@ Le système automatise l'exécution, pas la stratégie. Ce qu'il reste à faire 
 
 ---
 
-## 10. Ce que contient la livraison
+## 11. Ce que contient la livraison
 
 1. **Le dépôt GitHub** complet, à votre nom, avec le site, le CRM, les emails et la documentation technique interne (le fichier CLAUDE.md qui permet à Claude Code de maintenir le système).
 2. **Les comptes configurés** : Netlify, Resend (domaine authentifié), et les variables d'environnement documentées.

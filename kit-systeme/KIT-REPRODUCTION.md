@@ -36,6 +36,12 @@ production (Annexe A). Respecte-les.
 8. **Adapte, ne copie pas aveuglément.** Le questionnaire décide des modules. Un client
    sans lead magnet n'a pas besoin du moteur NPS ; un client sans mission de conseil n'a
    pas besoin des devis signables.
+9. **Le fond du contenu vient de l'équipe cliente.** Les posts LinkedIn, les articles
+   SEO et les lead magnets sont mis en forme et intégrés au flow par le système ; leur
+   matière (sujets, angles, expertise, données) doit être fournie par l'humain. Ne
+   génère jamais un article ou une ressource de remplissage pour combler un vide :
+   collecte la matière (documents existants, interviews, données du client) avant de
+   rédiger quoi que ce soit.
 
 ---
 
