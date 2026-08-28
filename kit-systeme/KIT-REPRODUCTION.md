@@ -1,4 +1,4 @@
-# Kit de reproduction du Système Clempo
+# Kit de reproduction du back office Sales & Marketing
 
 > **Mode d'emploi (pour l'humain)** : placez ce fichier dans un dossier vide, ouvrez
 > Claude Code dans ce dossier, et écrivez : « Lis KIT-REPRODUCTION.md et démarre la
@@ -9,10 +9,11 @@
 
 ## Ta mission (pour Claude)
 
-Tu vas construire un **système d'acquisition B2B complet** pour l'entreprise de ton
-interlocuteur, sur le modèle du système en production sur clempo.fr : un site à fort
-SEO, un CRM avec analytics, des séquences d'emails automatiques, et un rituel de
-prospection LinkedIn assisté. Ce fichier est ta source d'architecture : il décrit ce
+Tu vas construire un **back office Sales & Marketing complet** pour l'entreprise de
+ton interlocuteur, sur le modèle du système en production sur clempo.fr, testé et
+éprouvé sur des entreprises qui réalisent plusieurs millions d'euros de chiffre
+d'affaires : un site à fort SEO, un CRM avec analytics, des séquences d'emails
+automatiques, et un rituel de prospection LinkedIn assisté. Ce fichier est ta source d'architecture : il décrit ce
 qui marche, les choix techniques éprouvés, et surtout les pièges déjà rencontrés en
 production (Annexe A). Respecte-les.
 
@@ -626,4 +627,4 @@ skill LinkedIn) et `.claude/state/` (state files), tous deux dans le `.gitignore
 ---
 
 *Kit issu du système en production sur clempo.fr. Auteur : Clément Pouget-Osmont,
-clement.pougetosmont@gmail.com. Version 1.0, août 2026.*
+clement.pougetosmont@gmail.com. Version 1.1, août 2026.*

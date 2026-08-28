@@ -1,9 +1,9 @@
-# Le Système Clempo, expliqué
+# Le back office Sales & Marketing complet
 
-**Site + CRM + emails automatiques + prospection LinkedIn : une machine d'acquisition B2B complète, qui tient dans un seul dépôt de code.**
+**Site + CRM + emails automatiques + prospection LinkedIn : toute la machine d'acquisition B2B, dans un seul dépôt de code. Le tout testé et éprouvé en production sur des entreprises qui réalisent plusieurs millions d'euros de chiffre d'affaires.**
 
-Version 1.0, août 2026. Rédigé par Clément Pouget-Osmont (clempo.fr).
-Ce document explique le fonctionnement du système tel qu'il tourne en production sur clempo.fr, et tel qu'il est répliqué chez les clients.
+Version 1.1, août 2026. Rédigé par Clément Pouget-Osmont (clempo.fr).
+Ce document explique le fonctionnement du back office tel qu'il tourne en production, et tel qu'il est déployé chez les clients.
 
 ---
 
@@ -214,7 +214,7 @@ Le système automatise l'exécution, pas la stratégie. Ce qu'il reste à faire 
 1. **Le dépôt GitHub** complet, à votre nom, avec le site, le CRM, les emails et la documentation technique interne (le fichier CLAUDE.md qui permet à Claude Code de maintenir le système).
 2. **Les comptes configurés** : Netlify, Resend (domaine authentifié), et les variables d'environnement documentées.
 3. **Le skill LinkedIn** paramétré pour votre cible et votre message.
-4. **Le kit de reproduction** (`KIT-REPRODUCTION.md`) : le fichier qui permet à Claude Code de reconstruire ou d'étendre le système, avec le questionnaire de cadrage. C'est votre assurance d'indépendance : le système n'est pas une boîte noire.
+4. **Le kit de reproduction** (`KIT-REPRODUCTION.md`) : le fichier qui permet à Claude Code de reconstruire ou d'étendre le système, avec le questionnaire de cadrage. C'est votre assurance d'indépendance : le back office n'est pas une boîte noire.
 5. **Une passation** : démonstration du rituel quotidien, remise des accès, et la checklist d'exploitation.
 
 ---
