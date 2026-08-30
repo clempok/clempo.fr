@@ -18,7 +18,7 @@ export const MEDECINS_KOLS_REVUES = 151
 export const MEDECINS_KOLS_SPECIALITES = 63
 /** Praticiens portant au moins une surspécialité transversale (allergologie, sommeil…). */
 export const MEDECINS_KOLS_SURSPECIALITES = 640
-export const MEDECINS_KOLS_LINKEDIN = 3475
+export const MEDECINS_KOLS_LINKEDIN = 3500
 /** Part des lignes avec un profil LinkedIn rattaché. */
 export const MEDECINS_KOLS_LINKEDIN_PCT = 74
 
