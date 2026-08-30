@@ -16,6 +16,7 @@ import {
   MEDECINS_KOLS_SOCIETES,
   MEDECINS_KOLS_REVUES,
   MEDECINS_KOLS_SPECIALITES,
+  MEDECINS_KOLS_SURSPECIALITES,
   MEDECINS_KOLS_LINKEDIN,
   MEDECINS_KOLS_LINKEDIN_PCT,
 } from '../lib/medecins-kols'
@@ -65,8 +66,8 @@ const JSON_LD = {
   },
   'variableMeasured': [
     'Titre', 'Nom', 'Prénom', 'Spécialité médicale', 'Service / intitulé d\'origine',
-    'Établissement', 'Société savante', 'Revue médicale', 'Fonction', 'Ville', 'Département',
-    'Lien LinkedIn', 'Sources',
+    'Surspécialités', 'Établissement', 'Société savante', 'Revue médicale', 'Fonction',
+    'Ville', 'Département', 'Lien LinkedIn', 'Sources',
   ],
 }
 
@@ -123,6 +124,10 @@ const FAQ = [
     a: `${fr(MEDECINS_KOLS_MULTI)} praticiens apparaissent dans au moins deux des trois sources, et ${MEDECINS_KOLS_TRIPLES} dans les trois à la fois : hospitalo-universitaire, dirigeant d'une société savante et membre d'un comité de rédaction. Ce sont statistiquement les profils les plus influents du fichier. Ils occupent une seule ligne, toutes colonnes remplies — filtrez la colonne « Sources » sur celles qui contiennent un « + » pour les isoler.`,
   },
   {
+    q: "Ma spécialité paraît sous-représentée, pourquoi ?",
+    a: `Les spécialités transversales et récentes sont désavantagées par les sources : l'allergologie, par exemple, n'a pas de CNU, donc ses PU-PH sont titrés en pneumologie, dermatologie ou pédiatrie dans l'annuaire hospitalier. C'est pour ça qu'existe la colonne « Surspécialités » : ${fr(MEDECINS_KOLS_SURSPECIALITES)} praticiens y portent une seconde casquette détectée dans leur intitulé de service, leur société savante ou leur revue. Filtrez-la en plus de la spécialité principale — un allergologue titré pneumologue y apparaît. Si votre spécialité reste mal couverte, écrivez-moi le nom de sa société savante : je l'ajoute.`,
+  },
+  {
     q: "Est-ce que la couverture est exhaustive ?",
     a: "Non, et c'est assumé. L'annuaire FHF est très inégal selon les CHU : quelques grands centres y publient peu ou pas leurs équipes. La base couvre 324 établissements et reste la vue la plus large disponible publiquement, mais recoupez toujours avec le site du CHU avant un envoi nominatif.",
   },
@@ -136,7 +141,7 @@ const FAQ = [
   },
   {
     q: "Quel format est livré ?",
-    a: `Un Google Sheet partagé en lecture (${fr(MEDECINS_KOLS_COUNT)} lignes, 13 colonnes, un onglet couverture et un onglet base). Dupliquez-le dans votre Drive pour le filtrer librement, ou exportez-le en CSV/XLSX.`,
+    a: `Un Google Sheet partagé en lecture (${fr(MEDECINS_KOLS_COUNT)} lignes, 14 colonnes, un onglet couverture et un onglet base). Dupliquez-le dans votre Drive pour le filtrer librement, ou exportez-le en CSV/XLSX.`,
   },
   {
     q: "Pourquoi gratuit ?",
@@ -271,7 +276,7 @@ export default function MedecinsKols() {
         {/* ── COLONNES DISPONIBLES ── */}
         <section style={{ padding: 'clamp(4rem, 7vw, 6rem) 4vw', maxWidth: '1180px', margin: '0 auto' }}>
           <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: SIGNAL, marginBottom: '1rem', fontWeight: 500 }}>
-            // 13 colonnes par ligne
+            // 14 colonnes par ligne
           </p>
           <h2 style={{
             fontFamily: 'var(--font-serif)',
@@ -290,6 +295,7 @@ export default function MedecinsKols() {
             {[
               { icon: BadgeCheck,  t: 'Titre et identité',     s: 'Pr, Dr, M., Mme + nom et prénom' },
               { icon: Stethoscope, t: 'Spécialité médicale',   s: `${MEDECINS_KOLS_SPECIALITES} spécialités normalisées, filtrables directement` },
+              { icon: GitMerge,    t: 'Surspécialités',         s: `${fr(MEDECINS_KOLS_SURSPECIALITES)} praticiens portent une seconde casquette (allergologie, sommeil, addictologie…)` },
               { icon: Layers,      t: "Service d'origine",     s: "L'intitulé brut du service, plus fin que la spécialité" },
               { icon: Building2,   t: 'Établissement',         s: `CHU, CHRU, CLCC — ${fr(MEDECINS_KOLS_ETABS)} établissements nommés` },
               { icon: Landmark,    t: 'Société savante',       s: `${MEDECINS_KOLS_SOCIETES} sociétés, collèges et académies` },

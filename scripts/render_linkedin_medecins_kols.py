@@ -136,7 +136,7 @@ def render_sheet_mockup(width, rows_count=16):
     fn_font = font(F_SANS, 18)
     sub_font = font(F_MONO, 12)
     d.text((icon_x + icon_size + 12, y0 + 7),
-           "4 664 médecins KOL · France",
+           "4 704 médecins KOL · France",
            font=fn_font, fill=(32, 33, 36, 255))
     d.text((icon_x + icon_size + 12, y0 + 30),
            "Google Sheets · partagé",
@@ -279,14 +279,14 @@ def render_og() -> Image.Image:
 
     # Titre : Instrument Serif n'est pas dans le pack, on reste sur le sans bold
     title_font = font(F_SANS_BOLD, 46)
-    for i, line in enumerate(["4 664 médecins", "KOL en France"]):
+    for i, line in enumerate(["4 704 médecins", "KOL en France"]):
         d.text((x, 188 + i * 56), line, font=title_font, fill=INK)
 
     sub_font = font(F_SANS, 19)
     for i, line in enumerate([
         "PU-PH, chefs de service, sociétés savantes",
         "et comités de rédaction. 324 établissements,",
-        "73 sociétés, 151 revues, 63 spécialités.",
+        "76 sociétés, 151 revues, 63 spécialités.",
     ]):
         d.text((x, 322 + i * 30), line, font=sub_font, fill=STEEL)
 
