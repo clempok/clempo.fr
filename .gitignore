@@ -44,3 +44,6 @@ reports-rebrand/extracted/
 reports-rebrand/qa/
 reports-rebrand/fonts/
 reports-rebrand/output/
+
+# Previews HTML temporaires (Browser pane, artifacts de session) : local only
+.tmp-preview/
