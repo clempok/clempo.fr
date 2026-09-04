@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useLang } from '../contexts/LangContext'
-import { Calendar, Clock, ChevronLeft, ChevronRight, Check, User, Mail, MessageSquare, ArrowLeft, AlertCircle } from 'lucide-react'
+import { Calendar, Clock, ChevronLeft, ChevronRight, Check, User, Mail, Phone, MessageSquare, ArrowLeft, AlertCircle } from 'lucide-react'
 
 // ── Brand Book 2026 — Ink / Paper / Signal ──
 const ACCENT = '#0A0A0B'              // Ink (primary CTA)
@@ -129,6 +129,10 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
     firstName: isFr ? 'Prénom' : 'First name',
     lastName: isFr ? 'Nom' : 'Last name',
     email: 'Email',
+    phone: isFr ? 'Portable' : 'Mobile number',
+    phoneHint: isFr
+      ? 'Pour vous joindre si le lien Meet ne fonctionne pas.'
+      : 'So I can reach you if the Meet link fails.',
     message: isFr ? 'Message (optionnel)' : 'Message (optional)',
     confirm: isFr ? 'Confirmer la réservation' : 'Confirm booking',
     confirming: isFr ? 'Confirmation en cours...' : 'Confirming...',
@@ -172,7 +176,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [step, setStep] = useState<Step>('select')
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', message: '' })
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', message: '' })
   const [busy, setBusy] = useState<BusyInterval[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string>('')
@@ -283,6 +287,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
           firstName: form.firstName,
           lastName: form.lastName,
           email: form.email,
+          phone: form.phone,
           message: form.message,
           lang,
         }),
@@ -312,7 +317,7 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
     setStep('select')
     setSelectedSlot(null)
     setSelectedDay(null)
-    setForm({ firstName: '', lastName: '', email: '', message: '' })
+    setForm({ firstName: '', lastName: '', email: '', phone: '', message: '' })
     setErrorMessage('')
   }
 
@@ -810,6 +815,35 @@ export default function Booking({ embedded = false }: BookingProps = {}) {
                     onFocus={e => (e.currentTarget.style.borderColor = ACCENT)}
                     onBlur={e => (e.currentTarget.style.borderColor = BORDER)}
                   />
+                </div>
+
+                <div>
+                  <div style={{ position: 'relative' }}>
+                    <Phone size={14} color={MUTED} style={{
+                      position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)',
+                    }} />
+                    <input
+                      required
+                      type="tel"
+                      name="phone"
+                      autoComplete="tel"
+                      inputMode="tel"
+                      placeholder={t.phone}
+                      value={form.phone}
+                      onChange={e => setForm({ ...form, phone: e.target.value })}
+                      style={{ ...inputStyle, paddingLeft: '2.5rem' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = ACCENT)}
+                      onBlur={e => (e.currentTarget.style.borderColor = BORDER)}
+                    />
+                  </div>
+                  <p style={{
+                    margin: '0.4rem 0 0',
+                    fontSize: '0.72rem',
+                    color: MUTED,
+                    fontFamily: "'Inter', sans-serif",
+                  }}>
+                    {t.phoneHint}
+                  </p>
                 </div>
 
                 <div style={{ position: 'relative' }}>

@@ -702,6 +702,7 @@ export async function upsertContact(
     firstName?: string
     lastName?: string
     company?: string
+    phone?: string
     source?: string
     status?: CrmStatus
     notes?: string
@@ -730,6 +731,7 @@ export async function upsertContact(
         }
         existing.firstName = existing.firstName || input.firstName || ''
         existing.lastName = existing.lastName || input.lastName || ''
+        if (input.phone && !existing.phone) existing.phone = input.phone
         if (input.source && !existing.source.includes(input.source)) {
           existing.source = existing.source ? `${existing.source}, ${input.source}` : input.source
         }
@@ -799,6 +801,7 @@ export async function upsertContact(
         email,
         firstName: input.firstName || '',
         lastName: input.lastName || '',
+        ...(input.phone ? { phone: input.phone } : {}),
         source: input.source || 'Manual',
         notes: input.notes || '',
         createdAt: now,

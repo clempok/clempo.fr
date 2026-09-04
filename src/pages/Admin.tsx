@@ -1491,6 +1491,7 @@ function AnalyticsView({ password }: { password: string }) {
                     {ev.type === 'booking' ? (
                       <>
                         {`${ev.date || ''} ${ev.hour !== undefined ? `${String(ev.hour).padStart(2, '0')}:${String(ev.minute || 0).padStart(2, '0')}` : ''}`.trim()}
+                        {ev.phone ? <div style={{ marginTop: '2px' }}><a href={`tel:${ev.phone.replace(/[^+0-9]/g, '')}`} style={{ color: ACCENT, fontSize: '0.75rem' }}>{ev.phone}</a></div> : null}
                         {ev.message ? <div style={{ color: '#999', fontSize: '0.7rem', marginTop: '2px' }}>« {ev.message} »</div> : null}
                         {ev.bookingError ? <div style={{ color: '#991b1b', fontSize: '0.7rem', marginTop: '2px', fontFamily: 'monospace', wordBreak: 'break-all' }}>{ev.bookingError.slice(0, 120)}{ev.bookingError.length > 120 ? '…' : ''}</div> : null}
                         {ev.hangoutLink ? <div style={{ marginTop: '2px' }}><a href={ev.hangoutLink} target="_blank" rel="noreferrer" style={{ color: ACCENT, fontSize: '0.7rem' }}>Meet →</a></div> : null}

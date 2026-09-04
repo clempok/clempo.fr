@@ -64,7 +64,7 @@ const handler: Handler = async (event) => {
   let attemptId: string | null = null
 
   try {
-    const { date, hour, minute, firstName, lastName, email, message, lang } = JSON.parse(event.body || '{}')
+    const { date, hour, minute, firstName, lastName, email, phone, message, lang } = JSON.parse(event.body || '{}')
 
     if (!date || hour === undefined || minute === undefined || !firstName || !lastName || !email) {
       return { statusCode: 400, body: 'Missing required fields' }
@@ -76,6 +76,7 @@ const handler: Handler = async (event) => {
       firstName,
       lastName,
       email,
+      phone,
       date,
       hour,
       minute,
@@ -96,6 +97,7 @@ const handler: Handler = async (event) => {
       isFr ? 'Rendez-vous de 30 minutes' : '30-minute meeting',
       '',
       `${firstName} ${lastName} <${email}>`,
+      phone ? `Tel : ${phone}` : null,
       message ? '' : null,
       message || null,
     ].filter(x => x !== null).join('\n')
@@ -161,8 +163,9 @@ const handler: Handler = async (event) => {
         email,
         firstName,
         lastName,
+        phone,
         source: 'Booking',
-        notes: message ? `RDV ${date} ${hour}:${minute} — ${message}` : `RDV ${date} ${hour}:${minute}`,
+        notes: message ? `RDV ${date} ${hour}:${minute} : ${message}` : `RDV ${date} ${hour}:${minute}`,
       },
       'Lead',
     )
@@ -174,16 +177,18 @@ const handler: Handler = async (event) => {
     await addTaskToContactCompany(email, {
       title: `Prépa rdv ${firstName} ${lastName}`,
       dueDate: prepDate,
-      description: `Préparer le RDV du ${date} à ${pad(hour)}:${pad(minute)} avec ${firstName} ${lastName}${message ? `\n\nMessage : ${message}` : ''}`,
+      description: `Préparer le RDV du ${date} à ${pad(hour)}:${pad(minute)} avec ${firstName} ${lastName}${phone ? `\nPortable : ${phone}` : ''}${message ? `\n\nMessage : ${message}` : ''}`,
     })
 
     // Create a CRM task on the booking date
     await addTaskToContactCompany(email, {
       title: `RDV ${firstName} ${lastName} — ${pad(hour)}:${pad(minute)}`,
       dueDate: date,
-      description: message
-        ? `RDV de 30 min pris sur clempo.fr\n\nMessage : ${message}`
-        : 'RDV de 30 min pris sur clempo.fr',
+      description: [
+        'RDV de 30 min pris sur clempo.fr',
+        phone ? `Portable : ${phone}` : null,
+        message ? `\nMessage : ${message}` : null,
+      ].filter(Boolean).join('\n'),
     })
 
     const eventData = await calendarRes.json()
@@ -232,6 +237,12 @@ const handler: Handler = async (event) => {
               <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Email</td>
               <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">
                 <a href="mailto:${email}" style="color: #1A1A6B;">${email}</a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Portable</td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-weight: 600;">
+                ${phone ? `<a href="tel:${String(phone).replace(/[^+0-9]/g, '')}" style="color: #1A1A6B;">${phone}</a>` : 'non renseigné'}
               </td>
             </tr>
             ${message ? `
